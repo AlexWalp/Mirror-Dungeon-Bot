@@ -63,7 +63,7 @@ def chain(res):
 
 def fight():
     is_tobattle = check("TOBATTLE.png", region=(1586, 820, 254, 118), skip_wait=True, path=PATH)
-    if not is_tobattle and not check("battleEGO.png", region=(1525, 104, 86, 81), skip_wait=True, path=PATH): return False
+    if not is_tobattle and not check("battleEGO.png", region=(1525, 104, 395, 81), skip_wait=True, path=PATH): return False
     elif is_tobattle: select(sinners)
 
     print("Entered Battle")
@@ -76,7 +76,7 @@ def fight():
 
 
     while True:
-        if check("battleEGO.png", region=(1525, 104, 86, 81), wait=1, path=PATH):
+        if check("battleEGO.png", region=(1525, 104, 395, 81), wait=1, path=PATH):
             gui.click(500, 83, duration=0.1)
 
             try:
