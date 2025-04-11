@@ -3,6 +3,7 @@ errors
 ObjectDetection/abno
 venv
 build
+data
 game.log
 testing.py
 stats.py

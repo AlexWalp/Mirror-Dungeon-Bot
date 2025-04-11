@@ -36,14 +36,14 @@ def pack_eval(level, regions, skip):
     elif level == 2: priority = ["Chicken"]
     else: priority = []
 
-    # worst packs
+    # worst packs (suboptimal time)
     banned = []
     if level == 1 or level == 2:
         banned = ["Factory", "Unloving", "Faith"]
     if level == 2 or level == 3:
         banned += ["Crushed"]
     if level == 4 or level == 5:
-        banned = ["Violet", "WARP", "Express", "Full", "Bullet", "Stopped", "Pride", "Abyss", "Time"]
+        banned = ["Violet", "WARP", "Express", "Full", "Bullet", "Stopped", "Pride", "Abyss", "Time", "Nlocturnal", "Sweeping"]
         # currently Full-Stop floor breaks pathing function, so we avoid it
 
     # getting text from pack names
@@ -88,8 +88,6 @@ def pack_eval(level, regions, skip):
     if not filtered and skip != 3: # if all packs are S.H.I.T.
         return None
     elif not filtered:
-        # currently, theoretical chance of this event is only 2.7*10^-13 % on floor 4
-        # it is impossible for other floors
         print("May Ayin save us all!") # we have to pick S.H.I.T. 
         return 0 # 16 and 5 
 

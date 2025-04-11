@@ -4,7 +4,7 @@ from event import event
 PATH = pth(UI_PATH, "battle")
 SINS = [name for name in os.listdir(pth(PATH, "sins"))]
 
-sinners = ["YISANG", "FAUST" , "ISHMAEL", "RODION", "SINCLAIR", "GREGOR"]
+sinners = ["YISANG", "DONQUIXOTE" , "ISHMAEL", "RODION", "SINCLAIR", "GREGOR"]
 
 SINNERS = {
     "YISANG"    : ( 351, 207, 196, 285),

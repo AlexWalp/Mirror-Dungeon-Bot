@@ -95,8 +95,8 @@ def locateAllOnScreenRGBA(button, region=(0, 0, 1920, 1080), confidence=0.8, gra
         yield Box(match_x, match_y, match_w, match_h)
 
 
-def locateOnScreenRGBA(button, region=(0, 0, 1920, 1080), confidence=0.8, grayscale=True, path=UI_PATH, A=False):
-    match = next(locateAllOnScreenRGBA(button, region, confidence, grayscale, path, A=A), None)
+def locateOnScreenRGBA(button, region=(0, 0, 1920, 1080), confidence=0.8, grayscale=True, path=UI_PATH, A=False, screenshot=None):
+    match = next(locateAllOnScreenRGBA(button, region, confidence, grayscale, path, A=A, screenshot=screenshot), None)
     
     if match is None:
         raise gui.ImageNotFoundException
@@ -132,13 +132,13 @@ def locate_all(imagefullpath, conf, region=(0, 0, 1920, 1080), path=UI_PATH, scr
         return positions
     
 
-def check(button: str, path=UI_PATH, click=False, region=(0, 0, 1920, 1080), conf=0.8, skip_wait=False, wait=5, error=False, grayscale=True, A=False):
+def check(button: str, path=UI_PATH, click=False, region=(0, 0, 1920, 1080), conf=0.8, skip_wait=False, wait=5, error=False, grayscale=True, A=False, screenshot=None):
     if skip_wait:
         wait = 0.1
 
     for i in range(int(wait * 10)):
         try:
-            res = locateOnScreenRGBA(button, region=region, confidence=conf, path=path, grayscale=grayscale, A=A)
+            res = locateOnScreenRGBA(button, region=region, confidence=conf, path=path, grayscale=grayscale, A=A, screenshot=screenshot)
             print(f"located {button[:-4]}")
 
             if click:
@@ -191,6 +191,8 @@ def find_image_with_brightness_filter(image_path, region, threshold=80, click=Fa
 
     hsv_filtered = cv2.merge([h, s, v])
     screenshot_filtered = cv2.cvtColor(hsv_filtered, cv2.COLOR_HSV2BGR)
+    cv2.imshow("eblanishe", screenshot_filtered)
+    cv2.waitKey()
 
     template = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
 
@@ -274,5 +276,3 @@ def locateOnScreenEdges(button, region=(0, 0, 1920, 1080), confidence=0.8, path=
     
     match_w, match_h = template.shape[1], template.shape[0]
     return Box(int(match_x), int(match_y), int(match_w), int(match_h))
-
-connection()

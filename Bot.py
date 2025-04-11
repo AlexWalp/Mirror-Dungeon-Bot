@@ -13,6 +13,7 @@ def dungeon_start():
         check(pth("start", "Drive.png"), region=(1229, 896, 156, 139), click=True, error=True)
         check(pth("start", "MD.png"), region=(528, 354, 279, 196), click=True, error=True)
         check(pth("start", "Start.png"), region=(1473, 657, 315, 161), click=True, error=True)
+        time.sleep(0.2)
 
         check(pth("start", "enterInvert.png"), region=(943, 669, 382, 106), click=True, error=True)
         gui.moveTo(1726, 978)
@@ -74,6 +75,7 @@ def dungeon_end():
         gui.moveTo(1700, 1026)
 
         check(pth("end", "Claim.png"), click=True, region=(1540, 831, 299, 132), error=True)
+        time.sleep(0.2)
         check(pth("end", "ClaimInvert.png"), click=True, region=(1156, 776, 360, 94), error=True)
         check(pth("end", "ConfirmInvert.png"), click=True, region=(987, 704, 318, 71), error=True)
 

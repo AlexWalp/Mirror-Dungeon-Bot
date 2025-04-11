@@ -52,7 +52,7 @@ Or manually install:
 
 1. **Team Setup:** 
    - ChargeGrinder is currently tested with an Uptie 4 burn team (the fastest team for easy MD)
-   - Team members: Faust, Ishmael, Gregor, Sinclair, YiSang and Rodion
+   - Team members: Don, Ishmael, Gregor, Sinclair, YiSang and Rodion
 # ![team.png](team.png)
    - The team is inspired by this MD5 speedrun: 
 # [![Watch on YouTube](https://img.youtube.com/vi/dCUUHMLDWkY/0.jpg)](https://www.youtube.com/watch?v=dCUUHMLDWkY)

@@ -69,10 +69,10 @@ def grab_card():
         if check(f"{i}.png", region=(219, 283, 1531, 242), skip_wait=True, click=True, path=CARD_PATH):
 
             check("EGOconfirm.png", region=(1118, 754, 189, 70), click=True, error=True) # confirm card
-            check("EGOconfirm.png", region=(791, 745, 336, 104), wait=1, click=True)     # confirm ego
 
             start_time = time.time()
             while check("encounterreward.png", region=(412, 165, 771, 72), skip_wait=True, path=PATH):
+                check("EGOconfirm.png", region=(791, 745, 336, 104), skip_wait=True, click=True)     # confirm ego
                 if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
                 time.sleep(0.1)
             

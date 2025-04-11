@@ -265,18 +265,24 @@ def balance(money):
 
 
 def buy(to_buy, tier):
+    shop_shelf = np.array(gui.screenshot(region=(809, 300, 942, 402)))
+
+    for ignore in ["purchased.png", "cost.png"]:
+        found = [gui.center(box) for box in locate_all(pth("shop", ignore), conf=0.8, region=(809, 300, 942, 402), screenshot=shop_shelf, threshold=20)]
+        for res in found:
+            cv2.rectangle(shop_shelf, (int(res[0] - 70 - 809), int(res[1] - 25 - 300)), (int(res[0] + 70 - 809), int(res[1] + 150 - 300)), (0, 0, 0), -1)
+
     output = False
     for gift in to_buy:
-        if check(pth("teams", "Burn", "buy", gift), region=(809, 300, 942, 402), click=True, skip_wait=True, grayscale=False):
+        if check(pth("teams", "Burn", "buy", gift), region=(809, 300, 942, 402), click=True, skip_wait=True, grayscale=False, screenshot=shop_shelf):
             check("purchase.png", region=(972, 679, 288, 91), click=True, path=PATH)
             check("EGOconfirm.png", region=(791, 745, 336, 104), click=True)
             output = True
     time.sleep(0.1)
-    try:
-        find_image_with_brightness_filter(pth(UI_PATH, "teams", "Burn", "buy", f"{tier}.png"), region=(809, 300, 942, 402), click=True)
+    if check(pth(UI_PATH, "teams", "Burn", "buy", f"{tier}.png"), region=(809, 300, 942, 402), skip_wait=True, grayscale=False, click=True, screenshot=shop_shelf):
         check("purchase.png", region=(972, 679, 288, 91), click=True, path=PATH)
         check("EGOconfirm.png", region=(791, 745, 336, 104), click=True)
-    except gui.ImageNotFoundException:
+    else:
         return output
     return True
 
@@ -316,7 +322,7 @@ def leave():
     
 
 def shop(level, to_buy):
-    if not check("shop.png", region=(208, 667, 172, 80), skip_wait=True, path=PATH): return False
+    if not check("shop.png", region=(332, 158, 121, 55), skip_wait=True, path=PATH): return False
 
     if level == 1:
         gui.click(250, 581) # enhancing
