@@ -107,10 +107,10 @@ def move():
     paths = directions()
     regions = [(624, 101 + i*275, 282, 275) for i in range(3) if paths[i]]
 
-    ## data collection
-    regions_screenshot = [(624, 101 + i*275, 282, 275) for i in range(3)]
-    for i, region in enumerate(regions_screenshot):
-        gui.screenshot(f"data/{int(time.time())}_{i}.png", region=region) # debugging
+    ## data collection (Sorry I forgot to comment it earlier)
+    # regions_screenshot = [(624, 101 + i*275, 282, 275) for i in range(3)]
+    # for i, region in enumerate(regions_screenshot):
+    #     gui.screenshot(f"data/{int(time.time())}_{i}.png", region=region) # debugging
     ## data collection end
 
     if len(regions) == 1:
