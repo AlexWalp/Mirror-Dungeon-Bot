@@ -91,7 +91,18 @@ def enter():
 def move(): 
     if not check("Move.png", region=(1805, 107, 84, 86), skip_wait=True, path=PATH) or \
            check("EGOconfirm.png", region=(791, 745, 336, 104), skip_wait=True): return False
-
+    
+    # run fail detection
+    dead = [gui.center(box) for box in locate_all(pth("end", "0.png"), conf=0.9, region=(261, 1019, 1391, 41), threshold=50)]
+    if len(dead) >= 6:
+        gui.press("Esc")
+        time.sleep(0.5)
+        check(pth("end", "forfeit.png"), region=(662, 547, 151, 208), click=True)
+        time.sleep(0.5)
+        check(pth("end", "ConfirmInvert.png"), click=True, region=(987, 704, 318, 71))
+        connection()
+        return False
+    # fail detection end
 
     Dante = find_danteh()
     if Dante is None: 
@@ -136,3 +147,6 @@ def move():
         gui.click()
         enter()
         return True
+    
+
+move()

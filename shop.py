@@ -112,7 +112,8 @@ def enhance_glimpse():
             gui.click(250, 581, duration=0.1) # enhancing
             enhance(pth("teams", "Burn", "gifts", "glimpse.png")) # enhance glimpse
             check("power.png", region=(990, 832, 393, 91), path=PATH)
-            time.sleep(0.1)
+            connection()
+            time.sleep(0.3)
             gui.click(750, 873, duration=0.1) # enhancing done
             time.sleep(0.1)
             break
@@ -326,18 +327,25 @@ def shop(level, to_buy):
 
     if level == 1:
         gui.click(250, 581) # enhancing
-        enhance(pth("teams", "Burn", "gifts", "hellterfly.png"))
-        enhance(pth("teams", "Burn", "gifts", "fiery.png"))
-        check("power.png", region=(990, 832, 393, 91), path=PATH)
-        time.sleep(0.1)
-        gui.click(750, 873) # enhancing done
+        if not check("+.png", path=PATH, region=(925, 279, 758, 504), skip_wait=True, grayscale=False):
+            # we really are on the first floor
+            enhance(pth("teams", "Burn", "gifts", "hellterfly.png"))
+            enhance(pth("teams", "Burn", "gifts", "fiery.png"))
+            check("power.png", region=(990, 832, 393, 91), path=PATH)
+            time.sleep(0.1)
+            gui.click(750, 873) # enhancing done
 
-        buy_loop(to_buy, tier=3, skip=0, uptie=False)
+            buy_loop(to_buy, tier=3, skip=0, uptie=False)
 
+            leave()
+        else:
+            # the bot was started midway, so this is not the first floor
+            level = 2
+            time.sleep(0.1)
+            gui.click(750, 873) # enhancing done
+    if level == 5:
         leave()
-    elif level == 5:
-        leave()
-    else:
+    elif level > 1:
         fuse_loop(to_buy)
         leave()
 

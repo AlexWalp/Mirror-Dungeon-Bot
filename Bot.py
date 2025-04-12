@@ -96,6 +96,36 @@ def dungeon_end():
     print("MD Finished!")
 
 
+def dungeon_fail(): # 261 1019 and 1652, 1060
+    try:
+        if check(pth("end", "defeat.png"), region=(1426, 116, 366, 184), error=True):
+            gui.click(1693, 841)
+
+        gui.moveTo(1700, 1026)
+
+        check(pth("end", "Claim.png"), click=True, region=(1540, 831, 299, 132), error=True)
+        time.sleep(0.2)
+        check(pth("end", "GiveUp.png"), click=True, region=(400, 776, 360, 94), error=True)
+        check(pth("end", "ConfirmInvert.png"), click=True, region=(987, 704, 318, 71), error=True)
+
+        start_time = time.time()
+        while check("loading.png", region=(1577, 408, 302, 91)):
+            if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
+            print("loading screen...")
+            time.sleep(0.5)
+
+        check(pth("start", "Drive.png"), region=(1229, 896, 156, 139), error=True, wait=10)
+        time.sleep(0.5)
+
+    except RuntimeError:
+        print("Termination error")
+        logging.error("Termination error")
+        # gui.screenshot(f"errors/end{int(time.time())}.png") # debugging
+        # close_limbus()
+
+    print("MD Failed!")
+
+
 def main_loop():
 
     dungeon_start()
@@ -124,7 +154,13 @@ def main_loop():
         
         if check(pth("end", "victory.png"), region=(1478, 143, 296, 116), skip_wait=True):
             logging.info('Run Completed')
-            break
+            dungeon_end()
+            return True
+
+        if check(pth("end", "defeat.png"), region=(1426, 116, 366, 184), skip_wait=True):
+            logging.info('Run Failed')
+            dungeon_fail()
+            return False
         
         ck, level = pack(level)
         ck += move()
@@ -142,8 +178,6 @@ def main_loop():
             logging.error('We are stuck')
             gui.screenshot(pth(BASE_PATH, "errors", "stuck", f"{int(time.time())}.png")) # debugging
             close_limbus()
-
-    dungeon_end()
 
 
 def replay_loop():
@@ -163,7 +197,9 @@ def replay_loop():
 
     for i in range(number):
         logging.info(f'Iteration {i}')
-        main_loop()
+        completed = False
+        while not completed:
+            completed = main_loop()
 
 
 if __name__ == "__main__":
