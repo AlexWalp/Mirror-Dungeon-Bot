@@ -147,6 +147,3 @@ def move():
         gui.click()
         enter()
         return True
-    
-
-move()
