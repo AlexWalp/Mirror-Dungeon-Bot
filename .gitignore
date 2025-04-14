@@ -3,8 +3,11 @@ errors
 venv
 build
 data
+skill_data
 game.log
 testing.py
+skill_test.py
+skill_detection
 stats.py
 collect_files.py
 Depreciated.py

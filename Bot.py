@@ -96,7 +96,7 @@ def dungeon_end():
     print("MD Finished!")
 
 
-def dungeon_fail(): # 261 1019 and 1652, 1060
+def dungeon_fail():
     try:
         if check(pth("end", "defeat.png"), region=(1426, 116, 366, 184), error=True):
             gui.click(1693, 841)
@@ -131,7 +131,7 @@ def main_loop():
     dungeon_start()
 
     start_time = time.time()
-    while check(button="loading.png", region=(1577, 408, 302, 91), wait=1):
+    while check("loading.png", region=(1577, 408, 302, 91), wait=1):
         if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
         print("loading screen...")
         time.sleep(0.5)
@@ -141,10 +141,10 @@ def main_loop():
     buy = ["glimpseShop.png", "dustShop.png", "stewShop.png", "paraffinShop.png", "ashShop.png"]
 
     while True:
-        if check(button="ServerError.png", region=(651, 640, 309, 124), click=True, skip_wait=True):
+        if check("ServerError.png", region=(651, 640, 309, 124), click=True, skip_wait=True):
             logging.error('Server error happened')
 
-        if check(button="EventEffect.png", region=(710, 215, 507, 81), skip_wait=True):
+        if check("EventEffect.png", region=(710, 215, 507, 81), skip_wait=True):
             gui.click(773, 521)
             time.sleep(0.2)
             gui.click(967, 774)

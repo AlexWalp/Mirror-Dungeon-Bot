@@ -63,31 +63,42 @@ def detect_char(region=(0, 0, 1920, 1080), digit = False):
     return res
 
 
-def locateAllOnScreenRGBA(button, region=(0, 0, 1920, 1080), confidence=0.8, grayscale=True, path=UI_PATH, screenshot=None, A=False):
+def locateAllOnScreenRGBA(image, region=(0, 0, 1920, 1080), conf=0.9, grayscale=True, path=UI_PATH, screenshot=None, A=False):
     if screenshot is None:
         screenshot = gui.screenshot(region=region)
         screenshot = np.array(screenshot)
 
-    template = cv2.imread(pth(path, button), cv2.IMREAD_UNCHANGED)
+    if isinstance(image, str):
+        template = cv2.imread(pth(path, image), cv2.IMREAD_UNCHANGED)
+    else:
+        template = image
     x, y, _, _ = region
 
     if template.shape[-1] == 4:
         b, g, r, alpha = cv2.split(template)
-    else:
+    elif template.shape[-1] == 3:
         b, g, r = cv2.split(template)
         alpha = np.full_like(b, 255, dtype=np.uint8)
+    elif len(template.shape) == 2:  # Grayscale image
+        alpha = np.full_like(template, 255, dtype=np.uint8)
+        bgr_template = cv2.cvtColor(template, cv2.COLOR_GRAY2BGR)
+        b, g, r = cv2.split(bgr_template)
 
     mask = alpha > 0
     mask_uint8 = (mask * 255).astype(np.uint8)
 
     if grayscale:
-        screenshot_gray = cv2.cvtColor(screenshot, cv2.COLOR_RGB2GRAY)
-        template_gray = cv2.cvtColor(cv2.merge([b, g, r]), cv2.COLOR_BGR2GRAY)
+        if len(screenshot.shape) != 2:
+            screenshot = cv2.cvtColor(screenshot, cv2.COLOR_RGB2GRAY)
+        if len(template.shape) != 2:
+            template_gray = cv2.cvtColor(cv2.merge([b, g, r]), cv2.COLOR_BGR2GRAY)
+        else:
+            template_gray = template
         if A and not np.all(mask):
-            result = cv2.matchTemplate(screenshot_gray, template_gray, cv2.TM_CCOEFF_NORMED, mask=mask_uint8)
+            result = cv2.matchTemplate(screenshot, template_gray, cv2.TM_CCOEFF_NORMED, mask=mask_uint8)
         else:
             template_gray[~mask] = 0
-            result = cv2.matchTemplate(screenshot_gray, template_gray, cv2.TM_CCOEFF_NORMED)
+            result = cv2.matchTemplate(screenshot, template_gray, cv2.TM_CCOEFF_NORMED)
     else:
         screenshot_rgb = cv2.cvtColor(screenshot, cv2.COLOR_RGB2BGR)
         template_rgb = cv2.merge([b, g, r])
@@ -98,7 +109,7 @@ def locateAllOnScreenRGBA(button, region=(0, 0, 1920, 1080), confidence=0.8, gra
             result = cv2.matchTemplate(screenshot_rgb, template_rgb, cv2.TM_CCOEFF_NORMED)
 
 
-    locations = np.where(result >= confidence)
+    locations = np.where((result + 1)/2 >= conf)
     matches = zip(*locations[::-1])
 
     match_w, match_h = template.shape[1], template.shape[0]
@@ -110,8 +121,8 @@ def locateAllOnScreenRGBA(button, region=(0, 0, 1920, 1080), confidence=0.8, gra
         yield Box(match_x, match_y, match_w, match_h)
 
 
-def locateOnScreenRGBA(button, region=(0, 0, 1920, 1080), confidence=0.8, grayscale=True, path=UI_PATH, A=False, screenshot=None):
-    match = next(locateAllOnScreenRGBA(button, region, confidence, grayscale, path, A=A, screenshot=screenshot), None)
+def locateOnScreenRGBA(image, region=(0, 0, 1920, 1080), conf=0.9, grayscale=True, path=UI_PATH, A=False, screenshot=None):
+    match = next(locateAllOnScreenRGBA(image, region, conf, grayscale, path, A=A, screenshot=screenshot), None)
     
     if match is None:
         raise gui.ImageNotFoundException
@@ -132,12 +143,12 @@ def countdown(seconds): # no more than 99 seconds!
     print("Grinding Time!")
 
 
-def locate_all(imagefullpath, conf, region=(0, 0, 1920, 1080), path=UI_PATH, screenshot=None, threshold = 8):
+def locate_all(image, conf=0.9, region=(0, 0, 1920, 1080), path=UI_PATH, screenshot=None, threshold = 8):
     positions = []
 
     try:
         seen = set()
-        boxes = locateAllOnScreenRGBA(imagefullpath, confidence=conf, grayscale=False, region=region, path=path, screenshot=screenshot)
+        boxes = locateAllOnScreenRGBA(image, conf=conf, grayscale=False, region=region, path=path, screenshot=screenshot)
         for x, y, w, h in boxes:
             if any((abs(x - fx) <= threshold and abs(y - fy) <= threshold) for fx, fy, _, _ in positions):
                 continue
@@ -147,19 +158,19 @@ def locate_all(imagefullpath, conf, region=(0, 0, 1920, 1080), path=UI_PATH, scr
         return positions
     
 
-def check(button: str, path=UI_PATH, click=False, region=(0, 0, 1920, 1080), conf=0.8, skip_wait=False, wait=5, error=False, grayscale=True, A=False, screenshot=None):
+def check(image: str, path=UI_PATH, click=False, region=(0, 0, 1920, 1080), conf=0.9, skip_wait=False, wait=5, error=False, grayscale=True, A=False, screenshot=None):
     if skip_wait:
         wait = 0.1
 
     for i in range(int(wait * 10)):
         try:
-            res = locateOnScreenRGBA(button, region=region, confidence=conf, path=path, grayscale=grayscale, A=A, screenshot=screenshot)
-            print(f"located {button[:-4]}")
+            res = locateOnScreenRGBA(image, region=region, conf=conf, path=path, grayscale=grayscale, A=A, screenshot=screenshot)
+            print(f"located {image[:-4]}")
 
             if click:
                 gui.moveTo(gui.center(res), duration=0.1)
                 gui.doubleClick(duration=0.1)
-                print(f"clicked {button[:-4]}")
+                print(f"clicked {image[:-4]}")
     
             return True
         
@@ -167,7 +178,7 @@ def check(button: str, path=UI_PATH, click=False, region=(0, 0, 1920, 1080), con
             if not skip_wait:
                 time.sleep(0.1)
     
-    print(f"image {button} not found")
+    print(f"image {image} not found")
     if error:
         raise RuntimeError("Something unexpected happened. This code still needs debugging")
 
@@ -192,70 +203,15 @@ def close_limbus():
     exit()
 
 
-
-def find_image_with_brightness_filter(image_path, region, threshold=80, click=False): # for shop
-
-    screenshot = gui.screenshot(region=region)
-    screenshot = np.array(screenshot)
-
-    hsv = cv2.cvtColor(screenshot, cv2.COLOR_RGB2HSV)
-    h, s, v = cv2.split(hsv)
-
-    mask = v >= threshold
-    v[~mask] = 0
-
-    hsv_filtered = cv2.merge([h, s, v])
-    screenshot_filtered = cv2.cvtColor(hsv_filtered, cv2.COLOR_HSV2BGR)
-    cv2.imshow("eblanishe", screenshot_filtered)
-    cv2.waitKey()
-
-    template = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-
-    if template.shape[-1] == 4:
-        template = cv2.cvtColor(template, cv2.COLOR_BGRA2BGR)
-
-    screenshot_filtered = screenshot_filtered.astype(np.uint8)
-    template = template.astype(np.uint8)
-
-    result = cv2.matchTemplate(screenshot_filtered, template, cv2.TM_CCOEFF_NORMED)
-    _, max_val, _, max_loc = cv2.minMaxLoc(result)
-
-    confidence_threshold = 0.8  
-    if max_val >= confidence_threshold:
-        found_x, found_y = max_loc[0] + region[0], max_loc[1] + region[1]
-        if click:
-            gui.click(found_x, found_y, duration=0.1)
-        return found_x, found_y
-
-    raise gui.ImageNotFoundException
-
-
-def create_filtered_template(image_path, output_path, threshold=80): # template creation
-
-    template = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-
-    if template.shape[-1] == 4:
-        template = cv2.cvtColor(template, cv2.COLOR_BGRA2BGR)
-
-    hsv = cv2.cvtColor(template, cv2.COLOR_BGR2HSV)
-    h, s, v = cv2.split(hsv)
-
-    mask = v >= threshold
-    v[~mask] = 0
-
-    hsv_filtered = cv2.merge([h, s, v])
-    filtered_template = cv2.cvtColor(hsv_filtered, cv2.COLOR_HSV2BGR)
-
-    cv2.imwrite(output_path, filtered_template)
-    print(f"Filtered template saved to: {output_path}")
-
-
-def locateOnScreenEdges(button, region=(0, 0, 1920, 1080), confidence=0.8, path=f"{UI_PATH}/", canny_thresh1=300, canny_thresh2=300):
-    screenshot = gui.screenshot(region=region)
-    screenshot = np.array(screenshot)
+def locateOnScreenEdges(template, region=(0, 0, 1920, 1080), conf=0.9, path=f"{UI_PATH}/", canny_thresh1=300, canny_thresh2=300, screenshot=None, adaptive=False):
+    x, y, w, h = region
+    if screenshot is None:
+        screenshot = gui.screenshot(region=region)
+        screenshot = np.array(screenshot)
+    else:
+        screenshot = screenshot[y:h, x:w]
     
-    template = cv2.imread(pth(path, button), cv2.IMREAD_UNCHANGED)
-    x, y, _, _ = region
+    template = cv2.imread(pth(path, template), cv2.IMREAD_UNCHANGED)
     
     if template.shape[-1] == 4:
         b, g, r, alpha = cv2.split(template)
@@ -266,6 +222,13 @@ def locateOnScreenEdges(button, region=(0, 0, 1920, 1080), confidence=0.8, path=
     mask = alpha > 0
     
     screenshot_gray = cv2.cvtColor(screenshot, cv2.COLOR_RGB2GRAY)
+
+    if adaptive:
+        blurred = cv2.GaussianBlur(screenshot_gray, (5, 5), 0)
+        median = np.median(blurred)
+        canny_thresh1 = int(max(0, 0.7 * median))
+        canny_thresh2 = int(min(255, 1.3 * median))
+        print(canny_thresh1, canny_thresh2)
     
     template_merged = cv2.merge([b, g, r])
     template_gray = cv2.cvtColor(template_merged, cv2.COLOR_BGR2GRAY)
@@ -278,13 +241,13 @@ def locateOnScreenEdges(button, region=(0, 0, 1920, 1080), confidence=0.8, path=
     
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
     
-    if max_val < confidence:
-        print(f"No match found with confidence >= {confidence} (max: {max_val})")
+    if (max_val + 1) / 2 < conf:
+        print(f"No match found with confidence >= {conf} (max: {(max_val + 1) / 2})")
         raise gui.ImageNotFoundException
     
     match_x, match_y = max_loc
     
-    print(f"Edge match at ({match_x}, {match_y}) with confidence: {max_val}")
+    print(f"Edge match at ({match_x}, {match_y}) with confidence: {(max_val + 1) / 2}")
     
     match_x += x
     match_y += y

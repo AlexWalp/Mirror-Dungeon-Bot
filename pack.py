@@ -92,8 +92,8 @@ def pack_eval(level, regions, skip):
         return 0 # 16 and 5 
 
     # locating relevant ego gifts in floor rewards
-    ego_coords = [gui.center(box) for box in locate_all(pth("teams", "Burn", "littleBurn.png"), conf=0.8)]
-    owned_x = [box[0] + box[2] for box in locate_all("OwnedSmall.png", conf=0.8, path=PATH)]
+    ego_coords = [gui.center(box) for box in locate_all(pth("teams", "Burn", "littleBurn.png"))]
+    owned_x = [box[0] + box[2] for box in locate_all("OwnedSmall.png", path=PATH)]
 
     remove = set() # excluding owned ego gifts from evaluation
     for x in owned_x:
@@ -130,7 +130,7 @@ def pack(level):
     time.sleep(0.4)
 
     skips = 3
-    card_count = len(locate_all("PackCard.png", 0.7, path=PATH))
+    card_count = len(locate_all("PackCard.png", conf=0.85, path=PATH))
     offset = (5 - card_count)*161
     regions = [(182 + offset + 322 * i, 280, 291, 624) for i in range(card_count)]
 

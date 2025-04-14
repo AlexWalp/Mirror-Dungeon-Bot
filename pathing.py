@@ -12,7 +12,7 @@ NODE_LIST = ["event.png", "eventSmall.png",
 def find_danteh(): # looks for high resolution Dante
     for i in range(2):
         try:
-            Danteh = locateOnScreenRGBA(f"Danteh{i}.png", confidence=0.8, path=PATH)
+            Danteh = locateOnScreenRGBA(f"Danteh{i}.png", path=PATH)
             print("Danteh found")
             x, y = gui.center(Danteh)
             return x, y
@@ -23,7 +23,7 @@ def find_danteh(): # looks for high resolution Dante
 
 def find_bus(): # looks for low resolution Dante
     try:
-        Bus = locateOnScreenRGBA("Bus.png", confidence=0.55, grayscale=False, path=PATH)
+        Bus = locateOnScreenRGBA("Bus.png", conf=0.77, grayscale=False, path=PATH)
         print("Danteh found")
         x, y = gui.center(Bus)
         return x, y
@@ -93,7 +93,7 @@ def move():
            check("EGOconfirm.png", region=(791, 745, 336, 104), skip_wait=True): return False
     
     # run fail detection
-    dead = [gui.center(box) for box in locate_all(pth("end", "0.png"), conf=0.9, region=(261, 1019, 1391, 41), threshold=50)]
+    dead = [gui.center(box) for box in locate_all(pth("end", "0.png"), conf=0.95, region=(261, 1019, 1391, 41), threshold=50)]
     if len(dead) >= 6:
         gui.press("Esc")
         time.sleep(0.5)
@@ -131,9 +131,9 @@ def move():
         return True
 
     for node in NODE_LIST:
-        conf = 0.9
+        conf = 0.95
         if "event" in node:
-            conf = 0.8
+            conf = 0.9
         
         for region in regions:
             if check(node, region=region, click=True, skip_wait=True, conf=conf, path=PATH):

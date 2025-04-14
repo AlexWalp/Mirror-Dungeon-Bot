@@ -86,14 +86,14 @@ def inventory_check():
 
     for gift in to_get:
         try:
-            res = gui.center(locateOnScreenRGBA(pth("teams", "Burn", "gifts", gift), region=(920, 295, 790, 482), grayscale=False, confidence=0.7, A=True))
+            res = gui.center(locateOnScreenRGBA(pth("teams", "Burn", "gifts", gift), region=(920, 295, 790, 482), grayscale=False, conf=0.85, A=True))
             print(f"got {gift}")
             cv2.rectangle(image, (int(res[0] - 74 - 920), int(res[1] - 72 - 295)), (int(res[0] - 920), int(res[1] - 295)), (0, 0, 0), -1)
         except gui.ImageNotFoundException:
             continue
 
     for i in range(4, 0, -1):
-        found = [gui.center(box) for box in locate_all(pth("teams", "Burn", "gifts", f"{i}.png"), conf=0.8, region=(920, 295, 790, 482), screenshot=image, threshold=50)]
+        found = [gui.center(box) for box in locate_all(pth("teams", "Burn", "gifts", f"{i}.png"), region=(920, 295, 790, 482), screenshot=image, threshold=50)]
         for res in found:
             cv2.rectangle(image, (int(res[0] - 37 - 920), int(res[1] - 37 - 295)), (int(res[0] + 37 - 920), int(res[1] + 37 - 295)), (0, 0, 0), -1)
         for coord in found:
@@ -150,7 +150,7 @@ def fuse():
 
     glimpse_ck = False
     # get glimpse
-    if not check(pth("teams", "Burn", "gifts", "glimpse.png"), region=(920, 295, 790, 482), grayscale=False, skip_wait=True, conf=0.7, A=True):
+    if not check(pth("teams", "Burn", "gifts", "glimpse.png"), region=(920, 295, 790, 482), grayscale=False, skip_wait=True, conf=0.85, A=True):
         combo, missing = decide_fusion(4, items)
         if missing is None:
             for tier in combo:
@@ -218,7 +218,7 @@ def fuse():
         check("EGOconfirm.png", region=(990, 832, 393, 91), click=True)
         check("EGOconfirm.png", region=(791, 745, 336, 104), click=True)
 
-        if glimpse_ck and check(pth("teams", "Burn", "gifts", "glimpse.png"), region=(920, 295, 790, 482), grayscale=False, skip_wait=True, conf=0.7, A=True):
+        if glimpse_ck and check(pth("teams", "Burn", "gifts", "glimpse.png"), region=(920, 295, 790, 482), grayscale=False, skip_wait=True, conf=0.85, A=True):
             enhance_glimpse()
     return None
 
@@ -269,7 +269,7 @@ def buy(to_buy, tier):
     shop_shelf = np.array(gui.screenshot(region=(809, 300, 942, 402)))
 
     for ignore in ["purchased.png", "cost.png"]:
-        found = [gui.center(box) for box in locate_all(pth("shop", ignore), conf=0.8, region=(809, 300, 942, 402), screenshot=shop_shelf, threshold=20)]
+        found = [gui.center(box) for box in locate_all(pth("shop", ignore), region=(809, 300, 942, 402), screenshot=shop_shelf, threshold=20)]
         for res in found:
             cv2.rectangle(shop_shelf, (int(res[0] - 70 - 809), int(res[1] - 25 - 300)), (int(res[0] + 70 - 809), int(res[1] + 150 - 300)), (0, 0, 0), -1)
 
@@ -309,7 +309,7 @@ def buy_loop(to_buy, tier, skip, uptie=True):
 
 
 def enhance(image):
-    check(image, region=(925, 279, 758, 504), conf=0.7, click=True, grayscale=False)
+    check(image, region=(925, 279, 758, 504), conf=0.85, click=True, grayscale=False)
     for i in range(2):
         check("power.png", region=(990, 832, 393, 91), click=True, path=PATH)
         check("EGOconfirm.png", region=(990, 832, 393, 91), click=True)

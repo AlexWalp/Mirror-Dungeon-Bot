@@ -10,10 +10,10 @@ EGO_PATH = pth(PATH, "levels")
 def grab_EGO():
     if not check("EGObin.png", region=(69, 31, 123, 120), skip_wait=True, path=PATH): return False
 
-    owned = locate_all("Owned.png", region=(0, 216, 1725, 50), path=PATH, conf=0.8)
+    owned = locate_all("Owned.png", region=(0, 216, 1725, 50), path=PATH)
     owned_x = [box[0] + box[2] for box in owned]
 
-    ego = locate_all(pth("teams", "Burn", "Burn.png"), region=(0, 309, 1920, 110), conf=0.8)
+    ego = locate_all(pth("teams", "Burn", "Burn.png"), region=(0, 309, 1920, 110))
     ego = [gui.center(coord) for coord in ego]
 
     remove = set()
@@ -32,7 +32,7 @@ def grab_EGO():
         for i in range(len(ego)):
             for lvl in range(4, 0, -1):
                 try:
-                    locateOnScreenRGBA(f"{lvl}.png", region=(int(ego[i][0] - 106), int(ego[i][1] - 101), 66, 59), confidence=0.7, grayscale=False, path=EGO_PATH)
+                    locateOnScreenRGBA(f"{lvl}.png", region=(int(ego[i][0] - 106), int(ego[i][1] - 101), 66, 59), conf=0.85, grayscale=False, path=EGO_PATH)
                     weights[i] = lvl
                     break
                 except gui.ImageNotFoundException:
@@ -44,7 +44,7 @@ def grab_EGO():
     else:
         for lvl in range(4, 0, -1):
             try:
-                res = locateOnScreenRGBA(f"{lvl}.png", region=(0, 309, 1920, 110), confidence=0.8, grayscale=False, path=EGO_PATH)
+                res = locateOnScreenRGBA(f"{lvl}.png", region=(0, 309, 1920, 110), grayscale=False, path=EGO_PATH)
                 time.sleep(0.2)
                 gui.moveTo(gui.center(res), duration=0.1)
                 gui.click(duration=0.1)
