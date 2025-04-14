@@ -158,8 +158,8 @@ def fight():
             try:
                 gear_start = gui.center(locateOnScreenEdges("gear.png", region=(0, 761, 548, 179), conf=0.7, path=PATH))
                 gear_end = gui.center(locateOnScreenRGBA("gear2.png", region=(1000, 730, 900, 232), conf=0.8, path=PATH, A=True))
-                background = cv2.cvtColor(np.array(gui.screenshot(region=(int(gear_start.x + 100), 775, int(gear_end.x - gear_start.x - 200), 10))), cv2.COLOR_RGB2BGR)
-                # background = cv2.cvtColor(np.array(gui.screenshot(f"skill_data/{time.time()}.png", region=(int(gear_start.x + 100), 775, int(gear_end.x - gear_start.x - 200), 10))), cv2.COLOR_RGB2BGR)
+                # background = cv2.cvtColor(np.array(gui.screenshot(region=(int(gear_start.x + 100), 775, int(gear_end.x - gear_start.x - 200), 10))), cv2.COLOR_RGB2BGR)
+                background = cv2.cvtColor(np.array(gui.screenshot(f"skill_data/{time.time()}.png", region=(int(gear_start.x + 100), 775, int(gear_end.x - gear_start.x - 200), 10))), cv2.COLOR_RGB2BGR)
                 chain(gear_start, gear_end, background)
             except gui.ImageNotFoundException:
                 gui.press("p", 1, 0.1)
