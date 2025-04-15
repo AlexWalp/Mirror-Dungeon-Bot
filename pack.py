@@ -136,8 +136,12 @@ def pack(level):
 
     print(f"{card_count} Packs")
 
+    import random
+    id = random.choice([i for i in range(card_count)])
+
+
     for skip in range(skips + 1):
-        id = pack_eval(level, regions, skip)
+        # id = pack_eval(level, regions, skip)
         #gui.screenshot(f"choice/pack{int(time.time())}.png") # debugging
         if not id is None:
             region = regions[id]

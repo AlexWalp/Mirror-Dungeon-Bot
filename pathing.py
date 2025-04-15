@@ -83,9 +83,11 @@ def directions():
 
 
 def enter():
-    check("enter.png", region=(1537, 739, 310, 141), click=True, error=True, path=PATH)
-    gui.moveTo(1721, 999)
-    time.sleep(1)
+    if check("enter.png", region=(1537, 739, 310, 141), click=True, path=PATH, wait=1):
+        gui.moveTo(1721, 999)
+        time.sleep(0.5)
+        return True
+    return False
 
 
 def move(): 
@@ -103,6 +105,9 @@ def move():
         connection()
         return False
     # fail detection end
+
+    for i in range(6):
+        gui.scroll(1)
 
     Dante = find_danteh()
     if Dante is None: 
@@ -124,26 +129,34 @@ def move():
         gui.screenshot(f"data/{int(time.time())}_{i}.png", region=region) # debugging
     ## data collection end
 
-    if len(regions) == 1:
-        gui.moveTo(gui.center(regions[0]))
-        gui.click()
-        enter()
-        return True
+    import random
+    random.shuffle(regions_screenshot)
+    for region in regions_screenshot:
+        gui.click(gui.center(region))
+        if enter():
+            return True
+        continue
 
-    for node in NODE_LIST:
-        conf = 0.95
-        if "event" in node:
-            conf = 0.9
+    # if len(regions) == 1:
+    #     gui.moveTo(gui.center(regions[0]))
+    #     gui.click()
+    #     enter()
+    #     return True
+
+    # for node in NODE_LIST:
+    #     conf = 0.95
+    #     if "event" in node:
+    #         conf = 0.9
         
-        for region in regions:
-            if check(node, region=region, click=True, skip_wait=True, conf=conf, path=PATH):
-                enter()
+    #     for region in regions:
+    #         if check(node, region=region, click=True, skip_wait=True, conf=conf, path=PATH):
+    #             enter()
 
-                logging.info(f"Entering {node}")
+    #             logging.info(f"Entering {node}")
                 
-                return True
-    else:
-        gui.moveTo(gui.center(regions[0]))
-        gui.click()
-        enter()
-        return True
+    #             return True
+    # else:
+    #     gui.moveTo(gui.center(regions[0]))
+    #     gui.click()
+    #     enter()
+    #     return True

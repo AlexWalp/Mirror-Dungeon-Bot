@@ -52,7 +52,7 @@ def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=1
         pattern = np.zeros((y2-y1, x2-x1), dtype=np.uint8)
         pattern = np.maximum(pattern, region_mask)
         try:
-            locateOnScreenRGBA(pth("sins", f"{sin}.png"), region=(0, 0, 60, 10), conf=0.75, path=PATH, screenshot=pattern)
+            locateOnScreenRGBA(pth("sins", f"{sin}.png"), region=(0, 0, 60, 10), conf=0.85, path=PATH, screenshot=pattern)
             filtered.append(center[0])
         except gui.ImageNotFoundException:
             # print(sin)
