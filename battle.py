@@ -83,7 +83,8 @@ def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=1
         pattern = np.zeros((y2-y1, x2-x1), dtype=np.uint8)
         pattern = np.maximum(pattern, region_mask)
         try:
-            locateOnScreenRGBA(pth("sins", f"{sin}.png"), region=(0, 0, 60, 10), conf=0.85, path=PATH, screenshot=pattern)
+            if pattern.shape[1] < 33 : raise gui.ImageNotFoundException
+            locateOnScreenRGBA(pth("sins", f"{sin}.png"), region=(0, 0, pattern.shape[1], 10), conf=0.85, path=PATH, screenshot=pattern)
             filtered.append(center[0])
         except gui.ImageNotFoundException:
             # print(sin)
@@ -119,6 +120,8 @@ def chain(gear_start, gear_end, background):
     for coord in skill3:
         bin_index = int(min(max((coord - 14 + 80*(2*((coord + gear_start[0] + 100)/1920) - 1)) // 115, 0), skill_num - 1)) # for full hd
         moves[bin_index] = True
+    print(gear_start)
+    print(gear_end)
     print(length)
     print(moves)
 
@@ -158,7 +161,7 @@ def fight():
 
             try:
                 gear_start = gui.center(locateOnScreenEdges("gear.png", region=(0, 761, 900, 179), conf=0.7, path=PATH))
-                gear_end = gui.center(locateOnScreenRGBA("gear2.png", region=(350, 730, 1570, 232), conf=0.8, path=PATH, A=True))
+                gear_end = gui.center(locateOnScreenEdges("gear2.png", region=(350, 730, 1570, 232), conf=0.7, path=PATH))
                 # background = cv2.cvtColor(np.array(gui.screenshot(region=(int(gear_start.x + 100), 775, int(gear_end.x - gear_start.x - 200), 10))), cv2.COLOR_RGB2BGR)
                 background = cv2.cvtColor(np.array(gui.screenshot(f"skill_data/{time.time()}.png", region=(int(gear_start.x + 100), 775, int(gear_end.x - gear_start.x - 200), 10))), cv2.COLOR_RGB2BGR)
                 chain(gear_start, gear_end, background)

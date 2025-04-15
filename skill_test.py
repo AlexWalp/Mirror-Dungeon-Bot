@@ -29,9 +29,7 @@ def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=1
 
             if 150 >= similar_pixels >= 20:
                 cluster_centers.append(center)
-    # print(sin)
-    # print(centroids)
-    # print(cluster_centers)
+    
     # merging neightbouring clusters
     merged = []
     while cluster_centers:
@@ -52,11 +50,11 @@ def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=1
         pattern = np.zeros((y2-y1, x2-x1), dtype=np.uint8)
         pattern = np.maximum(pattern, region_mask)
         try:
-            locateOnScreenRGBA(pth("sins", f"{sin}.png"), region=(0, 0, 60, 10), conf=0.85, path=PATH, screenshot=pattern)
+            if pattern.shape[1] < 33 : raise gui.ImageNotFoundException
+            locateOnScreenRGBA(pth("sins", f"{sin}.png"), region=(0, 0, pattern.shape[1], 10), conf=0.85, path=PATH, screenshot=pattern)
             filtered.append(center[0])
         except gui.ImageNotFoundException:
             # print(sin)
-            # cv2.imwrite(f"{time.time()}{sin}.png", pattern)
             continue
 
     return filtered
@@ -99,10 +97,10 @@ for sin in sins.keys():
     print(sin, count)
     cv2.imwrite(f"skill_detection/{sin}.png", stacked_image)
 
-# wrath 20
+# wrath 162
 # gloom 0
 # sloth 0
-# lust 4
-# pride 0
+# lust 58
+# pride 13
 # gluttony 0
-# envy 18
+# envy 155
