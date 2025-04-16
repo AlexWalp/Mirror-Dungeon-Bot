@@ -68,6 +68,9 @@ def locateAllOnScreenRGBA(image, region=(0, 0, 1920, 1080), conf=0.9, grayscale=
         screenshot = gui.screenshot(region=region)
         screenshot = np.array(screenshot)
 
+    if isinstance(screenshot, str):
+        screenshot = cv2.imread(screenshot, cv2.IMREAD_UNCHANGED)
+
     if isinstance(image, str):
         template = cv2.imread(pth(path, image), cv2.IMREAD_UNCHANGED)
     else:
