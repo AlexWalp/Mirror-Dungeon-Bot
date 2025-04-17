@@ -3,7 +3,6 @@ import time, os, sys
 print("Loading...")
 load_time = time.time()
 
-from abc import ABC, abstractmethod
 import numpy as np, pyautogui as gui, cv2, torchfree_ocr as myocr
 from PIL import Image
 
@@ -66,7 +65,7 @@ def detect_char(region=(0, 0, 1920, 1080), digit = False):
     return res
 
 
-class Locate(ABC): # if inputing np.ndarray, convert to BGR first!
+class Locate(): # if inputing np.ndarray, convert to BGR first!
     conf=0.9
     region=(0, 0, 1920, 1080)
 
@@ -109,9 +108,21 @@ class Locate(ABC): # if inputing np.ndarray, convert to BGR first!
             raise ValueError(f"Matching method {method} is not supported")
 
     @classmethod
-    @abstractmethod
-    def match(cls, template, image, **kwargs):
-        ...
+    def _convert(cls, template, image):
+        return template, image
+
+    @classmethod
+    def _match_core(cls, template, image, method):
+        return cv2.matchTemplate(image, template, method)
+
+    @classmethod
+    def _match(cls, template, image, region, conf, method=cv2.TM_CCOEFF_NORMED, **kwargs):
+        x_off, y_off, _, _ = region
+        template, image = cls._convert(template, image, **kwargs)
+        result = cls._match_core(template, image, method=method, **kwargs)
+        match_w, match_h = template.shape[1], template.shape[0]
+        for (x, y) in cls._compare(result, conf, method):
+            yield (x + x_off, y + y_off, match_w, match_h)
 
     @classmethod
     def _locate(cls, template, image=None, region=None, conf=None, **kwargs):
@@ -119,7 +130,7 @@ class Locate(ABC): # if inputing np.ndarray, convert to BGR first!
         conf = conf or cls.conf
         image = cls._prepare_image(image, region).astype(np.uint8)
         template = cls._load_template(template).astype(np.uint8)
-        return cls.match(template, image, region, conf, **kwargs)
+        return cls._match(template, image, region, conf, **kwargs)
 
     @classmethod
     def locate(cls, template, image=None, region=None, conf=None, **kwargs):
@@ -187,17 +198,10 @@ class LocateRGBA(Locate):
         return template, image
     
     @classmethod
-    def match(cls, template, image, region, conf, method=cv2.TM_CCORR_NORMED):
-        x_off, y_off, _, _ = region
-        # b, g, r, a = cv2.split(template)
-        # mask = a > 0
-        # mask_uint8 = (mask * 255).astype(np.uint8)
-        # template = cv2.merge([b, g, r])
-        template, image = cls._convert(template, image)
-        result = cv2.matchTemplate(image, template, method, mask=template)
-        match_w, match_h = template.shape[1], template.shape[0]
-        for (x, y) in cls._compare(result, conf, method):
-            yield (x + x_off, y + y_off, match_w, match_h)
+    def _match_core(cls, template, image, method):
+        if method == cv2.TM_CCOEFF_NORMED: # not supported by cv2
+            method = cv2.TM_SQDIFF_NORMED # default
+        return cv2.matchTemplate(image, template, method, mask=template)
 
 
 class LocateRGB(Locate):
@@ -208,15 +212,6 @@ class LocateRGB(Locate):
         if template.shape[2] == 4:
             template = cv2.cvtColor(template, cv2.COLOR_BGRA2BGR)
         return template, image
-    
-    @classmethod
-    def match(cls, template, image, region, conf, method=cv2.TM_CCOEFF_NORMED):
-        x_off, y_off, _, _ = region
-        template, image = cls._convert(template, image)
-        result = cv2.matchTemplate(image, template, method)
-        match_w, match_h = template.shape[1], template.shape[0]
-        for (x, y) in cls._compare(result, conf, method):
-            yield (x + x_off, y + y_off, match_w, match_h)
 
 
 class LocateGray(Locate):
@@ -227,190 +222,12 @@ class LocateGray(Locate):
         if len(template.shape) != 2:
             template = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
         return template, image
-    
-    @classmethod
-    def match(cls, template, image, region, conf, method=cv2.TM_CCOEFF_NORMED):
-        x_off, y_off, _, _ = region
-        template, image = cls._convert(template, image)
-        result = cv2.matchTemplate(image, template, method)
-        match_w, match_h = template.shape[1], template.shape[0]
-        for (x, y) in cls._compare(result, conf, method):
-            yield (x + x_off, y + y_off, match_w, match_h)
 
 
 class LocateEdges(LocateGray):
     @classmethod
-    def match(cls, template, image, region, conf, th1=300, th2=300, method=cv2.TM_CCOEFF_NORMED):
-        x_off, y_off, _, _ = region
-        template, image = cls._convert(template, image)
-
+    def _convert(cls, template, image, th1=300, th2=300):
+        template, image = super()._convert(template, image)
         image_edges = cv2.Canny(image, th1, th2)
         template_edges = cv2.Canny(template, th1, th2)
-
-        result = cv2.matchTemplate(image_edges, template_edges, method)
-        match_w, match_h = template.shape[1], template.shape[0]
-        for (x, y) in cls._compare(result, conf, method):
-            yield (x + x_off, y + y_off, match_w, match_h)
-
-
-def locateAllOnScreenRGBA(image, region=(0, 0, 1920, 1080), conf=0.9, grayscale=True, screenshot=None, A=False):
-    if screenshot is None:
-        screenshot = gui.screenshot(region=region)
-        screenshot = np.array(screenshot)
-
-    if isinstance(screenshot, str):
-        screenshot = cv2.imread(screenshot, cv2.IMREAD_UNCHANGED)
-
-    if isinstance(image, str):
-        template = cv2.imread(image, cv2.IMREAD_UNCHANGED)
-    else:
-        template = image
-    x, y, _, _ = region
-
-    if template.shape[-1] == 4:
-        b, g, r, alpha = cv2.split(template)
-    elif template.shape[-1] == 3:
-        b, g, r = cv2.split(template)
-        alpha = np.full_like(b, 255, dtype=np.uint8)
-    elif len(template.shape) == 2:  # Grayscale image
-        alpha = np.full_like(template, 255, dtype=np.uint8)
-        bgr_template = cv2.cvtColor(template, cv2.COLOR_GRAY2BGR)
-        b, g, r = cv2.split(bgr_template)
-
-    mask = alpha > 0
-    mask_uint8 = (mask * 255).astype(np.uint8)
-
-    if grayscale:
-        if len(screenshot.shape) != 2:
-            screenshot = cv2.cvtColor(screenshot, cv2.COLOR_RGB2GRAY)
-        if len(template.shape) != 2:
-            template_gray = cv2.cvtColor(cv2.merge([b, g, r]), cv2.COLOR_BGR2GRAY)
-        else:
-            template_gray = template
-        if A and not np.all(mask):
-            result = cv2.matchTemplate(screenshot, template_gray, cv2.TM_CCOEFF_NORMED, mask=mask_uint8)
-        else:
-            template_gray[~mask] = 0
-            result = cv2.matchTemplate(screenshot, template_gray, cv2.TM_CCOEFF_NORMED)
-    else:
-        screenshot_rgb = cv2.cvtColor(screenshot, cv2.COLOR_RGB2BGR)
-        template_rgb = cv2.merge([b, g, r])
-        if A and not np.all(mask):
-            result = cv2.matchTemplate(screenshot_rgb, template_rgb, cv2.TM_CCOEFF_NORMED, mask=mask_uint8)
-        else:
-            template_rgb[~mask] = 0
-            result = cv2.matchTemplate(screenshot_rgb, template_rgb, cv2.TM_CCOEFF_NORMED)
-
-
-    locations = np.where((result + 1)/2 >= conf)
-    matches = zip(*locations[::-1])
-
-    match_w, match_h = template.shape[1], template.shape[0]
-
-    for match_x, match_y in matches:
-        if region:
-            match_x += x
-            match_y += y
-        yield (match_x, match_y, match_w, match_h)
-
-
-def locateOnScreenRGBA(image, region=(0, 0, 1920, 1080), conf=0.9, grayscale=True, A=False, screenshot=None):
-    match = next(locateAllOnScreenRGBA(image, region, conf, grayscale, A=A, screenshot=screenshot), None)
-    
-    if match is None:
-        raise gui.ImageNotFoundException
-    
-    return match
-
-
-# def locate_all(image, conf=0.9, region=(0, 0, 1920, 1080), path=UI_PATH, screenshot=None, threshold = 8):
-#     positions = []
-
-#     try:
-#         seen = set()
-#         boxes = locateAllOnScreenRGBA(image, conf=conf, grayscale=False, region=region, path=path, screenshot=screenshot)
-#         for x, y, w, h in boxes:
-#             if any((abs(x - fx) <= threshold and abs(y - fy) <= threshold) for fx, fy, _, _ in positions):
-#                 continue
-#             positions.append(Box(x, y, w, h))
-#             seen.add((x, y))
-#     finally: 
-#         return positions
-    
-
-def check(image: str, click=False, region=(0, 0, 1920, 1080), conf=0.9, skip_wait=False, wait=5, error=False, grayscale=True, A=False, screenshot=None):
-    if skip_wait:
-        wait = 0.1
-
-    for i in range(int(wait * 10)):
-        try:
-            res = locateOnScreenRGBA(image, region=region, conf=conf, grayscale=grayscale, A=A, screenshot=screenshot)
-            print(f"located {image[:-4]}")
-
-            if click:
-                gui.moveTo(gui.center(res), duration=0.1)
-                gui.doubleClick(duration=0.1)
-                print(f"clicked {image[:-4]}")
-    
-            return True
-        
-        except gui.ImageNotFoundException:
-            if not skip_wait:
-                time.sleep(0.1)
-    
-    print(f"image {image} not found")
-    if error:
-        raise RuntimeError("Something unexpected happened. This code still needs debugging")
-
-#     return False
-# def locateOnScreenEdges(template, region=(0, 0, 1920, 1080), conf=0.9, path=f"{UI_PATH}/", canny_thresh1=300, canny_thresh2=300, screenshot=None, adaptive=False):
-#     x, y, w, h = region
-#     if screenshot is None:
-#         screenshot = gui.screenshot(region=region)
-#         screenshot = np.array(screenshot)
-#     else:
-#         screenshot = screenshot[y:h, x:w]
-    
-#     template = cv2.imread(pth(path, template), cv2.IMREAD_UNCHANGED)
-    
-#     if template.shape[-1] == 4:
-#         b, g, r, alpha = cv2.split(template)
-#     else:
-#         b, g, r = cv2.split(template)
-#         alpha = np.full_like(b, 255, dtype=np.uint8)
-    
-#     mask = alpha > 0
-    
-#     screenshot_gray = cv2.cvtColor(screenshot, cv2.COLOR_RGB2GRAY)
-
-#     if adaptive:
-#         blurred = cv2.GaussianBlur(screenshot_gray, (5, 5), 0)
-#         median = np.median(blurred)
-#         canny_thresh1 = int(max(0, 0.7 * median))
-#         canny_thresh2 = int(min(255, 1.3 * median))
-#         print(canny_thresh1, canny_thresh2)
-    
-#     template_merged = cv2.merge([b, g, r])
-#     template_gray = cv2.cvtColor(template_merged, cv2.COLOR_BGR2GRAY)
-    
-#     template_gray[~mask] = 0
-
-#     screenshot_edges = cv2.Canny(screenshot_gray, canny_thresh1, canny_thresh2)
-#     template_edges = cv2.Canny(template_gray, canny_thresh1, canny_thresh2)
-#     result = cv2.matchTemplate(screenshot_edges, template_edges, cv2.TM_CCOEFF_NORMED)
-    
-#     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
-    
-#     if (max_val + 1) / 2 < conf:
-#         print(f"No match found with confidence >= {conf} (max: {(max_val + 1) / 2})")
-#         raise gui.ImageNotFoundException
-    
-#     match_x, match_y = max_loc
-    
-#     print(f"Edge match at ({match_x}, {match_y}) with confidence: {(max_val + 1) / 2}")
-    
-#     match_x += x
-#     match_y += y
-    
-#     match_w, match_h = template.shape[1], template.shape[0]
-#     return Box(int(match_x), int(match_y), int(match_w), int(match_h))
+        return template_edges, image_edges
