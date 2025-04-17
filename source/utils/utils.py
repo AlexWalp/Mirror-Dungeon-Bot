@@ -67,7 +67,7 @@ def detect_char(region=(0, 0, 1920, 1080), digit = False):
 
 
 class Locate(ABC): # if inputing np.ndarray, convert to BGR first!
-    conf=0.8
+    conf=0.9
     region=(0, 0, 1920, 1080)
 
     @staticmethod
@@ -167,7 +167,7 @@ class Locate(ABC): # if inputing np.ndarray, convert to BGR first!
                     else: print("clicked image")
                 return True         
             except gui.ImageNotFoundException:
-                if wait:
+                if wait > 0.1:
                     time.sleep(0.1)
         if isinstance(template, str):
             print(f"image {os.path.splitext(os.path.basename(template))[0]} not found")
