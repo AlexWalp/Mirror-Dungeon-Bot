@@ -1,7 +1,6 @@
-from utils import *
-from event import event
+from .utils.utils import *
+from .event import event
 
-PATH = pth(UI_PATH, "battle")
 
 sinners = ["YISANG", "DONQUIXOTE" , "ISHMAEL", "RODION", "SINCLAIR", "GREGOR"]
 
@@ -84,7 +83,7 @@ def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=1
         pattern = np.maximum(pattern, region_mask)
         try:
             if pattern.shape[1] < 33 : raise gui.ImageNotFoundException
-            locateOnScreenRGBA(pth("sins", f"{sin}.png"), region=(0, 0, pattern.shape[1], 10), conf=0.85, path=PATH, screenshot=pattern)
+            LocateGray.try_locate(PTH[str(sin)], pattern, region=(0, 0, pattern.shape[1], 10), conf=0.74, method=cv2.TM_CCORR_NORMED)
             filtered.append(center[0])
         except gui.ImageNotFoundException:
             # print(sin)
@@ -95,11 +94,11 @@ def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=1
 
 
 def select(sinners):
-    selected = [gui.center(box) for box in locate_all(pth("battle", "selected.png"))]
+    selected = [gui.center(box) for box in LocateGray.locate_all(PTH["selected"])]
     num = len(selected)
     if num < 6:
         for sinner in sinners:
-            if not check(pth("battle", "selected.png"), region=SINNERS[sinner], skip_wait=True):
+            if not LocateGray.check(PTH["selected"], region=SINNERS[sinner], wait=False):
                 gui.click(gui.center(SINNERS[sinner]))
                 time.sleep(0.1)
                 num += 1 
@@ -120,10 +119,10 @@ def chain(gear_start, gear_end, background):
     for coord in skill3:
         bin_index = int(min(max((coord - 14 + 80*(2*((coord + gear_start[0] + 100)/1920) - 1)) // 115, 0), skill_num - 1)) # for full hd
         moves[bin_index] = True
-    print(gear_start)
-    print(gear_end)
-    print(length)
-    print(moves)
+    # print(gear_start)
+    # print(gear_end)
+    # print(length)
+    # print(moves)
 
     # Chaining
     gui.moveTo(gear_start)
@@ -142,44 +141,44 @@ def chain(gear_start, gear_end, background):
 
 
 def fight():
-    is_tobattle = check("TOBATTLE.png", region=(1586, 820, 254, 118), skip_wait=True, path=PATH)
-    if not is_tobattle and not check("battleEGO.png", region=(1525, 104, 395, 81), skip_wait=True, path=PATH): return False
+    is_tobattle = LocateGray.check(PTH["TOBATTLE"], region=(1586, 820, 254, 118), wait=False)
+    if not is_tobattle and not LocateGray.check(PTH["battleEGO"], region=(1525, 104, 395, 81), wait=False): return False
     elif is_tobattle: select(sinners)
 
     print("Entered Battle")
 
     start_time = time.time()
-    while check("loading.png", region=(1577, 408, 302, 91), wait=2):
+    while LocateGray.check(PTH["loading"], region=(1577, 408, 302, 91), wait=2):
         if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
         print("loading screen...")
         time.sleep(0.5)
 
 
     while True:
-        if check("battleEGO.png", region=(1525, 104, 395, 81), wait=1, path=PATH):
+        if LocateGray.check(PTH["battleEGO"], region=(1525, 104, 395, 81), wait=1):
             gui.click(500, 83, duration=0.1)
 
             try:
-                gear_start = gui.center(locateOnScreenEdges("gear.png", region=(0, 761, 900, 179), conf=0.7, path=PATH))
-                gear_end = gui.center(locateOnScreenEdges("gear2.png", region=(350, 730, 1570, 232), conf=0.7, path=PATH))
-                # background = cv2.cvtColor(np.array(gui.screenshot(region=(int(gear_start.x + 100), 775, int(gear_end.x - gear_start.x - 200), 10))), cv2.COLOR_RGB2BGR)
-                background = cv2.cvtColor(np.array(gui.screenshot(f"skill_data/{time.time()}.png", region=(int(gear_start.x + 100), 775, int(gear_end.x - gear_start.x - 200), 10))), cv2.COLOR_RGB2BGR)
+                gear_start = gui.center(LocateEdges.try_locate(PTH["gear"], region=(0, 761, 900, 179), conf=0.7))
+                gear_end = gui.center(LocateEdges.try_locate(PTH["gear2"], region=(350, 730, 1570, 232), conf=0.7))
+                background = cv2.cvtColor(np.array(gui.screenshot(region=(int(gear_start.x + 100), 775, int(gear_end.x - gear_start.x - 200), 10))), cv2.COLOR_RGB2BGR)
+                # background = cv2.cvtColor(np.array(gui.screenshot(f"skill_data/{time.time()}.png", region=(int(gear_start.x + 100), 775, int(gear_end.x - gear_start.x - 200), 10))), cv2.COLOR_RGB2BGR)
                 chain(gear_start, gear_end, background)
             except gui.ImageNotFoundException:
                 gui.press("p", 1, 0.1)
                 gui.press("enter", 1, 0.1)
 
-        if check(pth("event", "eventskip.png"), region=(850, 437, 103, 52), skip_wait=True):
+        if LocateGray.check(PTH["eventskip"], region=(850, 437, 103, 52), wait=False):
             event()
 
-        if check('loading.png', region=(1577, 408, 302, 91), skip_wait=True)  or \
-           check(pth("path", "Move.png"), region=(1805, 107, 84, 86), skip_wait=True) or \
-           check(pth("grab", "EGObin.png"), region=(69, 31, 123, 120), skip_wait=True)       or \
-           check(pth("grab", "encounterreward.png"), region=(412, 165, 771, 72), skip_wait=True) or \
-           check(pth("end", "victory.png"), region=(1478, 143, 296, 116), skip_wait=True):
+        if LocateGray.check(PTH["loading"], region=(1577, 408, 302, 91), wait=False)  or \
+           LocateGray.check(PTH["Move"], region=(1805, 107, 84, 86), wait=False) or \
+           LocateGray.check(PTH["EGObin"], region=(69, 31, 123, 120), wait=False)       or \
+           LocateGray.check(PTH["encounterreward"], region=(412, 165, 771, 72), wait=False) or \
+           LocateGray.check(PTH["victory"], region=(1478, 143, 296, 116), wait=False):
             
             start_time = time.time()
-            while check('loading.png', region=(1577, 408, 302, 91), skip_wait=True):
+            while LocateGray.check(PTH["loading"], region=(1577, 408, 302, 91), wait=False):
                 if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
                 time.sleep(0.1)
     
@@ -191,7 +190,7 @@ def fight():
         if gui.getActiveWindowTitle() != 'LimbusCompany':
             pause()
         
-        if check('pause.png', region=(1724, 16, 83, 84), skip_wait=True, path=PATH):
+        if LocateGray.check(PTH["pause"], region=(1724, 16, 83, 84), wait=False):
             time.sleep(1)
         else:
             time.sleep(0.2)

@@ -1,5 +1,5 @@
-from utils import *
-PATH = pth(UI_PATH, "battle")
+from source.utils.utils import *
+
 
 def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=100, sin="envy"):
     median_rgb = np.median(background, axis=(0, 1)).astype(int)
@@ -51,7 +51,7 @@ def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=1
         pattern = np.maximum(pattern, region_mask)
         try:
             if pattern.shape[1] < 33 : raise gui.ImageNotFoundException
-            locateOnScreenRGBA(pth("sins", f"{sin}.png"), region=(0, 0, pattern.shape[1], 10), conf=0.85, path=PATH, screenshot=pattern)
+            LocateGray.try_locate(PTH[sin], pattern, region=(0, 0, pattern.shape[1], 10), conf=0.74)
             filtered.append(center[0])
         except gui.ImageNotFoundException:
             # print(sin)
@@ -75,7 +75,7 @@ for sin in sins.keys():
     count = 0
 
     for filename in os.listdir("skill_data"):
-        file_path = pth("skill_data", filename)
+        file_path = os.path.join("skill_data", filename)
 
         background = cv2.imread(file_path, cv2.IMREAD_UNCHANGED)
 

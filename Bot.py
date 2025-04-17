@@ -1,30 +1,30 @@
-from utils import *
-from battle import fight
-from event import event
-from pack import pack
-from pathing import move
-from grab import grab_card, grab_EGO, confirm
-from shop import shop
+from source.utils.utils import *
+from source.battle import fight
+from source.event import event
+from source.pack import pack
+from source.move import move
+from source.grab import grab_card, grab_EGO, confirm
+from source.shop import shop
 
 
 
 def dungeon_start():
     try:
-        check(pth("start", "Drive.png"), region=(1229, 896, 156, 139), click=True, error=True)
-        check(pth("start", "MD.png"), region=(528, 354, 279, 196), click=True, error=True)
-        check(pth("start", "Start.png"), region=(1473, 657, 315, 161), click=True, error=True)
-        time.sleep(0.2)
+        LocateGray.check(PTH["Drive"], region=(1229, 896, 156, 139), click=True, error=True)
+        LocateGray.check(PTH["MD"], region=(528, 354, 279, 196), click=True, error=True)
+        LocateGray.check(PTH["Start"], region=(1473, 657, 315, 161), click=True, error=True)
+        time.sleep(0.5)
 
-        check(pth("start", "enterInvert.png"), region=(943, 669, 382, 106), click=True, error=True)
+        LocateGray.check(PTH["enterInvert"], region=(943, 669, 382, 106), click=True, error=True)
         gui.moveTo(1726, 978)
         gui.click()
-        if check(pth("start", "ConfirmTeam.png"), region=(1593, 830, 234, 90), error=True):
+        if LocateGray.check(PTH["ConfirmTeam"], region=(1593, 830, 234, 90), error=True):
             time.sleep(0.2)
             gui.click(1717, 878, duration=0.1)
 
         # Bonus Choice:
 
-        if check(pth("start", "enterBonus.png"), region=(1566, 974, 266, 89), error=True):
+        if LocateGray.check(PTH["enterBonus"], region=(1566, 974, 266, 89), error=True):
             time.sleep(0.1)
 
             gui.moveTo(401, 381, duration=0.2)
@@ -37,13 +37,13 @@ def dungeon_start():
             gui.doubleClick(duration=0.1)
             time.sleep(0.1)
     
-        check(pth("start", "enterBonus.png"), region=(1566, 974, 266, 89), click=True, error=True)
-        check("EGOconfirm.png", region=(957, 764, 330, 90), click=True, error=True)
+        LocateGray.check(PTH["enterBonus"], region=(1566, 974, 266, 89), click=True, error=True)
+        LocateGray.check(PTH["EGOconfirm"], region=(957, 764, 330, 90), click=True, error=True)
 
         # Starting EGO
 
         time.sleep(0.1)
-        check(pth("teams", "Burn", "BurnStart.png"), region=(198, 207, 937, 682), click=True, error=True)
+        LocateGray.check(PTH["BurnStart"], region=(198, 207, 937, 682), click=True, error=True)
         time.sleep(0.1)
         gui.moveTo(1239, 395, duration=0.1)
         gui.doubleClick()
@@ -54,14 +54,14 @@ def dungeon_start():
         gui.doubleClick()
         time.sleep(0.1)
 
-        check("EGOconfirm.png", region=(794, 745, 321, 102), click=True, error=True)
+        LocateGray.check(PTH["EGOconfirm"], region=(794, 745, 321, 102), click=True, error=True)
         time.sleep(0.2)
-        check("EGOconfirm.png", region=(794, 745, 321, 102), click=True, error=True)
+        LocateGray.check(PTH["EGOconfirm"], region=(794, 745, 321, 102), click=True, error=True)
 
     except RuntimeError:
         print("Initialization error")
         logging.error("Initialization error")
-        # gui.screenshot(f"errors/init{int(time.time())}.png") # debugging
+        # gui.screenshot(f"errors/init{int(time.time())}") # debugging
         # close_limbus()
 
     print("Entering MD!")
@@ -69,28 +69,28 @@ def dungeon_start():
 
 def dungeon_end():
     try:
-        if check(pth("end", "victory.png"), region=(1426, 116, 366, 154), error=True):
+        if LocateGray.check(PTH["victory"], region=(1426, 116, 366, 154), error=True):
             gui.click(1693, 841)
 
         gui.moveTo(1700, 1026)
 
-        check(pth("end", "Claim.png"), click=True, region=(1540, 831, 299, 132), error=True)
+        LocateGray.check(PTH["Claim"], region=(1540, 831, 299, 132), click=True, error=True)
         time.sleep(0.2)
-        check(pth("end", "ClaimInvert.png"), click=True, region=(1156, 776, 360, 94), error=True)
-        check(pth("end", "ConfirmInvert.png"), click=True, region=(987, 704, 318, 71), error=True)
+        LocateGray.check(PTH["ClaimInvert"], region=(1156, 776, 360, 94), click=True, error=True)
+        LocateGray.check(PTH["ConfirmInvert"], region=(987, 704, 318, 71), click=True, error=True)
 
         start_time = time.time()
-        while not check("loading.png", region=(1577, 408, 302, 91), skip_wait=True):
+        while not LocateGray.check(PTH["loading"], region=(1577, 408, 302, 91), wait=False):
             if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
-            check("EGOconfirm.png", region=(816, 657, 275, 96), skip_wait=True, click=True)
+            LocateGray.check(PTH["EGOconfirm"], region=(816, 657, 275, 96), wait=False, click=True)
 
-        check(pth("start", "Drive.png"), region=(1229, 896, 156, 139), error=True, wait=10)
+        LocateGray.check(PTH["Drive"], region=(1229, 896, 156, 139), error=True, wait=10)
         time.sleep(0.5)
 
     except RuntimeError:
         print("Termination error")
         logging.error("Termination error")
-        # gui.screenshot(f"errors/end{int(time.time())}.png") # debugging
+        # gui.screenshot(f"errors/end{int(time.time())}") # debugging
         # close_limbus()
 
     print("MD Finished!")
@@ -98,29 +98,29 @@ def dungeon_end():
 
 def dungeon_fail():
     try:
-        if check(pth("end", "defeat.png"), region=(1426, 116, 366, 184), error=True):
+        if LocateRGB.check(PTH["defeat"], region=(1426, 116, 366, 184), error=True):
             gui.click(1693, 841)
 
         gui.moveTo(1700, 1026)
 
-        check(pth("end", "Claim.png"), click=True, region=(1540, 831, 299, 132), error=True)
+        LocateGray.check(PTH["Claim"], region=(1540, 831, 299, 132), click=True, error=True)
         time.sleep(0.2)
-        check(pth("end", "GiveUp.png"), click=True, region=(400, 776, 360, 94), error=True)
-        check(pth("end", "ConfirmInvert.png"), click=True, region=(987, 704, 318, 71), error=True)
+        LocateGray.check(PTH["GiveUp"], region=(400, 776, 360, 94), click=True, error=True)
+        LocateGray.check(PTH["ConfirmInvert"], region=(987, 704, 318, 71), click=True, error=True)
 
         start_time = time.time()
-        while check("loading.png", region=(1577, 408, 302, 91)):
+        while LocateGray.check(PTH["loading"], region=(1577, 408, 302, 91)):
             if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
             print("loading screen...")
             time.sleep(0.5)
 
-        check(pth("start", "Drive.png"), region=(1229, 896, 156, 139), error=True, wait=10)
+        LocateGray.check(PTH["Drive"], region=(1229, 896, 156, 139), error=True, wait=10)
         time.sleep(0.5)
 
     except RuntimeError:
         print("Termination error")
         logging.error("Termination error")
-        # gui.screenshot(f"errors/end{int(time.time())}.png") # debugging
+        # gui.screenshot(f"errors/end{int(time.time())}") # debugging
         # close_limbus()
 
     print("MD Failed!")
@@ -131,20 +131,20 @@ def main_loop():
     dungeon_start()
 
     start_time = time.time()
-    while check("loading.png", region=(1577, 408, 302, 91), wait=1):
+    while LocateGray.check(PTH["loading"], region=(1577, 408, 302, 91), wait=1):
         if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
         print("loading screen...")
         time.sleep(0.5)
 
     error = 0
     level = 1
-    buy = ["glimpseShop.png", "dustShop.png", "stewShop.png", "paraffinShop.png", "ashShop.png"]
+    buy = ["glimpseShop", "dustShop", "stewShop", "paraffinShop", "ashShop"]
 
     while True:
-        if check("ServerError.png", region=(651, 640, 309, 124), click=True, skip_wait=True):
+        if LocateGray.check(PTH["ServerError"], region=(651, 640, 309, 124), click=True, wait=False):
             logging.error('Server error happened')
 
-        if check("EventEffect.png", region=(710, 215, 507, 81), skip_wait=True):
+        if LocateGray.check(PTH["EventEffect"], region=(710, 215, 507, 81), wait=False):
             gui.click(773, 521)
             time.sleep(0.2)
             gui.click(967, 774)
@@ -152,12 +152,12 @@ def main_loop():
         if gui.getActiveWindowTitle() != 'LimbusCompany':
             pause()
         
-        if check(pth("end", "victory.png"), region=(1478, 143, 296, 116), skip_wait=True):
+        if LocateGray.check(PTH["victory"], region=(1478, 143, 296, 116), wait=False):
             logging.info('Run Completed')
             dungeon_end()
             return True
 
-        if check(pth("end", "defeat.png"), region=(1426, 116, 366, 184), skip_wait=True):
+        if LocateRGB.check(PTH["defeat"], region=(1426, 116, 366, 184), wait=False):
             logging.info('Run Failed')
             dungeon_fail()
             return False
@@ -176,7 +176,6 @@ def main_loop():
 
         if error > 1000:
             logging.error('We are stuck')
-            gui.screenshot(pth(BASE_PATH, "errors", "stuck", f"{int(time.time())}.png")) # debugging
             close_limbus()
 
 

@@ -1,19 +1,13 @@
-from utils import *
-
-
-PATH = pth(UI_PATH, "grab")
-CARD_PATH = pth(PATH, "card")
-EGO_PATH = pth(PATH, "levels")
-
+from .utils.utils import *
 
 
 def grab_EGO():
-    if not check("EGObin.png", region=(69, 31, 123, 120), skip_wait=True, path=PATH): return False
+    if not LocateGray.check(PTH["EGObin"], region=(69, 31, 123, 120), wait=False): return False
 
-    owned = locate_all("Owned.png", region=(0, 216, 1725, 50), path=PATH)
+    owned = LocateRGB.locate_all(PTH["Owned"], region=(0, 216, 1725, 50))
     owned_x = [box[0] + box[2] for box in owned]
 
-    ego = locate_all(pth("teams", "Burn", "Burn.png"), region=(0, 309, 1920, 110))
+    ego = LocateRGBA.locate_all(PTH["Burn"], region=(0, 309, 1920, 110))
     ego = [gui.center(coord) for coord in ego]
 
     remove = set()
@@ -32,7 +26,7 @@ def grab_EGO():
         for i in range(len(ego)):
             for lvl in range(4, 0, -1):
                 try:
-                    locateOnScreenRGBA(f"{lvl}.png", region=(int(ego[i][0] - 106), int(ego[i][1] - 101), 66, 59), conf=0.85, grayscale=False, path=EGO_PATH)
+                    LocateRGB.try_locate(PTH[f"tier{lvl}"], region=(int(ego[i][0] - 106), int(ego[i][1] - 101), 66, 59), conf=0.85)
                     weights[i] = lvl
                     break
                 except gui.ImageNotFoundException:
@@ -44,7 +38,7 @@ def grab_EGO():
     else:
         for lvl in range(4, 0, -1):
             try:
-                res = locateOnScreenRGBA(f"{lvl}.png", region=(0, 309, 1920, 110), grayscale=False, path=EGO_PATH)
+                res = LocateRGB.try_locate(PTH[f"tier{lvl}"], region=(0, 309, 1920, 110))
                 time.sleep(0.2)
                 gui.moveTo(gui.center(res), duration=0.1)
                 gui.click(duration=0.1)
@@ -53,26 +47,26 @@ def grab_EGO():
                 continue
     time.sleep(0.1)
     gui.click(1687, 870)
-    check("EGOconfirm.png", region=(791, 745, 336, 104), click=True)
+    LocateGray.check(PTH["EGOconfirm"], region=(791, 745, 336, 104), click=True)
     return True
 
 
 def grab_card():
-    if not check("encounterreward.png", region=(412, 165, 771, 72), skip_wait=True, path=PATH): return False
+    if not LocateGray.check(PTH["encounterreward"], region=(412, 165, 771, 72), wait=False): return False
 
     gui.moveTo(1000, 900)
-    check("Cancel.png", region=(660, 650, 278, 92), skip_wait=True, click=True, path=PATH)
+    LocateGray.check(PTH["Cancel"], region=(660, 650, 278, 92), wait=False, click=True)
 
     time.sleep(1)
 
     for i in range(1, 5):
-        if check(f"{i}.png", region=(219, 283, 1531, 242), skip_wait=True, click=True, path=CARD_PATH):
+        if LocateGray.check(PTH[f"card{i}"], region=(219, 283, 1531, 242), wait=False, click=True):
 
-            check("EGOconfirm.png", region=(1118, 754, 189, 70), click=True, error=True) # confirm card
+            LocateGray.check(PTH["EGOconfirm"], region=(1118, 754, 189, 70), click=True, error=True) # confirm card
 
             start_time = time.time()
-            while check("encounterreward.png", region=(412, 165, 771, 72), skip_wait=True, path=PATH):
-                check("EGOconfirm.png", region=(791, 745, 336, 104), skip_wait=True, click=True)     # confirm ego
+            while LocateGray.check(PTH["encounterreward"], region=(412, 165, 771, 72), wait=False):
+                LocateGray.check(PTH["EGOconfirm"], region=(791, 745, 336, 104), wait=False, click=True)     # confirm ego
                 if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
                 time.sleep(0.1)
             
@@ -82,9 +76,7 @@ def grab_card():
     
 
 def confirm():
-    if not check("EGOconfirm.png", region=(791, 745, 336, 104), skip_wait=True, click=True): return False
-
+    if not LocateGray.check(PTH["EGOconfirm"], region=(791, 745, 336, 104), wait=False, click=True): return False
     gui.moveTo(965, 878)
-
-    check("EGOconfirm.png", region=(791, 745, 336, 104), skip_wait=True, click=True)
+    LocateGray.check(PTH["EGOconfirm"], region=(791, 745, 336, 104), wait=False, click=True)
     return True

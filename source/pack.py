@@ -1,8 +1,4 @@
-from utils import *
-
-
-PATH = pth(UI_PATH, "pack")
-
+from .utils.utils import *
 
 
 def within_region(x, y, regions):
@@ -56,11 +52,11 @@ def pack_eval(level, regions, skip):
     for card in priority:
         for result in results:
             if best_match(card, result[1]):
-                pr_coords.append(gui.center(
-                    Box(min(x:= [p[0] for p in result[0]]) + 161, 
-                        min(y:= [p[1] for p in result[0]]) + 657, 
-                        max(x) - min(x), 
-                        max(y) - min(y))))
+                pr_coords.append(gui.center((
+                    min(x:= [p[0] for p in result[0]]) + 161, 
+                    min(y:= [p[1] for p in result[0]]) + 657, 
+                    max(x) - min(x), 
+                    max(y) - min(y))))
                 break
         
     if pr_coords: # picking best pack
@@ -72,11 +68,11 @@ def pack_eval(level, regions, skip):
     for card in banned:
         for result in results:
             if best_match(card, result[1]):
-                bn_coords.append(gui.center(
-                    Box(min(x:= [p[0] for p in result[0]]) + 161, 
-                        min(y:= [p[1] for p in result[0]]) + 657, 
-                        max(x) - min(x), 
-                        max(y) - min(y))))
+                bn_coords.append(gui.center((
+                    min(x:= [p[0] for p in result[0]]) + 161, 
+                    min(y:= [p[1] for p in result[0]]) + 657, 
+                    max(x) - min(x), 
+                    max(y) - min(y))))
     
     remove = set() # removing S.H.I.T. packs
     if bn_coords:
@@ -92,8 +88,8 @@ def pack_eval(level, regions, skip):
         return 0 # 16 and 5 
 
     # locating relevant ego gifts in floor rewards
-    ego_coords = [gui.center(box) for box in locate_all(pth("teams", "Burn", "littleBurn.png"))]
-    owned_x = [box[0] + box[2] for box in locate_all("OwnedSmall.png", path=PATH)]
+    ego_coords = [gui.center(box) for box in LocateRGBA.locate_all(PTH["littleBurn"])]
+    owned_x = [box[0] + box[2] for box in LocateRGB.locate_all(PTH["OwnedSmall"])]
 
     remove = set() # excluding owned ego gifts from evaluation
     for x in owned_x:
@@ -114,10 +110,10 @@ def pack_eval(level, regions, skip):
 
 
 def pack(level):
-    if not check("PackChoice.png", region=(1757, 126, 115, 116), wait=0.2, path=PATH):
+    if not LocateGray.check(PTH["PackChoice"], region=(1757, 126, 115, 116), wait=0.2):
         return (False, level)
     
-    if check("hardDifficulty.png", region=(893, 207, 115, 44), skip_wait=True, path=PATH):
+    if LocateGray.check(PTH["hardDifficulty"], region=(893, 207, 115, 44), wait=False):
         gui.moveTo(1349, 64)
         gui.click()
 
@@ -130,19 +126,19 @@ def pack(level):
     time.sleep(0.4)
 
     skips = 3
-    card_count = len(locate_all("PackCard.png", conf=0.85, path=PATH))
+    card_count = len(LocateRGB.locate_all(PTH["PackCard"], conf=0.85))
     offset = (5 - card_count)*161
     regions = [(182 + offset + 322 * i, 280, 291, 624) for i in range(card_count)]
 
     print(f"{card_count} Packs")
 
-    import random
-    id = random.choice([i for i in range(card_count)])
+    # import random
+    # id = random.choice([i for i in range(card_count)])
 
 
     for skip in range(skips + 1):
-        # id = pack_eval(level, regions, skip)
-        #gui.screenshot(f"choice/pack{int(time.time())}.png") # debugging
+        id = pack_eval(level, regions, skip)
+        #gui.screenshot(f"choice/pack{int(time.time())}") # debugging
         if not id is None:
             region = regions[id]
             name = detect_char(region=(region[0], 657, region[2], 73))
@@ -153,15 +149,15 @@ def pack(level):
             gui.dragTo(x, y + 300, 0.5, button="left")
             break
         if skip != 3:
-            check("refresh.png", region=(1493, 26, 257, 83), wait=1, click=True, path=PATH)
+            LocateGray.check(PTH["refresh"], region=(1493, 26, 257, 83), wait=1, click=True)
             gui.moveTo(1721, 999)
             time.sleep(2)
     
-    if check(pth("path", "Move.png"), region=(1805, 107, 84, 86), error=True) and level != 1:
+    if LocateGray.check(PTH["Move"], region=(1805, 107, 84, 86), error=True) and level != 1:
         start_time = time.time()
-        while check(pth("path", "Move.png"), skip_wait=True, region=(1805, 107, 84, 86)):
+        while LocateGray.check(PTH["Move"], region=(1805, 107, 84, 86), wait=False):
             if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
             time.sleep(0.1)
-        check(pth("path", "Move.png"), region=(1805, 107, 84, 86), error=True)
+        LocateGray.check(PTH["Move"], region=(1805, 107, 84, 86), error=True)
     time.sleep(0.5)
     return (True, level)
