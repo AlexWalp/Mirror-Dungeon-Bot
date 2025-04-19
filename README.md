@@ -38,12 +38,11 @@ Simply launch **CGrinder.exe** from the `dist` folder—no additional files requ
 #### Option 2: Run with Python  
 Ensure you have **Python 3** installed and the following dependencies:  
 ```bash
-pip install numpy opencv-python-headless pyscreeze pyautogui Pillow torchfree-ocr
+pip install -r requirements.txt
 ```
 Or manually install:  
 - `numpy`  
-- `opencv-python-headless`  
-- `pyscreeze`  
+- `opencv-python-headless`    
 - `pyautogui`  
 - `Pillow`  
 - `torchfree-ocr`  
@@ -53,7 +52,7 @@ Or manually install:
 1. **Team Setup:** 
    - ChargeGrinder is currently tested with an Uptie 4 burn team (the fastest team for easy MD)
    - Team members: Don, Ishmael, Gregor, Sinclair, YiSang and Rodion
-# ![team.png](team.png)
+# ![team.png](ImageAssets/readme/team.png)
    - The team is inspired by this MD5 speedrun: 
 # [![Watch on YouTube](https://img.youtube.com/vi/dCUUHMLDWkY/0.jpg)](https://www.youtube.com/watch?v=dCUUHMLDWkY)
 
