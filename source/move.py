@@ -130,7 +130,7 @@ def move():
     status = [None, None, None]
 
     for i, region in regions.items():
-        loc = LocatePreset(region=region, comp=comp, v_comp=v_list[i], conf=0.8)
+        loc = LocatePreset(region=region, comp=comp, v_comp=v_list[i], conf=0.8, wait=False)
         if i == 1 and is_boss(region, comp):
             enter()
             logging.info("Entering Bossfight")
