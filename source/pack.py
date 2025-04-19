@@ -1,4 +1,4 @@
-from .utils.utils import *
+from source.utils.utils import *
 
 
 def within_region(x, y, regions):
@@ -25,6 +25,23 @@ def best_match(target, text, threshold=0.6):
     return best_ratio >= threshold
 
 
+def get_coords(keywords, results):
+    coords = []
+    for pack in keywords:
+        for result in results:
+            if best_match(pack, result[1]):
+                x = [p[0] for p in result[0]]
+                y = [p[1] for p in result[0]]
+                coords.append(gui.center((
+                    min(x) + 161, 
+                    min(y) + 657, 
+                    max(x) - min(x), 
+                    max(y) - min(y)
+                )))
+                break
+    return coords
+
+
 def pack_eval(level, regions, skip):
     
     # best packs
@@ -48,38 +65,18 @@ def pack_eval(level, regions, skip):
 
     print(results) # testing
 
-    pr_coords = [] # locating all best packs coordinates
-    for card in priority:
-        for result in results:
-            if best_match(card, result[1]):
-                pr_coords.append(gui.center((
-                    min(x:= [p[0] for p in result[0]]) + 161, 
-                    min(y:= [p[1] for p in result[0]]) + 657, 
-                    max(x) - min(x), 
-                    max(y) - min(y))))
-                break
+    pr_coords = get_coords(priority, results) # locating all best packs coordinates
         
     if pr_coords: # picking best pack
         return within_region(pr_coords[0][0], pr_coords[0][1], regions)
     elif level < 3 and skip != 3:
         return None
     
-    bn_coords = [] # locating all worst packs coordinates
-    for card in banned:
-        for result in results:
-            if best_match(card, result[1]):
-                bn_coords.append(gui.center((
-                    min(x:= [p[0] for p in result[0]]) + 161, 
-                    min(y:= [p[1] for p in result[0]]) + 657, 
-                    max(x) - min(x), 
-                    max(y) - min(y))))
+    bn_coords = get_coords(banned, results) # locating all worst packs coordinates
     
-    remove = set() # removing S.H.I.T. packs
-    if bn_coords:
-        for coord in bn_coords:
-            i = within_region(coord[0], coord[1], regions)
-            remove.add(i)
-    filtered = [val for i, val in enumerate(regions) if i not in remove]
+    # removing S.H.I.T. packs
+    banned_indices = {within_region(x, y, regions) for x, y in bn_coords}
+    filtered = [region for i, region in enumerate(regions) if i not in banned_indices]
 
     if not filtered and skip != 3: # if all packs are S.H.I.T.
         return None
@@ -88,23 +85,21 @@ def pack_eval(level, regions, skip):
         return 0 # 16 and 5 
 
     # locating relevant ego gifts in floor rewards
-    ego_coords = [gui.center(box) for box in LocateRGBA.locate_all(PTH["littleBurn"])]
-    owned_x = [box[0] + box[2] for box in LocateRGB.locate_all(PTH["OwnedSmall"])]
+    ego_coords = [gui.center(box) for box in LocateRGB.locate_all(PTH["littleBurn"])]
+    owned_x = [x + w for x, _, w, _ in LocateRGB.locate_all(PTH["OwnedSmall"])]
 
-    remove = set() # excluding owned ego gifts from evaluation
-    for x in owned_x:
-        for i in range(len(ego_coords)):
-            if abs(x - ego_coords[i][0]) < 25:
-                remove.add(i)
-    ego_coords = [val for i, val in enumerate(ego_coords) if i not in remove]
+    # excluding owned ego gifts from evaluation
+    ego_coords = [
+        coord for i, coord in enumerate(ego_coords)
+        if all(abs(coord[0] - x) >= 25 for x in owned_x)
+    ]
 
-
-    weight = [0]*len(filtered) # evaluating each floor based on ego gifts
-    if ego_coords:
-        for coord in ego_coords:
-            i = within_region(coord[0], coord[1], filtered)
-            if i == None : continue
+    weight = [0] * len(filtered) # evaluating each floor based on ego gifts
+    for coord in ego_coords:
+        i = within_region(coord[0], coord[1], filtered)
+        if i is not None:
             weight[i] += 1
+
     index_max = max(range(len(weight)), key=weight.__getitem__)
     return regions.index(filtered[index_max])
 

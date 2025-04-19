@@ -1,4 +1,4 @@
-from .utils.utils import *
+from source.utils.utils import *
 
 
 item_points = {1: 3, 2: 6, 3: 10, 4: 15}
@@ -9,7 +9,6 @@ fusion_ranges = {
     3: (17, 24),
     4: (25, 45)
 }
-
 
 
 def combo_counter(combo):
@@ -84,7 +83,7 @@ def inventory_check():
 
     for gift in to_get:
         try:
-            res = gui.center(LocateRGBA.try_locate(PTH[str(gift)], region=(920, 295, 790, 482), conf=0.85))
+            res = gui.center(LocateRGB.try_locate(PTH[str(gift)], region=(920, 295, 790, 482), conf=0.85))
             print(f"got {gift}")
             cv2.rectangle(image, (int(res[0] - 74 - 920), int(res[1] - 72 - 295)), (int(res[0] - 920), int(res[1] - 295)), (0, 0, 0), -1)
         except gui.ImageNotFoundException:
@@ -140,7 +139,7 @@ def fuse():
     to_click = []
 
     try: # getting rid of useless stone ego gift I hate
-        res = LocateRGB.try_locate(PTH["stone"], region=(920, 295, 790, 482))
+        res = LocateRGB.try_locate(PTH["stone"], region=(920, 295, 790, 482), conf=0.85)
         items[4] = 1
         coords[4].append(gui.center(res))
     except:
@@ -148,7 +147,7 @@ def fuse():
 
     glimpse_ck = False
     # get glimpse
-    if not LocateRGBA.check(PTH["glimpse"], region=(920, 295, 790, 482), wait=False, conf=0.85):
+    if not LocateRGB.check(PTH["glimpse"], region=(920, 295, 790, 482), wait=False, conf=0.85):
         combo, missing = decide_fusion(4, items)
         if missing is None:
             for tier in combo:
@@ -159,9 +158,9 @@ def fuse():
             return missing
 
     # get soothe
-    elif not LocateRGB.check(PTH["soothe"], region=(920, 295, 790, 482), wait=False):
-        if not LocateRGB.check(PTH["book"], region=(920, 295, 790, 482), wait=False):
-            if not LocateRGB.check(PTH["stew"], region=(920, 295, 790, 482), wait=False):
+    elif not LocateRGB.check(PTH["soothe"], region=(920, 295, 790, 482), wait=False, conf=0.85):
+        if not LocateRGB.check(PTH["book"], region=(920, 295, 790, 482), wait=False, conf=0.85):
+            if not LocateRGB.check(PTH["stew"], region=(920, 295, 790, 482), wait=False, conf=0.85):
                 combo, missing = decide_fusion(2, items)
                 if missing is None:
                     for tier in combo:
@@ -169,7 +168,7 @@ def fuse():
                         coords[tier].pop(0)
                 else:
                     return missing
-            elif not LocateRGB.check(PTH["paraffin"], region=(920, 295, 790, 482), wait=False):
+            elif not LocateRGB.check(PTH["paraffin"], region=(920, 295, 790, 482), wait=False, conf=0.85):
                 combo, missing = decide_fusion(1, items)
                 if missing is None:
                     for tier in combo:
@@ -179,12 +178,12 @@ def fuse():
                     return missing
             else:
                 try: # fusing book
-                    to_click.append(gui.center(LocateRGB.locate(PTH["stew"], region=(920, 295, 790, 482))))
-                    to_click.append(gui.center(LocateRGB.locate(PTH["paraffin"], region=(920, 295, 790, 482))))
+                    to_click.append(gui.center(LocateRGB.locate(PTH["stew"], region=(920, 295, 790, 482), conf=0.85)))
+                    to_click.append(gui.center(LocateRGB.locate(PTH["paraffin"], region=(920, 295, 790, 482), conf=0.85)))
                 except gui.ImageNotFoundException:
                     raise RuntimeError("Fusing unexpected error")
                 
-        elif not LocateRGB.check(PTH["dust"], region=(920, 295, 790, 482), wait=False):
+        elif not LocateRGB.check(PTH["dust"], region=(920, 295, 790, 482), wait=False, conf=0.85):
             combo, missing = decide_fusion(3, items)
             if missing is None:
                 for tier in combo:
@@ -192,7 +191,7 @@ def fuse():
                     coords[tier].pop(0)
             else:
                 return missing
-        elif not LocateRGB.check(PTH["ash"], region=(920, 295, 790, 482), wait=False):
+        elif not LocateRGB.check(PTH["ash"], region=(920, 295, 790, 482), wait=False, conf=0.85):
             combo, missing = decide_fusion(1, items)
             if missing is None:
                 for tier in combo:
@@ -202,9 +201,9 @@ def fuse():
                 return missing
         else:
             try: # fusing soothe
-                to_click.append(gui.center(LocateRGB.locate(PTH["book"], region=(920, 295, 790, 482))))
-                to_click.append(gui.center(LocateRGB.locate(PTH["dust"], region=(920, 295, 790, 482))))
-                to_click.append(gui.center(LocateRGB.locate(PTH["ash"], region=(920, 295, 790, 482))))
+                to_click.append(gui.center(LocateRGB.locate(PTH["book"], region=(920, 295, 790, 482), conf=0.85)))
+                to_click.append(gui.center(LocateRGB.locate(PTH["dust"], region=(920, 295, 790, 482), conf=0.85)))
+                to_click.append(gui.center(LocateRGB.locate(PTH["ash"], region=(920, 295, 790, 482), conf=0.85)))
             except gui.ImageNotFoundException:
                 raise RuntimeError("Fusing unexpected error")
     else: raise NotImplementedError
@@ -216,7 +215,7 @@ def fuse():
         LocateGray.check(PTH["EGOconfirm"], region=(990, 832, 393, 91), click=True)
         LocateGray.check(PTH["EGOconfirm"], region=(791, 745, 336, 104), click=True)
 
-        if glimpse_ck and LocateRGBA.check(PTH["glimpse"], region=(920, 295, 790, 482), wait=False, conf=0.85):
+        if glimpse_ck and LocateRGB.check(PTH["glimpse"], region=(920, 295, 790, 482), wait=False, conf=0.85):
             enhance_glimpse()
     return None
 
@@ -273,13 +272,15 @@ def buy(to_buy, tier):
 
     output = False
     for gift in to_buy:
-        if LocateRGB.check(PTH[str(gift)], region=(809, 300, 942, 402), image=shop_shelf, click=True, wait=False):
+        if LocateRGB.check(PTH[str(gift)], region=(809, 300, 942, 402), image=shop_shelf, click=True, wait=False, conf=0.85, comp=0.75):
             LocateGray.check(PTH["purchase"], region=(972, 679, 288, 91), click=True)
+            connection()
             LocateGray.check(PTH["EGOconfirm"], region=(791, 745, 336, 104), click=True)
             output = True
     time.sleep(0.1)
     if LocateRGB.check(PTH[f"buy{tier}"], region=(809, 300, 942, 402), image=shop_shelf, wait=False, click=True):
         LocateGray.check(PTH["purchase"], region=(972, 679, 288, 91), click=True)
+        connection()
         LocateGray.check(PTH["EGOconfirm"], region=(791, 745, 336, 104), click=True)
     else:
         return output
@@ -307,7 +308,7 @@ def buy_loop(to_buy, tier, skip, uptie=True):
 
 
 def enhance(template):
-    LocateRGBA.check(PTH[str(template)], region=(925, 279, 758, 504), conf=0.85, click=True)
+    LocateRGB.check(PTH[str(template)], region=(925, 279, 758, 504), click=True, conf=0.85)
     for i in range(2):
         LocateGray.check(PTH["power"], region=(990, 832, 393, 91), click=True)
         LocateGray.check(PTH["EGOconfirm"], region=(990, 832, 393, 91), click=True)

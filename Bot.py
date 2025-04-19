@@ -138,7 +138,7 @@ def main_loop():
 
     error = 0
     level = 1
-    buy = ["glimpseShop", "dustShop", "stewShop", "paraffinShop", "ashShop"]
+    buy = ["glimpse", "dust", "stew", "paraffin", "ash"]
 
     while True:
         if LocateGray.check(PTH["ServerError"], region=(651, 640, 309, 124), click=True, wait=False):
@@ -166,7 +166,7 @@ def main_loop():
         ck += move()
         ck += fight()
         ck += event()
-        ck += grab_EGO()
+        ck += grab_EGO(buy)
         ck += confirm()
         ck += grab_card()
         ck += shop(level, buy)

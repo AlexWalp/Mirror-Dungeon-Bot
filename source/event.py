@@ -1,4 +1,4 @@
-from .utils.utils import *
+from source.utils.utils import *
 
 PROBS = ["VeryHigh", "High", "Normal", "Low", "VeryLow"]
 

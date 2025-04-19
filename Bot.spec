@@ -20,7 +20,8 @@ a = Analysis(
         ('ImageAssets\\UI\\shop\\*.png', 'ImageAssets\\UI\\shop'),
         ('ImageAssets\\UI\\start\\*.png', 'ImageAssets\\UI\\start'),
         ('ImageAssets\\UI\\teams\\Burn\\*.png', 'ImageAssets\\UI\\teams\\Burn'),
-        ('ImageAssets\\UI\\teams\\Burn\\buy\\*.png', 'ImageAssets\\UI\\teams\\Burn\\buy'),
+        ('ImageAssets\\UI\\shop\\buy\\*.png', 'ImageAssets\\UI\\shop\\buy'),
+        ('ImageAssets\\UI\\shop\\fuse\\*.png', 'ImageAssets\\UI\\shop\\fuse'),
         ('ImageAssets\\UI\\teams\\Burn\\gifts\\*.png', 'ImageAssets\\UI\\teams\\Burn\\gifts')
     ],
     hiddenimports=[],

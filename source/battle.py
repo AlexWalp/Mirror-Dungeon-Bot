@@ -1,5 +1,5 @@
-from .utils.utils import *
-from .event import event
+from source.utils.utils import *
+from source.event import event
 
 
 sinners = ["YISANG", "DONQUIXOTE" , "ISHMAEL", "RODION", "SINCLAIR", "GREGOR"]

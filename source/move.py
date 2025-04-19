@@ -1,12 +1,9 @@
-from .utils.utils import *
+from source.utils.utils import *
+import random
 
 
-NODE_LIST = ["event", "eventSmall", 
-             "eventNew", "eventNewSmall", # Order MATTERS!!!
-             "risk",  "riskSmall", 
-             "human", "humanSmall", 
-             "focus", "focusSmall"]
-
+priority = ["Abnormality", "Risk", "Human", "Focused"]
+v_list = [0.8, 0.9, 1]
 
 def find_danteh(): # looks for high resolution Dante
     for i in range(2):
@@ -22,7 +19,7 @@ def find_danteh(): # looks for high resolution Dante
 
 def find_bus(): # looks for low resolution Dante
     try:
-        Bus = LocateRGBA.try_locate(PTH["Bus"], conf=0.77)
+        Bus = LocateRGB.try_locate(PTH["Bus"])
         print("Danteh found")
         x, y = gui.center(Bus)
         return x, y
@@ -56,36 +53,27 @@ def hook():
     return True
 
 
+def ck_boss(region, comp):
+    image = cv2.cvtColor(np.array(gui.screenshot(region=region)), cv2.COLOR_RGB2BGR)
+    red_mask = cv2.inRange(image, np.array([0, 0, 180]), np.array([50, 50, 255]))
+    return LocateGray.check(PTH["boss"], red_mask, region=region, wait=False, click=True, comp=comp, conf=0.6)
+
+
 def directions():
-    img = gui.screenshot(region=(545, 405, 30, 240))
-    img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
-    cv2.rectangle(img, (10, 0), (30, 230), 0, -1)
-    cv2.rectangle(img, (0, 150), (10, 230), 0, -1)
+    options = {
+        0: "_up",
+        1: "_forward",
+        2: "_down"
+    }
+    regions = dict()
+    for i, suffix in options.items():
+        for j in range(2):
+            comp_val = 1 - 0.14 * j
+            if LocateGray.check(PTH[suffix], region=(523, 303, 155, 473), wait=False, conf=0.85, comp=comp_val):
+                regions[i] = (624, 101 + i * 275, 282, 275)
+                break
+    return regions
 
-
-    max_val = np.max(img)
-    _, binary = cv2.threshold(img, max_val - 5, 255, cv2.THRESH_BINARY)
-
-    num_labels, _, _, centroids = cv2.connectedComponentsWithStats(binary)
-
-    values = np.array([False]*3) # up, middle and bottom
-
-    for i in range(1, num_labels):
-        if 0 < centroids[i][1] < 75:
-            values[0] = True
-        elif 75 < centroids[i][1] < 150:
-            values[1] = True
-        elif 150 < centroids[i][1] < 240:
-            values[2] = True
-
-    return values
-
-def get_prob(template_path, image_obj):
-    template_obj = cv2.imread(template_path, cv2.COLOR_RGB2GRAY)
-    image_obj = cv2.cvtColor(image_obj, cv2.COLOR_RGB2GRAY)
-    result = cv2.matchTemplate(template_obj, image_obj, cv2.TM_CCOEFF_NORMED)
-    _, res_max, _, _ = cv2.minMaxLoc(result)
-    return ((res_max + 1)/2)
 
 def enter():
     if LocateGray.check(PTH["enter"], region=(1537, 739, 310, 141), click=True, wait=1):
@@ -111,62 +99,77 @@ def move():
         return False
     # fail detection end
 
+    comp = 1 # image compression is off
 
     Dante = find_danteh()
     if Dante is None: 
         Dante = zoom(-1)
+        comp = 0.86 # image compression is on
         if Dante is None and find_bus(): hook()
         if Dante is None: Dante = zoom(1)
         if Dante is None: return False
     
     position(Dante)
-
+    
     if LocateGray.check(PTH["victory"], region=(1478, 143, 296, 116), wait=False): return False
 
-    paths = directions()
-    regions = [(624, 101 + i*275, 282, 275) for i in range(3) if paths[i]]
+    regions = directions()
+    status = [None, None, None]
 
-    ## data collection
-    # regions_screenshot = [(624, 101 + i*275, 282, 275) for i in range(3)]
-    # for i, region in enumerate(regions_screenshot):
-    #     gui.screenshot(f"data/{int(time.time())}_{i}", region=region) # debugging
-    ## data collection end
-
-    # import random
-    # random.shuffle(regions_screenshot)
-    # for region in regions_screenshot:
-    #     gui.click(gui.center(region))
-    #     if enter():
-    #         return True
-    #     continue
-
-    # for i, region in enumerate(regions):
-    #     area = np.array(gui.screenshot(region=region))
-
-    #     coin_prob = get_prob(PTH["coin"], area)
-    #     shop_prob = get_prob(PTH["shop"], area)
-    #     boss_prob = get_prob(PTH["boss"], area)
-
-    if len(regions) == 1:
-        gui.moveTo(gui.center(regions[0]))
-        gui.click()
-        enter()
-        return True
-
-    for node in NODE_LIST:
-        conf = 0.95
-        if "event" in node:
-            conf = 0.9
-        
-        for region in regions:
-            if LocateGray.check(PTH[str(node)], conf=conf, region=region, click=True, wait=False):
+    for i, region in regions.items():
+        # boss
+        if i == 1 and ck_boss(region, comp):
+            enter()
+            logging.info("Entering Bossfight")
+            return True
+        # other fight
+        elif LocateRGB.check(PTH["coin"], region=region, wait=False, comp=comp):
+            if LocateRGB.check(PTH["gift"], region=region, wait=False, comp=comp):
+                if LocateGray.check(PTH[f"risk0"], region=region, wait=False, comp=comp, v_comp=v_list[i], conf=0.8) or \
+                   any([LocateGray.check(PTH[f"risk1"], region=region, wait=False, comp=comp*(1-0.14*j), v_comp=v_list[i], conf=0.8) for j in range(2)]) or \
+                   any([LocateGray.check(PTH[f"risk2"], region=region, wait=False, comp=comp*(1-0.14*j), conf=0.8) for j in range(2)]):
+                    status[i] = "Risk"
+                    continue
+                elif any([LocateGray.check(PTH[f"focus{j}"], region=region, wait=False, comp=comp, v_comp=v_list[i], conf=0.85) for j in range(2)]) or \
+                     any([LocateGray.check(PTH[f"focus{j+2}"], region=region, wait=False, comp=comp, conf=0.85) for j in range(2)]):
+                    status[i] = "Focused"
+                else:
+                    status[i] = "Abnormality"
+            else:
+                status[i] = "Human"
+                continue
+        # event
+        elif LocateGray.check(PTH[f"event0"], region=region, wait=False, click=True, comp=comp, v_comp=v_list[i]) or \
+             LocateGray.check(PTH[f"event1"], region=region, wait=False, click=True, comp=comp, v_comp=v_list[i]) or \
+             LocateGray.check(PTH[f"event2"], region=region, wait=False, click=True, comp=comp):
+            enter()
+            logging.info("Entering Event")
+            return True
+        # shop
+        elif LocateGray.check(PTH[f"shop0"], region=region, wait=False, click=True, comp=comp, v_comp=v_list[i], conf=0.8) or \
+             LocateGray.check(PTH[f"shop1"], region=region, wait=False, click=True, comp=comp, conf=0.8):
+            enter()
+            logging.info("Entering Shop")
+            return True
+    if any(status):
+        for node in priority:
+            try:
+                id = random.choice([i for i, x in enumerate(status) if x == node])
+                gui.click(gui.center(regions[id]))
                 enter()
-
-                logging.info(f"Entering {node}")
-                
+                logging.info(f"Entering {node} fight")
                 return True
-    else:
-        gui.moveTo(gui.center(regions[0]))
+            except IndexError:
+                continue
+    
+    # if we fail:
+    for region in regions:
+        gui.moveTo(gui.center(region))
         gui.click()
-        enter()
-        return True
+        if enter():
+            logging.info(f"Entering unknown node")
+            return True
+        
+    # if we double fail
+    logging.info(f"Entering previous node")
+    return enter()

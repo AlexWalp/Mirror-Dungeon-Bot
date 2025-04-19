@@ -6,8 +6,8 @@ load_time = time.time()
 import numpy as np, pyautogui as gui, cv2, torchfree_ocr as myocr
 from PIL import Image
 
-from .log_config import *
-from .paths import PTH
+from source.utils.log_config import *
+from source.utils.paths import PTH
 
 
 ocr = myocr.Reader(["en"])
@@ -68,6 +68,7 @@ def detect_char(region=(0, 0, 1920, 1080), digit = False):
 class Locate(): # if inputing np.ndarray, convert to BGR first!
     conf=0.9
     region=(0, 0, 1920, 1080)
+    method=cv2.TM_CCOEFF_NORMED
 
     @staticmethod
     def _prepare_image(image, region):
@@ -83,7 +84,7 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
         return image
 
     @staticmethod
-    def _load_template(template):
+    def _load_template(template, comp=None, v_comp=None):
         if isinstance(template, str):
             template = cv2.imread(template, cv2.IMREAD_UNCHANGED)
         elif isinstance(template, Image.Image):
@@ -94,10 +95,20 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
                 template = cv2.cvtColor(template, cv2.COLOR_RGB2BGR)
         elif not isinstance(template, np.ndarray):
             raise TypeError(f"Locate doesn't support template type '{type(template).__name__}'")
+        if comp and not (0 < comp <= 1):
+            raise ValueError(f"Invalid compression value: '{comp}'")
+        elif comp:
+            new_size = (int(template.shape[1] * comp), int(template.shape[0] * comp))
+            template = cv2.resize(template, new_size, interpolation=cv2.INTER_AREA)
+        if v_comp and not (0 < v_comp <= 1):
+            raise ValueError(f"Invalid vertical compression value: '{v_comp}'")
+        elif v_comp:
+            new_size = (int(template.shape[1]), int(template.shape[0] * v_comp))
+            template = cv2.resize(template, new_size, interpolation=cv2.INTER_AREA)
         return template
     
-    @staticmethod
-    def _compare(result, conf, method):
+    @classmethod
+    def _compare(cls, result, conf, method):
         if method == cv2.TM_CCORR_NORMED:
             return zip(*np.where(result >= conf)[::-1])
         elif method == cv2.TM_CCOEFF_NORMED:
@@ -106,31 +117,49 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
             return zip(*np.where(result <= 1 - conf)[::-1])
         else:
             raise ValueError(f"Matching method {method} is not supported")
+    
+    @classmethod
+    def _normalize_conf(cls, max_val, min_val, method):
+        if method == cv2.TM_CCORR_NORMED:
+            return max_val
+        elif method == cv2.TM_CCOEFF_NORMED:
+            return (max_val + 1)/2
+        elif method == cv2.TM_SQDIFF_NORMED:
+            return 1 - min_val
+        else:
+            raise ValueError(f"Matching method {method} is not supported")
 
     @classmethod
     def _convert(cls, template, image):
         return template, image
 
     @classmethod
-    def _match_core(cls, template, image, method):
-        return cv2.matchTemplate(image, template, method)
-
-    @classmethod
-    def _match(cls, template, image, region, conf, method=cv2.TM_CCOEFF_NORMED, **kwargs):
+    def _match(cls, template, image, region, conf, method, **kwargs):
         x_off, y_off, _, _ = region
-        template, image = cls._convert(template, image, **kwargs)
-        result = cls._match_core(template, image, method=method, **kwargs)
+        template, image = cls._convert(template, image)
+        result = cv2.matchTemplate(image, template, method)
         match_w, match_h = template.shape[1], template.shape[0]
         for (x, y) in cls._compare(result, conf, method):
             yield (x + x_off, y + y_off, match_w, match_h)
 
     @classmethod
-    def _locate(cls, template, image=None, region=None, conf=None, **kwargs):
+    def _locate(cls, template, image=None, region=None, conf=None, method=None, **kwargs):
         region = region or cls.region
         conf = conf or cls.conf
+        method = method or cls.method
         image = cls._prepare_image(image, region).astype(np.uint8)
-        template = cls._load_template(template).astype(np.uint8)
-        return cls._match(template, image, region, conf, **kwargs)
+        template = cls._load_template(template, **kwargs).astype(np.uint8)
+        return cls._match(template, image, region, conf, method, **kwargs)
+    
+    @classmethod
+    def get_conf(cls, template, image=None, region=None, method=None, **kwargs):
+        region = region or cls.region
+        method = method or cls.method
+        image = cls._prepare_image(image, region).astype(np.uint8)
+        template = cls._load_template(template, **kwargs).astype(np.uint8)
+        template, image = cls._convert(template, image)
+        min_val, max_val, _, _ = cv2.minMaxLoc(cv2.matchTemplate(image, template, method))
+        return cls._normalize_conf(max_val, min_val, method)
 
     @classmethod
     def locate(cls, template, image=None, region=None, conf=None, **kwargs):
@@ -160,12 +189,12 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
             return positions
     
     @classmethod
-    def check(cls, template, image=None, region=None, conf=None, click=False, wait=5, error=False):
+    def check(cls, template, image=None, region=None, conf=None, click=False, wait=5, error=False, **kwargs):
         if not wait: wait = 0.1
 
         for i in range(int(wait * 10)):
             try:
-                res = cls.try_locate(template, image, region, conf)
+                res = cls.try_locate(template, image, region, conf, **kwargs)
                 if isinstance(template, str):
                     print(f"located {os.path.splitext(os.path.basename(template))[0]}")
                 else: print("located image")
@@ -186,22 +215,6 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
         if error:
             raise RuntimeError("Something unexpected happened. This code still needs debugging")
         return False
-
-
-class LocateRGBA(Locate):
-    @classmethod
-    def _convert(cls, template, image):
-        if image.shape[2] != 4:
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
-        if template.shape[2] != 4:
-            template = cv2.cvtColor(template, cv2.COLOR_BGR2BGRA)
-        return template, image
-    
-    @classmethod
-    def _match_core(cls, template, image, method):
-        if method == cv2.TM_CCOEFF_NORMED: # not supported by cv2
-            method = cv2.TM_SQDIFF_NORMED # default
-        return cv2.matchTemplate(image, template, method, mask=template)
 
 
 class LocateRGB(Locate):

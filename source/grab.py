@@ -1,21 +1,17 @@
-from .utils.utils import *
+from source.utils.utils import *
 
 
-def grab_EGO():
+def grab_EGO(to_buy):
     if not LocateGray.check(PTH["EGObin"], region=(69, 31, 123, 120), wait=False): return False
 
     owned = LocateRGB.locate_all(PTH["Owned"], region=(0, 216, 1725, 50))
-    owned_x = [box[0] + box[2] for box in owned]
+    owned_x = [x + w for x, _, w, _ in owned]
 
-    ego = LocateRGBA.locate_all(PTH["Burn"], region=(0, 309, 1920, 110))
-    ego = [gui.center(coord) for coord in ego]
-
-    remove = set()
-    for x in owned_x:
-        for i in range(len(ego)):
-            if abs(x - ego[i][0]) < 200:
-                remove.add(i)
-    ego = [val for i, val in enumerate(ego) if i not in remove]
+    ego = [
+        center for gift in to_buy
+        if (res := LocateRGB.locate(PTH[str(gift)], region=(0, 295, 1920, 100), conf=0.85, comp=0.94)) is not None
+        and all(abs((center := gui.center(res))[0] - ox) >= 200 for ox in owned_x)
+    ]
 
     if len(ego) == 1:
         time.sleep(0.2)
@@ -26,7 +22,7 @@ def grab_EGO():
         for i in range(len(ego)):
             for lvl in range(4, 0, -1):
                 try:
-                    LocateRGB.try_locate(PTH[f"tier{lvl}"], region=(int(ego[i][0] - 106), int(ego[i][1] - 101), 66, 59), conf=0.85)
+                    LocateRGB.try_locate(PTH[f"tier{lvl}"], region=(int(ego[i][0] - 106), int(ego[i][1] - 101), 66, 59))
                     weights[i] = lvl
                     break
                 except gui.ImageNotFoundException:
