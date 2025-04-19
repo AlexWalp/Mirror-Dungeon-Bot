@@ -7,6 +7,7 @@ from source.grab import grab_card, grab_EGO, confirm
 from source.shop import shop
 
 default = LocatePreset()
+try_default = LocatePreset(error=True)
 try_click = LocatePreset(click=True, error=True)
 nowait = LocatePreset(wait=False)
 
@@ -20,12 +21,12 @@ def dungeon_start():
         try_click.button("enterInvert", "enterInvert")
         gui.moveTo(1726, 978)
         gui.click()
-        if try_click.button("ConfirmTeam", "ConfirmTeam"):
+        if try_default.button("ConfirmTeam", "ConfirmTeam"):
             time.sleep(0.2)
             gui.click(1717, 878, duration=0.1)
 
         # Bonus Choice:
-        if try_click.button("enterBonus", "enterBonus"):
+        if try_default.button("enterBonus", "enterBonus"):
             time.sleep(0.1)
             gui.moveTo(401, 381, duration=0.2)
             gui.doubleClick()
@@ -68,7 +69,7 @@ def dungeon_start():
 
 def dungeon_end():
     try:
-        if try_click.button("victory", "victory"):
+        if try_default.button("victory", "victory"):
             gui.click(1693, 841)
 
         gui.moveTo(1700, 1026)
