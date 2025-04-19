@@ -247,7 +247,7 @@ class LocateEdges(LocateGray):
 
 
 class LocatePreset:
-    def __init__(self, region=None, comp=None, v_comp=None, conf=None, wait=False, click=False, error=False):
+    def __init__(self, region=None, comp=None, v_comp=None, conf=0.9, wait=5, click=False, error=False):
         self.params = {
             "region": region,
             "comp": comp,
