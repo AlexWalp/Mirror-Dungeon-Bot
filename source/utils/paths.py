@@ -21,3 +21,30 @@ def collect_png_paths(base_dir):
     return path_dict
 
 PTH = collect_png_paths(ASSETS_DIR)
+
+# presaved regions for some buttons (always the same)
+REG = {
+    "TOBATTLE"       : (1586,  820,  254,  118),
+    "battleEGO"      : (1525,  104,  395,   81),
+    "eventskip"      : ( 850,  437,  103,   52),
+    "encounterreward": ( 412,  165,  771,   72),
+    "victory"        : (1426,  116,  366,  184), # also defeat
+    "pause"          : (1724,   16,   83,   84),
+    "check"          : (1265,  434,  430,   87),
+    "EGOconfirm"     : ( 791,  745,  336,  104), # some instances use different regions
+    "Cancel"         : ( 660,  650,  278,   92), 
+    "Move"           : (1805,  107,   84,   86),
+    "connecting"     : (1548,   66,  293,   74),
+    "textEGO"        : (1031,  254,  713,  516), # also textWIN
+
+    "Drive"          : (1229,  896,  156,  139),
+    "loading"        : (1577,  408,  302,   91),
+    "MD"             : ( 528,  354,  279,  196),
+    "Start"          : (1473,  657,  315,  161),
+    "enterInvert"    : ( 943,  669,  382,  106),
+    "ConfirmTeam"    : (1593,  830,  234,   90),
+    "enterBonus"     : (1566,  974,  266,   89),
+    "StartEGO"       : ( 198,  207,  937,  682),
+    "Claim"          : (1540,  831,  299,  132),
+    "ConfirmInvert"  : ( 987,  704,  318,   71),
+}

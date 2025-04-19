@@ -213,7 +213,7 @@ def fuse():
             gui.click(i, duration=0.1)
         gui.click(1197, 876, duration=0.1)
         LocateGray.check(PTH["EGOconfirm"], region=(990, 832, 393, 91), click=True)
-        LocateGray.check(PTH["EGOconfirm"], region=(791, 745, 336, 104), click=True)
+        LocateGray.check(PTH["EGOconfirm"], region=REG["EGOconfirm"], click=True)
 
         if glimpse_ck and LocateRGB.check(PTH["glimpse"], region=(920, 295, 790, 482), wait=False, conf=0.85):
             enhance_glimpse()
@@ -275,13 +275,13 @@ def buy(to_buy, tier):
         if LocateRGB.check(PTH[str(gift)], region=(809, 300, 942, 402), image=shop_shelf, click=True, wait=False, conf=0.85, comp=0.75):
             LocateGray.check(PTH["purchase"], region=(972, 679, 288, 91), click=True)
             connection()
-            LocateGray.check(PTH["EGOconfirm"], region=(791, 745, 336, 104), click=True)
+            LocateGray.check(PTH["EGOconfirm"], region=REG["EGOconfirm"], click=True)
             output = True
     time.sleep(0.1)
     if LocateRGB.check(PTH[f"buy{tier}"], region=(809, 300, 942, 402), image=shop_shelf, wait=False, click=True):
         LocateGray.check(PTH["purchase"], region=(972, 679, 288, 91), click=True)
         connection()
-        LocateGray.check(PTH["EGOconfirm"], region=(791, 745, 336, 104), click=True)
+        LocateGray.check(PTH["EGOconfirm"], region=REG["EGOconfirm"], click=True)
     else:
         return output
     return True
@@ -348,5 +348,5 @@ def shop(level, to_buy):
         fuse_loop(to_buy)
         leave()
 
-    LocateGray.check(PTH["Move"], region=(1805, 107, 84, 86), error=True)
+    LocateGray.check(PTH["Move"], region=REG["Move"], error=True)
     return True

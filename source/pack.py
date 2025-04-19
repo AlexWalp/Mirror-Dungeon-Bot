@@ -148,11 +148,11 @@ def pack(level):
             gui.moveTo(1721, 999)
             time.sleep(2)
     
-    if LocateGray.check(PTH["Move"], region=(1805, 107, 84, 86), error=True) and level != 1:
+    if LocateGray.check(PTH["Move"], region=REG["Move"], error=True) and level != 1:
         start_time = time.time()
-        while LocateGray.check(PTH["Move"], region=(1805, 107, 84, 86), wait=False):
+        while LocateGray.check(PTH["Move"], region=REG["Move"], wait=False):
             if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
             time.sleep(0.1)
-        LocateGray.check(PTH["Move"], region=(1805, 107, 84, 86), error=True)
+        LocateGray.check(PTH["Move"], region=REG["Move"], error=True)
     time.sleep(0.5)
     return (True, level)

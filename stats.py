@@ -50,13 +50,17 @@ def av_time(log_file, word1, word2):
 
 
 def format_time(seconds):
+    seconds = seconds or 0
     minutes = int(seconds // 60)
     sec = int(seconds % 60)
     return f"{minutes}:{sec:02d}"
 
 
 if __name__ == "__main__":
-    print("Average time for human fight  :", int(av_time(file, "human", "over") or 0), "s")
-    print("Average time for focused fight:", int(av_time(file, "focus", "over") or 0), "s")
-    print("Average time for risk fight   :", int(av_time(file, "risk", "over") or 0), "s")
+
+    print("Average time for human fight  :", int(av_time(file, "Human", "over") or 0), "s")
+    print("Average time for focused fight:", int(av_time(file, "Focused", "over") or 0), "s")
+    print("Average time for risk fight   :", int(av_time(file, "Risk", "over") or 0), "s")
+    print("Average time for abno fight   :", int(av_time(file, "Abnormality", "over") or 0), "s")
+    print("Average time for boss fight   :", int(av_time(file, "Bossfight", "over") or 0), "s")
     print("Average time for dungeon      :", format_time(av_time(file, "Iteration", "Completed")))

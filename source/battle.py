@@ -141,8 +141,8 @@ def chain(gear_start, gear_end, background):
 
 
 def fight():
-    is_tobattle = LocateGray.check(PTH["TOBATTLE"], region=(1586, 820, 254, 118), wait=False)
-    if not is_tobattle and not LocateGray.check(PTH["battleEGO"], region=(1525, 104, 395, 81), wait=False): return False
+    is_tobattle = LocateGray.check(PTH["TOBATTLE"], region=REG["TOBATTLE"], wait=False)
+    if not is_tobattle and not LocateGray.check(PTH["battleEGO"], region=REG["battleEGO"], wait=False): return False
     elif is_tobattle: select(sinners)
 
     print("Entered Battle")
@@ -155,7 +155,7 @@ def fight():
 
 
     while True:
-        if LocateGray.check(PTH["battleEGO"], region=(1525, 104, 395, 81), wait=1):
+        if LocateGray.check(PTH["battleEGO"], region=REG["battleEGO"], wait=1):
             gui.click(500, 83, duration=0.1)
 
             try:
@@ -172,10 +172,10 @@ def fight():
             event()
 
         if LocateGray.check(PTH["loading"], region=(1577, 408, 302, 91), wait=False)  or \
-           LocateGray.check(PTH["Move"], region=(1805, 107, 84, 86), wait=False) or \
-           LocateGray.check(PTH["EGObin"], region=(69, 31, 123, 120), wait=False)       or \
-           LocateGray.check(PTH["encounterreward"], region=(412, 165, 771, 72), wait=False) or \
-           LocateGray.check(PTH["victory"], region=(1478, 143, 296, 116), wait=False):
+           LocateGray.check(PTH["Move"], region=REG["Move"], wait=False)                 or \
+           LocateGray.check(PTH["EGObin"], region=(69, 31, 123, 120), wait=False)           or \
+           LocateGray.check(PTH["encounterreward"], region=REG["encounterreward"], wait=False) or \
+           LocateGray.check(PTH["victory"], region=REG["victory"], wait=False):
             
             start_time = time.time()
             while LocateGray.check(PTH["loading"], region=(1577, 408, 302, 91), wait=False):
@@ -190,7 +190,7 @@ def fight():
         if gui.getActiveWindowTitle() != 'LimbusCompany':
             pause()
         
-        if LocateGray.check(PTH["pause"], region=(1724, 16, 83, 84), wait=False):
+        if LocateGray.check(PTH["pause"], region=REG["pause"], wait=False):
             time.sleep(1)
         else:
             time.sleep(0.2)

@@ -4,7 +4,7 @@ PROBS = ["VeryHigh", "High", "Normal", "Low", "VeryLow"]
 
 
 def event():
-    if not LocateGray.check(PTH["eventskip"], region=(850, 437, 103, 52), wait=False): return False
+    if not LocateGray.check(PTH["eventskip"], region=PTH["eventskip"], wait=False): return False
 
     start_time = time.time()
     while True:
@@ -13,13 +13,13 @@ def event():
         for _ in range(3): gui.click(906, 465)
 
         if LocateGray.check(PTH["choices"], region=(1036, 152, 199, 77), wait=False):
-            egos = LocateGray.locate_all(PTH["textEGO"], region=(1031, 254, 713, 516))
+            egos = LocateGray.locate_all(PTH["textEGO"], region=REG["textEGO"])
             print(egos)
             if not egos:
                 gui.click(1348, 316)
                 continue
             try:
-                win = LocateGray.try_locate(PTH["textWIN"], region=(1031, 254, 713, 516))
+                win = LocateGray.try_locate(PTH["textWIN"], region=REG["textEGO"])
                 for box in egos:
                     if abs(box[1] - win[1]) > 80:
                         gui.click(gui.center(box))
@@ -31,7 +31,7 @@ def event():
 
         LocateGray.check(PTH["Proceed"], region=(1539, 906, 316, 126), click=True, wait=False)
 
-        if LocateGray.check(PTH["check"], region=(1265, 434, 430, 87), wait=False):
+        if LocateGray.check(PTH["check"], region=REG["check"], wait=False):
             time.sleep(0.3)
             for prob in PROBS:
                 if LocateGray.check(PTH[str(prob)], region=(42, 876, 1427, 74), click=True, wait=False):

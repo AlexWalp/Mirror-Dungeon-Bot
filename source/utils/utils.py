@@ -7,7 +7,7 @@ import numpy as np, pyautogui as gui, cv2, torchfree_ocr as myocr
 from PIL import Image
 
 from source.utils.log_config import *
-from source.utils.paths import PTH
+from source.utils.paths import PTH, REG
 
 
 ocr = myocr.Reader(["en"])
@@ -17,7 +17,7 @@ print(f"All packages imported in {(time.time() - load_time):.2f} seconds")
 
 def connection():
     start_time = time.time()
-    while LocateGray.check(PTH["connecting"], region=(1548, 66, 293, 74), wait=False):
+    while LocateGray.check(PTH["connecting"], region=REG["connecting"], wait=False):
         if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
         time.sleep(0.1)
 
@@ -244,3 +244,29 @@ class LocateEdges(LocateGray):
         image_edges = cv2.Canny(image, th1, th2)
         template_edges = cv2.Canny(template, th1, th2)
         return template_edges, image_edges
+
+
+class LocatePreset:
+    def __init__(self, region=None, comp=None, v_comp=None, conf=None, wait=False, click=False, error=False):
+        self.params = {
+            "region": region,
+            "comp": comp,
+            "v_comp": v_comp,
+            "conf": conf,
+            "wait": wait,
+            "click": click,
+            "error": error
+        }
+
+    def check(self, locate_cls, template, **overrides):
+        params = self.params.copy()
+        params.update(overrides)
+        return locate_cls.check(template, **params)
+    
+    def button(self, path_key, region, **overrides):
+        if isinstance(region, str):
+            region = REG[region]
+        params = self.params.copy()
+        params.update(overrides)
+        params["region"] = region
+        return LocateGray.check(PTH[path_key], **params)

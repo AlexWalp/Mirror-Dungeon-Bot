@@ -6,27 +6,27 @@ from source.move import move
 from source.grab import grab_card, grab_EGO, confirm
 from source.shop import shop
 
-
+default = LocatePreset()
+click = LocatePreset(click=True, error=True)
+nowait = LocatePreset(wait=False)
 
 def dungeon_start():
     try:
-        LocateGray.check(PTH["Drive"], region=(1229, 896, 156, 139), click=True, error=True)
-        LocateGray.check(PTH["MD"], region=(528, 354, 279, 196), click=True, error=True)
-        LocateGray.check(PTH["Start"], region=(1473, 657, 315, 161), click=True, error=True)
+        click.button("Drive", "Drive")
+        click.button("MD", "MD")
+        click.button("Start", "Start")
         time.sleep(0.5)
 
-        LocateGray.check(PTH["enterInvert"], region=(943, 669, 382, 106), click=True, error=True)
+        click.button("enterInvert", "enterInvert")
         gui.moveTo(1726, 978)
         gui.click()
-        if LocateGray.check(PTH["ConfirmTeam"], region=(1593, 830, 234, 90), error=True):
+        if click.button("ConfirmTeam", "ConfirmTeam"):
             time.sleep(0.2)
             gui.click(1717, 878, duration=0.1)
 
         # Bonus Choice:
-
-        if LocateGray.check(PTH["enterBonus"], region=(1566, 974, 266, 89), error=True):
+        if click.button("enterBonus", "enterBonus"):
             time.sleep(0.1)
-
             gui.moveTo(401, 381, duration=0.2)
             gui.doubleClick()
             gui.moveTo(686, 381, duration=0.1)
@@ -36,14 +36,13 @@ def dungeon_start():
             gui.moveTo(1241, 381, duration=0.1)
             gui.doubleClick(duration=0.1)
             time.sleep(0.1)
-    
-        LocateGray.check(PTH["enterBonus"], region=(1566, 974, 266, 89), click=True, error=True)
-        LocateGray.check(PTH["EGOconfirm"], region=(957, 764, 330, 90), click=True, error=True)
+
+        click.button("enterBonus", "enterBonus")
+        click.button("EGOconfirm", (957, 764, 330, 90))
 
         # Starting EGO
-
         time.sleep(0.1)
-        LocateGray.check(PTH["BurnStart"], region=(198, 207, 937, 682), click=True, error=True)
+        click.button("BurnStart", "StartEGO")
         time.sleep(0.1)
         gui.moveTo(1239, 395, duration=0.1)
         gui.doubleClick()
@@ -54,14 +53,14 @@ def dungeon_start():
         gui.doubleClick()
         time.sleep(0.1)
 
-        LocateGray.check(PTH["EGOconfirm"], region=(794, 745, 321, 102), click=True, error=True)
+        click.button("EGOconfirm", "EGOconfirm")
         time.sleep(0.2)
-        LocateGray.check(PTH["EGOconfirm"], region=(794, 745, 321, 102), click=True, error=True)
+        click.button("EGOconfirm", "EGOconfirm")
 
     except RuntimeError:
         print("Initialization error")
         logging.error("Initialization error")
-        # gui.screenshot(f"errors/init{int(time.time())}") # debugging
+        # gui.screenshot(f"errors/init{int(time.time())}")  # debugging
         # close_limbus()
 
     print("Entering MD!")
@@ -69,28 +68,29 @@ def dungeon_start():
 
 def dungeon_end():
     try:
-        if LocateGray.check(PTH["victory"], region=(1426, 116, 366, 154), error=True):
+        if click.button("victory", "victory"):
             gui.click(1693, 841)
 
         gui.moveTo(1700, 1026)
 
-        LocateGray.check(PTH["Claim"], region=(1540, 831, 299, 132), click=True, error=True)
+        click.button("Claim", "Claim")
         time.sleep(0.2)
-        LocateGray.check(PTH["ClaimInvert"], region=(1156, 776, 360, 94), click=True, error=True)
-        LocateGray.check(PTH["ConfirmInvert"], region=(987, 704, 318, 71), click=True, error=True)
+        click.button("ClaimInvert", (1156, 776, 360, 94))
+        click.button("ConfirmInvert", "ConfirmInvert")
 
         start_time = time.time()
-        while not LocateGray.check(PTH["loading"], region=(1577, 408, 302, 91), wait=False):
-            if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
-            LocateGray.check(PTH["EGOconfirm"], region=(816, 657, 275, 96), wait=False, click=True)
+        while not nowait.button("loading", "loading"):
+            if time.time() - start_time > 20:
+                raise RuntimeError("Infinite loop exited")
+            nowait.button("EGOconfirm", (816, 657, 275, 96), click=True)
 
-        LocateGray.check(PTH["Drive"], region=(1229, 896, 156, 139), error=True, wait=10)
+        default.button("Drive","Drive", error=True, wait=10)
         time.sleep(0.5)
 
     except RuntimeError:
         print("Termination error")
         logging.error("Termination error")
-        # gui.screenshot(f"errors/end{int(time.time())}") # debugging
+        # gui.screenshot(f"errors/end{int(time.time())}")  # debugging
         # close_limbus()
 
     print("MD Finished!")
@@ -98,29 +98,30 @@ def dungeon_end():
 
 def dungeon_fail():
     try:
-        if LocateRGB.check(PTH["defeat"], region=(1426, 116, 366, 184), error=True):
+        if LocateRGB.check(PTH["defeat"], region=REG["victory"], error=True):
             gui.click(1693, 841)
 
         gui.moveTo(1700, 1026)
 
-        LocateGray.check(PTH["Claim"], region=(1540, 831, 299, 132), click=True, error=True)
+        click.button("Claim", "Claim")
         time.sleep(0.2)
-        LocateGray.check(PTH["GiveUp"], region=(400, 776, 360, 94), click=True, error=True)
-        LocateGray.check(PTH["ConfirmInvert"], region=(987, 704, 318, 71), click=True, error=True)
+        click.button("GiveUp", (400, 776, 360, 94))
+        click.button("ConfirmInvert", "ConfirmInvert")
 
         start_time = time.time()
-        while LocateGray.check(PTH["loading"], region=(1577, 408, 302, 91)):
-            if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
+        while default.button("loading", "loading"):
+            if time.time() - start_time > 20:
+                raise RuntimeError("Infinite loop exited")
             print("loading screen...")
             time.sleep(0.5)
 
-        LocateGray.check(PTH["Drive"], region=(1229, 896, 156, 139), error=True, wait=10)
+        default.button("Drive", "Drive", error=True, wait=10)
         time.sleep(0.5)
 
     except RuntimeError:
         print("Termination error")
         logging.error("Termination error")
-        # gui.screenshot(f"errors/end{int(time.time())}") # debugging
+        # gui.screenshot(f"errors/end{int(time.time())}")  # debugging
         # close_limbus()
 
     print("MD Failed!")
@@ -131,7 +132,7 @@ def main_loop():
     dungeon_start()
 
     start_time = time.time()
-    while LocateGray.check(PTH["loading"], region=(1577, 408, 302, 91), wait=1):
+    while default.button("loading", "loading", wait=1):
         if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
         print("loading screen...")
         time.sleep(0.5)
@@ -141,10 +142,10 @@ def main_loop():
     buy = ["glimpse", "dust", "stew", "paraffin", "ash"]
 
     while True:
-        if LocateGray.check(PTH["ServerError"], region=(651, 640, 309, 124), click=True, wait=False):
+        if nowait.button("ServerError", (651, 640, 309, 124), click=True):
             logging.error('Server error happened')
 
-        if LocateGray.check(PTH["EventEffect"], region=(710, 215, 507, 81), wait=False):
+        if nowait.button("EventEffect", (710, 215, 507, 81)):
             gui.click(773, 521)
             time.sleep(0.2)
             gui.click(967, 774)
@@ -152,12 +153,12 @@ def main_loop():
         if gui.getActiveWindowTitle() != 'LimbusCompany':
             pause()
         
-        if LocateGray.check(PTH["victory"], region=(1478, 143, 296, 116), wait=False):
+        if nowait.button("victory", "victory"):
             logging.info('Run Completed')
             dungeon_end()
             return True
 
-        if LocateRGB.check(PTH["defeat"], region=(1426, 116, 366, 184), wait=False):
+        if nowait.button("defeat", "victory"):
             logging.info('Run Failed')
             dungeon_fail()
             return False

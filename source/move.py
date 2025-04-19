@@ -53,10 +53,23 @@ def hook():
     return True
 
 
-def ck_boss(region, comp):
+def is_boss(region, comp):
     image = cv2.cvtColor(np.array(gui.screenshot(region=region)), cv2.COLOR_RGB2BGR)
     red_mask = cv2.inRange(image, np.array([0, 0, 180]), np.array([50, 50, 255]))
     return LocateGray.check(PTH["boss"], red_mask, region=region, wait=False, click=True, comp=comp, conf=0.6)
+
+def is_risky(loc, i, comp):
+    if loc.check(LocateGray, PTH["risk0"]) or \
+   any(loc.check(LocateGray, PTH[f"risk1"], comp=comp*(1 - 0.14*j)) for j in range(2)) or \
+   any(loc.check(LocateGray, PTH[f"risk2"], comp=comp*(1 - 0.14*j)) for j in range(2)):
+        return True
+    return False
+
+def is_focused(loc, i):
+    if any(loc.check(LocateGray, PTH[f"focus{j}"], conf=0.85) for j in range(2)) or \
+       any(loc.check(LocateGray, PTH[f"focus{j+2}"], conf=0.85) for j in range(2)):
+        return True
+    return False
 
 
 def directions():
@@ -84,8 +97,8 @@ def enter():
 
 
 def move(): 
-    if not LocateGray.check(PTH["Move"], region=(1805, 107, 84, 86), wait=False) or \
-           LocateGray.check(PTH["EGOconfirm"], region=(791, 745, 336, 104), wait=False): return False
+    if not LocateGray.check(PTH["Move"], region=REG["Move"], wait=False) or \
+           LocateGray.check(PTH["EGOconfirm"], region=REG["EGOconfirm"], wait=False): return False
     
     # run fail detection
     dead = [gui.center(box) for box in LocateRGB.locate_all(PTH["0"], region=(261, 1019, 1391, 41), conf=0.95, threshold=50)]
@@ -111,56 +124,48 @@ def move():
     
     position(Dante)
     
-    if LocateGray.check(PTH["victory"], region=(1478, 143, 296, 116), wait=False): return False
+    if LocateGray.check(PTH["victory"], region=REG["victory"], wait=False): return False
 
     regions = directions()
     status = [None, None, None]
 
     for i, region in regions.items():
-        # boss
-        if i == 1 and ck_boss(region, comp):
+        loc = LocatePreset(region=region, comp=comp, v_comp=v_list[i], conf=0.8)
+        if i == 1 and is_boss(region, comp):
             enter()
             logging.info("Entering Bossfight")
             return True
-        # other fight
-        elif LocateRGB.check(PTH["coin"], region=region, wait=False, comp=comp):
-            if LocateRGB.check(PTH["gift"], region=region, wait=False, comp=comp):
-                if LocateGray.check(PTH[f"risk0"], region=region, wait=False, comp=comp, v_comp=v_list[i], conf=0.8) or \
-                   any([LocateGray.check(PTH[f"risk1"], region=region, wait=False, comp=comp*(1-0.14*j), v_comp=v_list[i], conf=0.8) for j in range(2)]) or \
-                   any([LocateGray.check(PTH[f"risk2"], region=region, wait=False, comp=comp*(1-0.14*j), conf=0.8) for j in range(2)]):
+
+        elif loc.check(LocateRGB, PTH["coin"]):
+            if loc.check(LocateRGB, PTH["gift"]):
+                if is_risky(loc, i, comp):
                     status[i] = "Risk"
                     continue
-                elif any([LocateGray.check(PTH[f"focus{j}"], region=region, wait=False, comp=comp, v_comp=v_list[i], conf=0.85) for j in range(2)]) or \
-                     any([LocateGray.check(PTH[f"focus{j+2}"], region=region, wait=False, comp=comp, conf=0.85) for j in range(2)]):
+                elif is_focused(loc, i):
                     status[i] = "Focused"
                 else:
                     status[i] = "Abnormality"
             else:
                 status[i] = "Human"
                 continue
-        # event
-        elif LocateGray.check(PTH[f"event0"], region=region, wait=False, click=True, comp=comp, v_comp=v_list[i]) or \
-             LocateGray.check(PTH[f"event1"], region=region, wait=False, click=True, comp=comp, v_comp=v_list[i]) or \
-             LocateGray.check(PTH[f"event2"], region=region, wait=False, click=True, comp=comp):
+
+        elif any(loc.check(LocateGray, PTH[f"event{j}"], click=True) for j in range(3)):
             enter()
             logging.info("Entering Event")
             return True
-        # shop
-        elif LocateGray.check(PTH[f"shop0"], region=region, wait=False, click=True, comp=comp, v_comp=v_list[i], conf=0.8) or \
-             LocateGray.check(PTH[f"shop1"], region=region, wait=False, click=True, comp=comp, conf=0.8):
+
+        elif any(loc.check(LocateGray, PTH[f"shop{j}"], click=True) for j in range(2)):
             enter()
             logging.info("Entering Shop")
             return True
     if any(status):
         for node in priority:
-            try:
+            if node in status:
                 id = random.choice([i for i, x in enumerate(status) if x == node])
                 gui.click(gui.center(regions[id]))
                 enter()
                 logging.info(f"Entering {node} fight")
                 return True
-            except IndexError:
-                continue
     
     # if we fail:
     for region in regions:
