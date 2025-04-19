@@ -4,7 +4,7 @@ PROBS = ["VeryHigh", "High", "Normal", "Low", "VeryLow"]
 
 
 def event():
-    if not LocateGray.check(PTH["eventskip"], region=PTH["eventskip"], wait=False): return False
+    if not LocateGray.check(PTH["eventskip"], region=REG["eventskip"], wait=False): return False
 
     start_time = time.time()
     while True:
