@@ -7,25 +7,25 @@ from source.grab import grab_card, grab_EGO, confirm
 from source.shop import shop
 
 default = LocatePreset()
-click = LocatePreset(click=True, error=True)
+try_click = LocatePreset(click=True, error=True)
 nowait = LocatePreset(wait=False)
 
 def dungeon_start():
     try:
-        click.button("Drive", "Drive")
-        click.button("MD", "MD")
-        click.button("Start", "Start")
+        try_click.button("Drive", "Drive")
+        try_click.button("MD", "MD")
+        try_click.button("Start", "Start")
         time.sleep(0.5)
 
-        click.button("enterInvert", "enterInvert")
+        try_click.button("enterInvert", "enterInvert")
         gui.moveTo(1726, 978)
         gui.click()
-        if click.button("ConfirmTeam", "ConfirmTeam"):
+        if try_click.button("ConfirmTeam", "ConfirmTeam"):
             time.sleep(0.2)
             gui.click(1717, 878, duration=0.1)
 
         # Bonus Choice:
-        if click.button("enterBonus", "enterBonus"):
+        if try_click.button("enterBonus", "enterBonus"):
             time.sleep(0.1)
             gui.moveTo(401, 381, duration=0.2)
             gui.doubleClick()
@@ -37,12 +37,12 @@ def dungeon_start():
             gui.doubleClick(duration=0.1)
             time.sleep(0.1)
 
-        click.button("enterBonus", "enterBonus")
-        click.button("EGOconfirm", (957, 764, 330, 90))
+        try_click.button("enterBonus", "enterBonus")
+        try_click.button("EGOconfirm", (957, 764, 330, 90))
 
         # Starting EGO
         time.sleep(0.1)
-        click.button("BurnStart", "StartEGO")
+        try_click.button("BurnStart", "StartEGO")
         time.sleep(0.1)
         gui.moveTo(1239, 395, duration=0.1)
         gui.doubleClick()
@@ -53,9 +53,9 @@ def dungeon_start():
         gui.doubleClick()
         time.sleep(0.1)
 
-        click.button("EGOconfirm", "EGOconfirm")
+        try_click.button("EGOconfirm", "EGOconfirm")
         time.sleep(0.2)
-        click.button("EGOconfirm", "EGOconfirm")
+        try_click.button("EGOconfirm", "EGOconfirm")
 
     except RuntimeError:
         print("Initialization error")
@@ -68,15 +68,15 @@ def dungeon_start():
 
 def dungeon_end():
     try:
-        if click.button("victory", "victory"):
+        if try_click.button("victory", "victory"):
             gui.click(1693, 841)
 
         gui.moveTo(1700, 1026)
 
-        click.button("Claim", "Claim")
+        try_click.button("Claim", "Claim")
         time.sleep(0.2)
-        click.button("ClaimInvert", (1156, 776, 360, 94))
-        click.button("ConfirmInvert", "ConfirmInvert")
+        try_click.button("ClaimInvert", (1156, 776, 360, 94))
+        try_click.button("ConfirmInvert", "ConfirmInvert")
 
         start_time = time.time()
         while not nowait.button("loading", "loading"):
@@ -103,10 +103,10 @@ def dungeon_fail():
 
         gui.moveTo(1700, 1026)
 
-        click.button("Claim", "Claim")
+        try_click.button("Claim", "Claim")
         time.sleep(0.2)
-        click.button("GiveUp", (400, 776, 360, 94))
-        click.button("ConfirmInvert", "ConfirmInvert")
+        try_click.button("GiveUp", (400, 776, 360, 94))
+        try_click.button("ConfirmInvert", "ConfirmInvert")
 
         start_time = time.time()
         while default.button("loading", "loading"):

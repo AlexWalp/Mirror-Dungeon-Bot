@@ -1,7 +1,10 @@
 __pycache__
 venv
+build
+_internal
 game.log
 testing.py
 Depreciated.py
 data
 skill_data
+stats.py

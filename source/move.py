@@ -168,8 +168,8 @@ def move():
                 return True
     
     # if we fail:
-    for region in regions:
-        gui.moveTo(gui.center(region))
+    for i in range(3):
+        gui.moveTo(gui.center((624, 101 + i * 275, 282, 275)))
         gui.click()
         if enter():
             logging.info(f"Entering unknown node")

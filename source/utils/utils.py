@@ -40,7 +40,7 @@ def pause():
         print("The bot is paused...")
         do = input("Press 1 to continue or press 0 to exit: ")
         if do == "0":
-            exit()
+            sys.exit()
         if do == "1":
             countdown(5)
             break
