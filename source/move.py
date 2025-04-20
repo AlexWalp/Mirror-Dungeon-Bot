@@ -2,7 +2,7 @@ from source.utils.utils import *
 import random
 
 
-priority = ["Abnormality", "Risk", "Human", "Focused"]
+priority = ["Human", "Abnormality", "Risk", "Focused"]
 v_list = [0.8, 0.9, 1]
 
 def find_danteh(): # looks for high resolution Dante
@@ -58,16 +58,28 @@ def is_boss(region, comp):
     red_mask = cv2.inRange(image, np.array([0, 0, 180]), np.array([50, 50, 255]))
     return LocateGray.check(PTH["boss"], red_mask, region=region, wait=False, click=True, comp=comp, conf=0.6)
 
-def is_risky(loc, i, comp):
+def is_risky(loc, comp):
     if loc.check(LocateGray, PTH["risk0"]) or \
    any(loc.check(LocateGray, PTH[f"risk1"], comp=comp*(1 - 0.14*j)) for j in range(2)) or \
-   any(loc.check(LocateGray, PTH[f"risk2"], comp=comp*(1 - 0.14*j)) for j in range(2)):
+   any(loc.check(LocateGray, PTH[f"risk2"], comp=comp*(1 - 0.14*j), v_comp=None) for j in range(2)):
         return True
     return False
 
-def is_focused(loc, i):
+def is_focused(loc):
     if any(loc.check(LocateGray, PTH[f"focus{j}"], conf=0.85) for j in range(2)) or \
-       any(loc.check(LocateGray, PTH[f"focus{j+2}"], conf=0.85) for j in range(2)):
+       any(loc.check(LocateGray, PTH[f"focus{j+2}"], conf=0.85, v_comp=None) for j in range(2)):
+        return True
+    return False
+
+def is_event(loc):
+    if any(loc.check(LocateGray, PTH[f"event{j}"], conf=0.85) for j in range(2)) or \
+           loc.check(LocateGray, PTH[f"event2"], conf=0.9, v_comp=None):
+        return True
+    return False
+
+def is_shop(loc):
+    if loc.check(LocateGray, PTH[f"shop0"]) or \
+       loc.check(LocateGray, PTH[f"shop1"], v_comp=None):
         return True
     return False
 
@@ -136,12 +148,12 @@ def move():
             logging.info("Entering Bossfight")
             return True
 
-        elif loc.check(LocateRGB, PTH["coin"]):
-            if loc.check(LocateRGB, PTH["gift"]):
-                if is_risky(loc, i, comp):
+        elif loc.check(LocateRGB, PTH["coin"], conf=0.9, v_comp=None):
+            if loc.check(LocateRGB, PTH["gift"], conf=0.9, v_comp=None):
+                if is_risky(loc, comp):
                     status[i] = "Risk"
                     continue
-                elif is_focused(loc, i):
+                elif is_focused(loc):
                     status[i] = "Focused"
                 else:
                     status[i] = "Abnormality"
@@ -149,12 +161,14 @@ def move():
                 status[i] = "Human"
                 continue
 
-        elif any(loc.check(LocateGray, PTH[f"event{j}"], click=True) for j in range(3)):
+        elif is_event(loc):
+            gui.click(gui.center(regions[i]))
             enter()
             logging.info("Entering Event")
             return True
 
-        elif any(loc.check(LocateGray, PTH[f"shop{j}"], click=True) for j in range(2)):
+        elif is_shop(loc):
+            gui.click(gui.center(regions[i]))
             enter()
             logging.info("Entering Shop")
             return True

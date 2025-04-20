@@ -143,8 +143,11 @@ def main_loop():
     buy = ["glimpse", "dust", "stew", "paraffin", "ash"]
 
     while True:
-        if nowait.button("ServerError", (651, 640, 309, 124), click=True):
-            logging.error('Server error happened')
+        if nowait.button("ServerError", (651, 640, 309, 124)):
+            gui.click(1100, 700)
+            time.sleep(10)
+            if nowait.button("ServerError", (651, 640, 309, 124), click=True):
+                logging.error('Server error happened')
 
         if nowait.button("EventEffect", (710, 215, 507, 81)):
             gui.click(773, 521)

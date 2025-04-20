@@ -85,14 +85,14 @@ def inventory_check():
         try:
             res = gui.center(LocateRGB.try_locate(PTH[str(gift)], region=(920, 295, 790, 482), conf=0.85))
             print(f"got {gift}")
-            cv2.rectangle(image, (int(res[0] - 74 - 920), int(res[1] - 72 - 295)), (int(res[0] - 920), int(res[1] - 295)), (0, 0, 0), -1)
+            cv2.rectangle(image, (int(res[0] - 982), int(res[1] - 367)), (int(res[0] - 860), int(res[1] - 245)), (0, 0, 0), -1)
         except gui.ImageNotFoundException:
             continue
 
     for i in range(4, 0, -1):
         found = [gui.center(box) for box in LocateRGB.locate_all(PTH[str(i)], region=(920, 295, 790, 482), image=image, threshold=50)]
         for res in found:
-            cv2.rectangle(image, (int(res[0] - 37 - 920), int(res[1] - 37 - 295)), (int(res[0] + 37 - 920), int(res[1] + 37 - 295)), (0, 0, 0), -1)
+            cv2.rectangle(image, (int(res[0] - 940), int(res[1] - 317)), (int(res[0] - 818), int(res[1] - 195)), (0, 0, 0), -1)
         for coord in found:
             items[i] += 1
             coords[i].append(coord)
