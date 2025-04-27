@@ -95,7 +95,7 @@ def inventory_check():
 
 def sell():
     Action("shop", click=(600, 585), ver="sell").execute(click)
-    _, coords, _ = inventory_check()
+    coords, _ = inventory_check()
     for i in range(1, 5):
         if coords[i] != []:
             chain_actions(click, [
