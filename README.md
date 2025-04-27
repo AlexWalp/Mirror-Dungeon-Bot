@@ -7,69 +7,193 @@
                                      /____/
 ```
 
-# ChargeGrinder
 **ChargeGrinder** is a Limbus Company bot that charges through MD5 for you
 
-
-**Automated Mirror Dungeon Runs:** Only the number of dungeons to grind needs to be specified, everything else is handled by the bot.
-
-<span style="font-size: 110%;">**Speed:** </span> Usually each floor takes no more than 5 minutes, so 1 MD5 run lasts between **20-25 minutes.**
+### ⚡ Speed
+Usually, each floor takes no more than 5 minutes, so a full MD5 run lasts between **20–25 minutes**.
 
 ---
-### Usage:
-- **User Input:** The program will prompt you to enter the number of Mirror Dungeons to grind, and it will start running a few seconds after your response (You must switch to Limbus Company window, main screen). It is not recommended to move mouse while bot is running, but you can Alt+Tab to new window for bot to pause (or crash, depends on the odds).
-- **In-Game Requirements:** 
-    - You must leave the Limbus Company window open and in fullscreen mode while the bot runs. Mouse interactions in the game will be controlled by the bot.
-    - If you close the Limbus Company window, the bot will automatically pause.
-- **The bot:**
-    - Uses default (burn) team
-    - Avoids a few Booster Packs with long fights
-    - Tries to find the best next node (minimizing time)
-    - Selects Burn Ego gifts and tries to fuse an overpowered burn build in shops
-    - Winrates focused encounters and chains skills 1 and 2 for human encounters (Skill 3 animations are too long)
-- **Limitations:** ChargeGrinder still needs additional features, testing, and bug fixes. However, it can successfully grind a few easy dungeons while you are sleeping.
 
---- 
+# ChargeGrinder:
+- ## Starts from any moment of dungeon exploration
+  - But it is still recommended to start on main game screen
+- ## Uses default (burn) team
+  - ***Pick right team before launching the bot!***
+  - If team members are already selected, bot will **not** change your selection.
+  - Bot only selects team memebers if selected number for battle is less than 6.
+  - Default members: **Don, Ishmael, Gregor, Sinclair, YiSang, and Rodion**.
+  - You can also set up your own team members.
+  
+> ![team.png](ImageAssets/readme/team.png)
+---
 
-### Requirements  
-#### Option 1: Run the Prebuilt Executable  
-Simply launch **CGrinder.exe** from the `dist` folder—no additional files required.  
+- ## Selects Floor Packs
+  - Avoids packs with high mortality rate and long fights such as: <p>
+  **The Noon of Violet, Murder on the WARP Express, Full-Stopped by a Bullet, Timekilling Time, Nocturnal Sweeping** and some other.
+  - Prioritizes floors with unique ego gifts such as: <p>
+  **The Outcast, Hell's Chicken**
 
-#### Option 2: Run with Python  
-Ensure you have **Python 3** installed and the following dependencies:  
+- ## Selects the best next node
+  - The choice priority order: <p>
+**Event, Normal fight, Miniboss fight, Risky fight, Focused fight**
+  - Mostly the bot just looks at the next 3 nodes, but it will also look 2 nodes ahead if the next node choice is uncertain. 
+  - The main purpose of node picking is minimizing time.
+  - Bot can detect:
+> ![nodes.png](ImageAssets/readme/nodes.png)
+
+- ## Handles battles
+  - Winrates focused encounters.
+  - Chains skills 1 and 2 for human encounters. 
+  - Skill 3 animations take more time than necessary so it is best to avoid it.
+  - Doesn't use any EGO, because it is a huge time waste.
+> ![skills.gif](ImageAssets/readme/skills.gif)
+
+- ## Selects team-related important EGO gifts
+  - EGO gift priority:
+    - Gifts that are needed for fuse recepies
+    - Highest tier gifts (to fuse later)
+    - Same gifts as team affinity
+
+- ## Makes a good team affinity build in shop
+  - Fuses gifts to get powerful Tier 4s
+  - Upties and buys affinity-related gifts
+- ## Restarts if run fails
+  - If 6 or more sinners are dead, the bot (with default settings) will restart the run.
+- ## Reclicks if action failed
+  - Sometimes timings mess up, so in order to address this issue most bot actions are double-verified.
+
+
+**Limitations:**  
+ChargeGrinder still needs additional features, testing, and bug fixes. However, it can successfully grind a few easy dungeons while you are asleep (that's how I do it at least).
+
+---
+# Installation
+
+### 📦 Option 1: Run the Prebuilt Executable
+- Launch **CGrinder.exe** from the `dist` folder—no additional files required.
+- On the first run, it will install recognition and detection models into the `User/.TorchfreeOCR` folder (~100 MB).
+
+### 🐍 Option 2: Run with Python
+Make sure you have **Python 3** installed. Then either:
 ```bash
 pip install -r requirements.txt
 ```
-Or manually install:  
-- `numpy`  
-- `opencv-python-headless`    
-- `pyautogui`  
-- `Pillow`  
-- `torchfree-ocr`  
+or manually install:
+- `numpy`
+- `opencv-python-headless`
+- `pyautogui`
+- `Pillow`
+- `torchfree-ocr`
 
-### Setup Instructions:
+---
+# Usage:
 
-1. **Team Setup:** 
-   - ChargeGrinder is currently tested with an Uptie 4 burn team (the fastest team for easy MD)
-   - Team members: Don, Ishmael, Gregor, Sinclair, YiSang and Rodion
-# ![team.png](ImageAssets/readme/team.png)
-   - The team is inspired by this MD5 speedrun: 
-# [![Watch on YouTube](https://img.youtube.com/vi/dCUUHMLDWkY/0.jpg)](https://www.youtube.com/watch?v=dCUUHMLDWkY)
+- **User Input:**  
+  You can set up sinners and other settings upon program execution. ChargeGrinder will then prompt you to enter the number of Mirror Dungeons to grind, and it will start running a few seconds after your response. 
+  After that you should switch to the Limbus Company window, main screen. It is not recommended to move the mouse while the bot is running, but you can Alt+Tab to another window, and the bot will pause.
 
-2. **Game Settings:**
-   - Set the game resolution to Full HD (1920 x 1080) in fullscreen mode.
-   - Pre-select your burn team (members should also be pre-selected)
-   - Start Bot.py in project folder, input number and immediately switch to Limbus window on the main game screen.
-   - if you have multiple languages in keyboard layout, make sure you have ENG selected before starting the bot
+- **Runtime Requirements:**
+  - Set the game resolution to **Full HD (1920 x 1080)** in fullscreen mode.
+  - Pre-select your burn team (members should be already selected).
+  - Start `Bot.py` from the project folder, configure your settings, and switch to the Limbus window on the main game screen.
+  - If you have multiple keyboard layouts, make sure you have **ENG** selected before starting the bot.
 
-3. **Recommended Team:** 
-   - Currently, only burn team is tested.
-   - Ensure the team and all 6 sinners are selected before starting the bot. The game usually remembers previously used sinners.
+---
+# Settings Overview
+
+**Upon startup, you can configure these settings:**
+
+| Setting   | Description | How to Change |
+|:----------|:------------|:--------------|
+| **TEAM** | Selected build type (currently only `BURN` is supported) | `TEAM <TYPE>` |
+| **SELECTED** | Default sinners the bot will pick (if you didn’t manually select) | `SELECTED 1 2 3 4 5 6` <p>(six sinners in ascending order) <br> _(Type `SINNERS` to see the list)_ |
+| **BONUS** | Collect weekly bonuses automatically | `BONUS TRUE` to turn it on |
+| **RESTART** | Restart failed runs automatically | `RESTART FALSE` to turn it off |
+| **ALTF4** | Close Limbus Company when done (or stuck) | `ALTF4 TRUE` to turn it on |
+| **LOG** | Save important events and errors to `game.log` | `LOG FALSE` to turn it off |
 
 ---
 
-### TODO List:
-- Add support for different team builds??? idk why though if burn is the fastest
-- Implement more natural mouse movements for the bot? game doesn't really track mouse movements though
-- Improve abnormality fights (coin targeting instead of winrate, may be useful for Hard MD bot)
-- Create a bot UI using PyQt6
+# Sinners List
+```
+1. YISANG          7.HEATHCLIFF
+2. FAUST           8.ISHMAEL
+3. DONQUIXOTE      9.RODION
+4. RYOSHU         10.SINCLAIR
+5. MEURSAULT      11.OUTIS
+6. HONGLU         12.GREGOR
+```
+> Select six sinners in ascending order when using the `SELECTED` command.
+---
+# stats.py
+- You can run stats.py file from with repository to view your MD run statistics
+- Make sure that `file = "game.log"` actually points to your `game.log` file
+- Output looks like this:
+```
+📊 Floor Fight Statistics
+🧱 Floor 1
+Type      |  Avg Time  | Count
+--------------------------------
+Normal    |    0:43    |   2
+Focused   |    0:00    |   0
+Risky     |    0:00    |   0
+Miniboss  |    0:00    |   0
+Boss      |    0:40    |   1
+
+🧱 Floor 2
+Type      |  Avg Time  | Count
+--------------------------------
+Normal    |    0:36    |   2
+Focused   |    0:00    |   0
+Risky     |    1:01    |   1
+Miniboss  |    0:00    |   0
+Boss      |    1:06    |   1
+
+🧱 Floor 3
+Type      |  Avg Time  | Count
+--------------------------------
+Normal    |    0:39    |   2
+Focused   |    0:00    |   0
+Risky     |    0:00    |   0
+Miniboss  |    0:00    |   0
+Boss      |    2:39    |   1
+
+🧱 Floor 4
+Type      |  Avg Time  | Count
+--------------------------------
+Normal    |    0:56    |   1
+Focused   |    1:42    |   1
+Risky     |    0:00    |   0
+Miniboss  |    0:00    |   0
+Boss      |    0:59    |   1
+
+🧱 Floor 5
+Type      |  Avg Time  | Count
+--------------------------------
+Normal    |    1:01    |   1
+Focused   |    1:26    |   1
+Risky     |    0:00    |   0
+Miniboss  |    0:00    |   0
+Boss      |    1:26    |   1
+
+📦 Floor Time Summary
+Floor | Avg Time | Count
+--------------------------
+  1   |   3:16   |   1
+  2   |   4:43   |   1
+  3   |   5:17   |   1
+  4   |   5:14   |   1
+  5   |   4:52   |   1
+
+🏁 Run Summary
+Successful Runs | Avg Run Time | Failed Runs | Total Time Wasted
+----------------------------------------------------------------
+       1        |    23:43     |      0      |       0:00
+```
+---
+
+#  TODO List
+- Add support for different team builds (planned within a week).
+- Create a UI using **PyQt6**.
+- Add support for **Hard MD** runs (this seems possible).
+- Improve mouse behavior with more natural movements in the future (though the game doesn't track mouse movements, so not urgent).
