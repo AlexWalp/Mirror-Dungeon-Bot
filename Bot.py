@@ -5,151 +5,146 @@ from source.pack import pack
 from source.move import move
 from source.grab import grab_card, grab_EGO, confirm
 from source.shop import shop
+from source.teams import TEAMS
+import source.utils.params as p
 
-default = LocatePreset()
-try_default = LocatePreset(error=True)
-try_click = LocatePreset(click=True, error=True)
-nowait = LocatePreset(wait=False)
+
+# Action          -> next action is verifier
+# Action with ver -> don't need next action
+# default ver     -> verification by button image in corresponding region
+# if ver has !    -> verification by screenshot region change (image correlation)
+
+# INIT RUN
+ACTIONS = [
+    Action("Drive"),
+    Action("MD"),
+    Action("Start"),
+    Action("enterInvert"),
+    Action("ConfirmTeam", ver="enterBonus"),
+    lambda: time.sleep(0.2),
+
+    ClickAction((401, 381), ver="money!"),
+    ClickAction((686, 381), ver="money!"),
+    ClickAction((966, 381), ver="money!"),
+    ClickAction((1241, 381), ver="money!"),
+
+    Action("enterBonus"),
+    Action("Confirm.0", ver="refuse"),
+
+    Action("BurnStart", "StartEGO", ver="gifts!"),
+    ClickAction((1239, 395), ver="selected!"),
+    ClickAction((1239, 549), ver="selected!"),
+    ClickAction((1624, 882)),
+
+    Action("Confirm"),
+    Action("Confirm", ver="loading"),
+    loading_halt
+]
 
 def dungeon_start():
-    try:
-        try_click.button("Drive", "Drive")
-        try_click.button("MD", "MD")
-        try_click.button("Start", "Start")
-        time.sleep(0.5)
-
-        try_click.button("enterInvert", "enterInvert")
-        gui.moveTo(1726, 978)
-        gui.click()
-        if try_default.button("ConfirmTeam", "ConfirmTeam"):
-            time.sleep(0.2)
-            gui.click(1717, 878, duration=0.1)
-
-        # Bonus Choice:
-        if try_default.button("enterBonus", "enterBonus"):
-            time.sleep(0.1)
-            gui.moveTo(401, 381, duration=0.2)
-            gui.doubleClick()
-            gui.moveTo(686, 381, duration=0.1)
-            gui.doubleClick()
-            gui.moveTo(966, 381, duration=0.1)
-            gui.doubleClick()
-            gui.moveTo(1241, 381, duration=0.1)
-            gui.doubleClick(duration=0.1)
-            time.sleep(0.1)
-
-        try_click.button("enterBonus", "enterBonus")
-        try_click.button("EGOconfirm", (957, 764, 330, 90))
-
-        # Starting EGO
-        time.sleep(0.1)
-        try_click.button("BurnStart", "StartEGO")
-        time.sleep(0.1)
-        gui.moveTo(1239, 395, duration=0.1)
-        gui.doubleClick()
-        time.sleep(0.1)
-        gui.moveTo(1239, 549, duration=0.1)
-        gui.doubleClick()
-        gui.moveTo(1624, 882, duration=0.1)
-        gui.doubleClick()
-        time.sleep(0.1)
-
-        try_click.button("EGOconfirm", "EGOconfirm")
-        time.sleep(0.2)
-        try_click.button("EGOconfirm", "EGOconfirm")
-
-    except RuntimeError:
-        print("Initialization error")
-        logging.error("Initialization error")
-        # gui.screenshot(f"errors/init{int(time.time())}")  # debugging
-        # close_limbus()
-
+    failed = 0
+    while True:
+        now_click.button("resume")
+        locations = {
+            "Drive": 0, 
+            "MD": 1, 
+            "Start": 2, 
+            "enterInvert": 3, 
+            "ConfirmTeam": 4, 
+            "enterBonus": 6, 
+            "Confirm.0": 11, 
+            "refuse": 12, 
+            "Confirm": 17
+        }
+        for key in locations.keys():
+            if now.button(key):
+                i = locations[key]
+                break
+        else: break
+        try:
+            chain_actions(try_click, ACTIONS[i:])
+        except RuntimeError:
+            failed += 1
+        if failed > 5:
+            print("Initialization error")
+            logging.error("Initialization error")
+            break
     print("Entering MD!")
 
 
+# END RUN
+def collect_rewards():
+    wait_for_condition(
+        condition=lambda: not now.button("loading"),
+        action=lambda: now_click.button("Confirm.0"),
+        interval=0.1
+    )
+
+def click_bonus():
+    if now_rgb.button("bonus", click=True) or \
+       now_rgb.button("bonus_off", click=True):
+        return True
+    return False
+
+def handle_bonus():
+    if p.BONUS: return
+    if not wait_for_condition(lambda: not click_bonus):
+        raise RuntimeError
+
+TERMIN = [
+    Action("victory", click=(1693, 841)),
+    Action("Claim", ver="ClaimInvert"),
+    handle_bonus,
+    Action("ClaimInvert"),
+    Action("ConfirmInvert", ver="Confirm.0"),
+    collect_rewards,
+    loading_halt,
+    lambda: try_loc.button("Drive")
+]
+
 def dungeon_end():
     try:
-        if try_default.button("victory", "victory"):
-            gui.click(1693, 841)
-
-        gui.moveTo(1700, 1026)
-
-        try_click.button("Claim", "Claim")
-        time.sleep(0.2)
-        try_click.button("ClaimInvert", (1156, 776, 360, 94))
-        try_click.button("ConfirmInvert", "ConfirmInvert")
-
-        start_time = time.time()
-        while not nowait.button("loading", "loading"):
-            if time.time() - start_time > 20:
-                raise RuntimeError("Infinite loop exited")
-            nowait.button("EGOconfirm", (816, 657, 275, 96), click=True)
-
-        default.button("Drive","Drive", error=True, wait=10)
-        time.sleep(0.5)
-
+        chain_actions(try_click, TERMIN)
     except RuntimeError:
         print("Termination error")
         logging.error("Termination error")
-        # gui.screenshot(f"errors/end{int(time.time())}")  # debugging
-        # close_limbus()
-
     print("MD Finished!")
 
+# FAIL RUN
+FAIL = [
+    Action("defeat", click=(1693, 841)),
+    Action("Claim"),
+    Action("GiveUp"),
+    Action("ConfirmInvert", ver="loading"),
+    loading_halt,
+    lambda: try_loc.button("Drive")
+]
 
 def dungeon_fail():
+    if not p.RESTART:
+        raise RuntimeError("Mirror dungeon failed... If you want to auto-retry, enable 'Restart after run fail'")
     try:
-        if LocateRGB.check(PTH["defeat"], region=REG["victory"], error=True):
-            gui.click(1693, 841)
-
-        gui.moveTo(1700, 1026)
-
-        try_click.button("Claim", "Claim")
-        time.sleep(0.2)
-        try_click.button("GiveUp", (400, 776, 360, 94))
-        try_click.button("ConfirmInvert", "ConfirmInvert")
-
-        start_time = time.time()
-        while default.button("loading", "loading"):
-            if time.time() - start_time > 20:
-                raise RuntimeError("Infinite loop exited")
-            print("loading screen...")
-            time.sleep(0.5)
-
-        default.button("Drive", "Drive", error=True, wait=10)
-        time.sleep(0.5)
-
+        chain_actions(try_click, FAIL)
     except RuntimeError:
         print("Termination error")
         logging.error("Termination error")
-        # gui.screenshot(f"errors/end{int(time.time())}")  # debugging
-        # close_limbus()
-
     print("MD Failed!")
 
 
+# MAIN LOOP
 def main_loop():
-
     dungeon_start()
-
-    start_time = time.time()
-    while default.button("loading", "loading", wait=1):
-        if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
-        print("loading screen...")
-        time.sleep(0.5)
-
     error = 0
+    last_error = 0
     level = 1
-    buy = ["glimpse", "dust", "stew", "paraffin", "ash"]
-
     while True:
-        if nowait.button("ServerError", (651, 640, 309, 124)):
+        if now.button("ServerError"):
             gui.click(1100, 700)
             time.sleep(10)
-            if nowait.button("ServerError", (651, 640, 309, 124), click=True):
+            if now_click.button("ServerError"):
                 logging.error('Server error happened')
 
-        if nowait.button("EventEffect", (710, 215, 507, 81)):
+        if now.button("EventEffect"):
             gui.click(773, 521)
             time.sleep(0.2)
             gui.click(967, 774)
@@ -157,37 +152,47 @@ def main_loop():
         if gui.getActiveWindowTitle() != 'LimbusCompany':
             pause()
         
-        if nowait.button("victory", "victory"):
+        if now.button("victory"):
             logging.info('Run Completed')
             dungeon_end()
             return True
 
-        if nowait.button("defeat", "victory"):
+        if now.button("defeat"):
             logging.info('Run Failed')
             dungeon_fail()
             return False
-        
-        ck, level = pack(level)
-        ck += move()
-        ck += fight()
-        ck += event()
-        ck += grab_EGO(buy)
-        ck += confirm()
-        ck += grab_card()
-        ck += shop(level, buy)
+
+        try:
+            ck, level = pack(level)
+            ck += move()
+            ck += fight()
+            ck += event()
+            ck += grab_EGO()
+            ck += confirm()
+            ck += grab_card()
+            ck += shop(level)
+        except RuntimeError:
+            handle_fuckup()
+            error += 1
 
         if not ck:
-            error += 1 
+            if time.time() - last_error < 5:
+                handle_fuckup()
+                error += 1
+            last_error = time.time()
 
-        if error > 1000:
+        if error > 20:
             logging.error('We are stuck')
-            close_limbus()
+            if p.ALTF4:
+                close_limbus()
+
+        time.sleep(0.2)
 
 
 def replay_loop():
-
+    setup()
     number = input("How many mirrors will you grind? ")
-    number = int(''.join(filter(str.isdigit, number)))
+    number = int(''.join(filter(str.isdigit, number)) or '0')
 
     if number < 1:
         print("I respect that")
@@ -196,7 +201,10 @@ def replay_loop():
     print(f"Grinding {number} mirrors...")
     print("Switch to Limbus Window")
     countdown(10)
-
+    
+    p.GIFTS = TEAMS[p.TEAM]
+    setup_logging(enable_logging=p.LOG)
+    
     logging.info('Script started')
 
     for i in range(number):
@@ -208,4 +216,5 @@ def replay_loop():
 
 if __name__ == "__main__":
     replay_loop()
-    # close_limbus()
+    if p.ALTF4:
+        close_limbus()

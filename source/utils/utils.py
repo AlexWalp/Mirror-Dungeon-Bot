@@ -7,19 +7,119 @@ import numpy as np, pyautogui as gui, cv2, torchfree_ocr as myocr
 from PIL import Image
 
 from source.utils.log_config import *
-from source.utils.paths import PTH, REG
-
+from source.utils.paths import *
+import source.utils.params as p
 
 ocr = myocr.Reader(["en"])
 
 print(f"All packages imported in {(time.time() - load_time):.2f} seconds")
 
 
-def connection():
-    start_time = time.time()
-    while LocateGray.check(PTH["connecting"], region=REG["connecting"], wait=False):
-        if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
-        time.sleep(0.1)
+def print_settings():
+    print("\nCurrent Settings:")
+    print("─" * 66)
+    settings = {
+        "TEAM":     p.TEAM,
+        "SELECTED": p.SELECTED,
+        "BONUS":    p.BONUS,
+        "RESTART":  p.RESTART,
+        "ALTF4":    p.ALTF4,
+        "LOG":      p.LOG
+    }
+    for key, value in settings.items():
+        if isinstance(value, list):
+            value = ", ".join(str(v) for v in value)
+        print(f"{key:<9}: {str(value):<53}")
+    print("─" * 66)
+
+def parse_numbers(s):
+    nums = []
+    i = 0
+    for i in range(1, 13):
+        if s.startswith(str(i)):
+            nums.append(i)
+            s = s[len(str(i)):]
+    if len(nums) != 6 or s !="":
+        return None
+    return nums
+
+def setup():
+    print_settings()
+    print("Type 'help' if you need a description of each")
+    while True:
+        do = input("Type 1 to confirm your settings: ")
+        if "help" in do:
+            print("""
+Available Commands:
+──────────────────────────────────────────────────────────────────
+TEAM - Choose a build type (currently only 'BURN' is supported).
+    ➤ Usage: TEAM <TYPE>
+
+SELECTED - Default sinners the bot will pick if not manually selected.
+    ➤ Usage: SELECTED 1 2 3 4 5 6 (six in ascending order)
+    ➤ Note: Type 'SINNERS' to view sinner numbers.
+
+BONUS - Collect weekly bonuses automatically.
+    ➤ Usage: BONUS TRUE / BONUS FALSE
+
+RESTART - Restart failed runs automatically.
+    ➤ Usage: RESTART TRUE / RESTART FALSE
+
+ALTF4 - Close Limbus Company when done or stuck.
+    ➤ Usage: ALTF4 TRUE / ALTF4 FALSE
+
+LOG - Save events and errors to 'game.log'.
+    ➤ Usage: LOG TRUE / LOG FALSE
+──────────────────────────────────────────────────────────────────
+""")
+        elif "SINNERS" in do:
+            print("""
+ Sinners List
+────────────────────────────────────
+ 1. YISANG        7. HEATHCLIFF
+ 2. FAUST         8. ISHMAEL
+ 3. DONQUIXOTE    9. RODION
+ 4. RYOSHU       10. SINCLAIR
+ 5. MEURSAULT    11. OUTIS
+ 6. HONGLU       12. GREGOR
+────────────────────────────────────
+Select six sinners in ascending order when using the 'SELECTED' command.
+""")
+        elif "TEAM" in do:
+            if "BURN" in do:
+                p.TEAM = "BURN"
+                print_settings()
+            else:
+                print("This setting is not supported yet")
+        elif "SELECTED" in do:
+            num = ''.join(filter(str.isdigit, do))
+            num_list = parse_numbers(num)
+            if num_list:
+                list_of_sinners = list(SINNERS.keys())
+                p.SELECTED = [list_of_sinners[i] for i in num_list]
+                print_settings()
+            else:
+                print("Incorrect format for SELECTED")
+        elif "BONUS" in do:
+            if "TRUE" in do: p.BONUS = True; print_settings()
+            elif "FALSE" in do: p.BONUS = False; print_settings()
+            else: print("Incorrect format for BONUS")
+        elif "RESTART" in do:
+            if "TRUE" in do: p.RESTART = True; print_settings()
+            elif "FALSE" in do: p.RESTART = False; print_settings()
+            else: print("Incorrect format for RESTART")
+        elif "ALTF4" in do:
+            if "TRUE" in do: p.ALTF4 = True; print_settings()
+            elif "FALSE" in do: p.ALTF4 = False; print_settings()
+            else: print("Incorrect format for ALTF4")
+        elif "LOG" in do:
+            if "TRUE" in do: p.LOG = True; print_settings()
+            elif "FALSE" in do: p.LOG = False; print_settings()
+            else: print("Incorrect format for LOG")
+        elif do == "0":
+            sys.exit()
+        elif do == "1":
+            break
 
 
 def countdown(seconds): # no more than 99 seconds!
@@ -63,6 +163,17 @@ def detect_char(region=(0, 0, 1920, 1080), digit = False):
         except ValueError:
             res = None
     return res
+
+
+def wait_for_condition(condition, action=None, interval=0.5, timer=20):
+    start_time = time.time()
+    while condition():
+        if time.time() - start_time > timer:
+            return False # exit inf loop
+        if action:
+            action()
+        time.sleep(interval)
+    return True
 
 
 class Locate(): # if inputing np.ndarray, convert to BGR first!
@@ -200,7 +311,11 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
                 else: print("located image")
 
                 if click:
-                    gui.moveTo(gui.center(res), duration=0.1)
+                    if isinstance(click, tuple) and len(click) == 2:
+                        res = click
+                    else:
+                        res = gui.center(res)
+                    gui.moveTo(res, duration=0.1)
                     gui.doubleClick(duration=0.1)
                     if isinstance(template, str):
                         print(f"clicked {os.path.splitext(os.path.basename(template))[0]}")
@@ -247,26 +362,190 @@ class LocateEdges(LocateGray):
 
 
 class LocatePreset:
-    def __init__(self, region=None, comp=None, v_comp=None, conf=0.9, wait=5, click=False, error=False):
+    def __init__(self, method=LocateGray, image=None, region=None, comp=None, v_comp=None, conf=0.9, wait=5, click=False, error=False):
+        self.method = method
         self.params = {
+            "image": image,
             "region": region,
             "comp": comp,
             "v_comp": v_comp,
             "conf": conf,
             "wait": wait,
             "click": click,
-            "error": error
+            "error": error,
         }
 
-    def check(self, locate_cls, template, **overrides):
+    def __call__(self, **overrides):
         params = self.params.copy()
         params.update(overrides)
-        return locate_cls.check(template, **params)
-    
-    def button(self, path_key, region, **overrides):
-        if isinstance(region, str):
-            region = REG[region]
-        params = self.params.copy()
+        return LocatePreset(method=self.method, **params)
+
+    def try_find(self, *args, **overrides):
+        if   len(args) == 1: key, region_key = args[0], args[0]
+        elif len(args) == 2: key, region_key = args
+        else: raise ValueError("Invalid arguments")
+        path = PTH[key.split('.')[0]]
+        region = REG[region_key] if isinstance(region_key, str) else region_key
+
+        params = dict(list(self.params.items())[:5])
         params.update(overrides)
         params["region"] = region
-        return LocateGray.check(PTH[path_key], **params)
+        result = self.method.try_locate(path, **params)
+        return gui.center(result)
+    
+    def button(self, *args, ver=False, **overrides):
+        if   len(args) == 1: key, region_key = args[0], args[0]
+        elif len(args) == 2: key, region_key = args
+        elif len(args) != 0: raise ValueError("Invalid arguments")
+        
+        if len(args) != 0:
+            path = PTH[key.split('.')[0]]
+            region = REG[region_key] if isinstance(region_key, str) else region_key
+
+            params = self.params.copy()
+            params.update(overrides)
+            params["region"] = region
+            action = lambda: self.method.check(path, **params)
+        else:
+            x, y = overrides["click"] # assuming that click is specified correctly
+            action = lambda: (gui.click(x, y), True)[1]
+        
+        if isinstance(ver, str) and "!" in ver:
+            ver = REG[ver]
+
+        if isinstance(ver, tuple):
+            state0 = gui.screenshot(region=ver)
+
+        result = action()
+
+        if ver and result:
+            if len(args) != 0:
+                if not params["click"]:
+                    raise AssertionError("Verification reqires action to verify")
+                params["wait"] = False
+            for i in range(3):
+                if gui.getActiveWindowTitle() != 'LimbusCompany': pause()
+                if isinstance(ver, str):
+                    condition = lambda: not self.button(ver, wait=False, click=False, error=False)
+                else:
+                    condition = lambda: LocateGray.check(state0, image=gui.screenshot(region=ver), wait=False, conf=0.98)
+                    # print(LocateGray.get_conf(state0, image=gui.screenshot(region=ver)))
+
+                verified = wait_for_condition(condition, timer=3)
+                if not verified:
+                    print(f"Verifier failed (attempt {i}), reclicking...")
+                    # Reclick the original target
+                    if len(args) == 0:
+                        gui.click(x, y)
+                        result = True
+                    else:
+                        result = self.method.check(path, **params)
+
+                    if not result:
+                        # Button disappeared + verifier false — unrecoverable
+                        raise RuntimeError(f"Click retry failed")
+                else:
+                    break  # verifier passed
+            else:
+                raise RuntimeError(f"Verification failed after 3 retries.")
+        return result
+
+
+loc       = LocatePreset()
+
+click     = loc(click=True)
+try_loc   = loc(error=True)
+now       = loc(wait=False)
+
+try_click = click(error=True)
+now_click = click(wait=False)
+
+loc_rgb = LocatePreset(method=LocateRGB)
+
+click_rgb = loc_rgb(click=True)
+try_rgb   = loc_rgb(error=True)
+now_rgb   = loc_rgb(wait=False)
+
+def loading_halt():
+    wait_for_condition(
+        condition=lambda: not now.button("loading"),
+        timer=2,
+        interval=0.1
+    )
+    wait_for_condition(
+        condition=lambda: now.button("loading"),
+    )
+
+def connection():
+    wait_for_condition(
+        condition=lambda: not now.button("loading"),
+        timer=0.5,
+        interval=0.1
+    )
+    wait_for_condition(
+        condition=lambda: now.button("connecting"),
+    )
+    
+
+class BaseAction:
+    def should_execute(self, next_action=None) -> bool:
+        raise NotImplementedError
+
+    def execute(self, preset: LocatePreset, ver=None):
+        raise NotImplementedError
+
+
+class Action(BaseAction):
+    def __init__(self, key, region=None, click=None, ver=None):
+        self.key = key
+        self.region = region
+        self.click = click
+        self.ver = ver
+
+    def should_execute(self, _=None):
+        return True  # Always executed
+
+    def execute(self, preset: LocatePreset, ver=None):
+        args = (self.key,) if self.region is None else (self.key, self.region)
+        kwargs = {}
+        if self.click is not None:
+            kwargs["click"] = self.click
+        return preset.button(*args, ver=self.ver or ver, **kwargs)
+
+
+class ClickAction(BaseAction):
+    def __init__(self, click: tuple, ver: tuple | str = None):
+        self.click = click
+        self.ver = ver
+
+    def should_execute(self, _=None):
+        return True
+
+    def execute(self, preset: LocatePreset, ver=None):
+        return preset.button(click=self.click, ver=self.ver or ver)
+    
+
+def chain_actions(preset: LocatePreset, actions: list):
+    for i in range(len(actions)):
+        curr = actions[i]
+        if callable(curr) and not isinstance(curr, BaseAction):
+            curr()
+            continue
+
+        next_action = actions[i + 1] if i + 1 < len(actions) else None
+        ver = None
+        if getattr(curr, "ver", None) is None and next_action:
+            if isinstance(next_action, Action):
+                ver = next_action.key
+            elif isinstance(next_action, ClickAction):
+                ver = next_action.ver  # Could still be set explicitly
+
+        curr.execute(preset, ver=ver)
+
+def handle_fuckup():
+    if gui.getActiveWindowTitle() == 'LimbusCompany':
+        gui.moveTo(1509, 978)
+        gui.press("Esc")
+        gui.press("Esc")
+        if loc.button("forfeit", wait=1):
+            gui.press("Esc")

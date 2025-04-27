@@ -1,78 +1,85 @@
 from source.utils.utils import *
+import source.utils.params as p
 
 
-def grab_EGO(to_buy):
-    if not LocateGray.check(PTH["EGObin"], region=(69, 31, 123, 120), wait=False): return False
+def far_from_owned(coord, owned_x):
+    return all(abs(coord[0] - ox) >= 200 for ox in owned_x)
 
-    owned = LocateRGB.locate_all(PTH["Owned"], region=(0, 216, 1725, 50))
-    owned_x = [x + w for x, _, w, _ in owned]
 
-    ego = [
-        center for gift in to_buy
-        if (res := LocateRGB.locate(PTH[str(gift)], region=(0, 295, 1920, 100), conf=0.85, comp=0.94)) is not None
-        and all(abs((center := gui.center(res))[0] - ox) >= 200 for ox in owned_x)
-    ]
+def find_ego_affinity(owned_x):
+    affinity = list(filter(
+        lambda coord: far_from_owned(coord, owned_x),
+        [gui.center(box) for box in LocateRGB.locate_all(PTH["Burn"], region=REG["EGO"])]
+    ))
+    return next((
+        (lvl, aff)
+        for lvl in range(4, 0, -1)
+        for aff in affinity
+        if LocateRGB.check(
+            PTH[f"tier{lvl}"],
+            region=(int(aff[0] - 106), int(aff[1] - 101), 66, 59),
+            wait=False
+    )), None)
 
-    if len(ego) == 1:
-        time.sleep(0.2)
-        gui.moveTo(ego[0], duration=0.1)
-        gui.click(duration=0.1)
-    elif len(ego) > 1:
-        weights = [0]*len(ego)
-        for i in range(len(ego)):
-            for lvl in range(4, 0, -1):
-                try:
-                    LocateRGB.try_locate(PTH[f"tier{lvl}"], region=(int(ego[i][0] - 106), int(ego[i][1] - 101), 66, 59))
-                    weights[i] = lvl
-                    break
-                except gui.ImageNotFoundException:
-                    continue
-        index_max = max(range(len(weights)), key=weights.__getitem__)
-        time.sleep(0.2)
-        gui.moveTo(ego[index_max], duration=0.1)
-        gui.click(duration=0.1)
-    else:
-        for lvl in range(4, 0, -1):
-            try:
-                res = LocateRGB.try_locate(PTH[f"tier{lvl}"], region=(0, 309, 1920, 110))
-                time.sleep(0.2)
-                gui.moveTo(gui.center(res), duration=0.1)
-                gui.click(duration=0.1)
-                break
-            except gui.ImageNotFoundException:
-                continue
-    time.sleep(0.1)
-    gui.click(1687, 870)
-    LocateGray.check(PTH["EGOconfirm"], region=REG["EGOconfirm"], click=True)
-    return True
 
+def get_gift(coord):
+    chain_actions(click, [
+        lambda: gui.click(coord),
+        ClickAction((1687, 870), ver="Confirm")
+    ])
+
+
+def grab_EGO():
+    if not now.button("EGObin"): return False
+
+    owned_x = [p[0] + p[2] for p in LocateRGB.locate_all(PTH["Owned"], region=REG["Owned"])]
+
+    for gift in p.GIFTS["buy"]:
+        if (coord := LocateRGB.locate(PTH[str(gift)], region=REG["EGO"], conf=0.85, comp=0.94)) \
+           and far_from_owned(gui.center(coord), owned_x):
+            get_gift(gui.center(coord))
+            return True
+
+    ego_aff = find_ego_affinity(owned_x) # (lvl, coord)
+
+    for lvl in range(4, 0, -1):
+        if ego_aff and lvl == ego_aff[0]:
+            get_gift(ego_aff[1])
+            return True
+        elif coord := LocateRGB.locate(PTH[f"tier{lvl}"], region=REG["EGO"]):
+            get_gift(gui.center(coord))
+            return True
+    return False
+
+
+def get_card(card):
+    chain_actions(click, [
+        Action(card, "Card", ver="rewardCount!"),
+        Action("Confirm.1", ver="connecting")
+    ])
 
 def grab_card():
-    if not LocateGray.check(PTH["encounterreward"], region=REG["encounterreward"], wait=False): return False
+    if not now.button("encounterreward"): return False
 
     gui.moveTo(1000, 900)
-    LocateGray.check(PTH["Cancel"], region=REG["Cancel"], wait=False, click=True)
-
+    now_click.button("Cancel") # if was misclicked
     time.sleep(1)
 
     for i in range(1, 5):
-        if LocateGray.check(PTH[f"card{i}"], region=(219, 283, 1531, 242), wait=False, click=True):
-
-            LocateGray.check(PTH["EGOconfirm"], region=(1118, 754, 189, 70), click=True, error=True) # confirm card
-
-            start_time = time.time()
-            while LocateGray.check(PTH["encounterreward"], region=REG["encounterreward"], wait=False):
-                LocateGray.check(PTH["EGOconfirm"], region=REG["EGOconfirm"], wait=False, click=True)     # confirm ego
-                if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
-                time.sleep(0.1)
-            
+        if now.button(f"card{i}", "Card"):
+            get_card(f"card{i}")
+            wait_for_condition(
+                condition=lambda: now.button("encounterreward"), 
+                action=lambda: now_click.button("Confirm"), 
+                interval=0.1
+            )
             return True
     else:
         return False
     
 
 def confirm():
-    if not LocateGray.check(PTH["EGOconfirm"], region=REG["EGOconfirm"], wait=False, click=True): return False
+    if not now_click.button("Confirm"): return False
     gui.moveTo(965, 878)
-    LocateGray.check(PTH["EGOconfirm"], region=REG["EGOconfirm"], wait=False, click=True)
+    now_click.button("Confirm")
     return True

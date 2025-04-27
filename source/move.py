@@ -2,7 +2,7 @@ from source.utils.utils import *
 import random
 
 
-priority = ["Human", "Abnormality", "Risk", "Focused"]
+priority = ["Event", "Normal", "Miniboss", "Risky", "Focused"]
 v_list = [0.8, 0.9, 1]
 
 def find_danteh(): # looks for high resolution Dante
@@ -42,7 +42,7 @@ def position(object):
     gui.mouseDown()
     gui.moveTo(429, 480, 0.4, tween=gui.easeInOutQuad)
     gui.mouseUp()
-    gui.moveTo(429, 610)
+    gui.moveTo(429, 710)
     gui.click()
 
 
@@ -56,32 +56,42 @@ def hook():
 def is_boss(region, comp):
     image = cv2.cvtColor(np.array(gui.screenshot(region=region)), cv2.COLOR_RGB2BGR)
     red_mask = cv2.inRange(image, np.array([0, 0, 180]), np.array([50, 50, 255]))
-    return LocateGray.check(PTH["boss"], red_mask, region=region, wait=False, click=True, comp=comp, conf=0.6)
+    return now_click.button("boss", region, image=red_mask, comp=comp, conf=0.6)
 
-def is_risky(loc, comp):
-    if loc.check(LocateGray, PTH["risk0"]) or \
-   any(loc.check(LocateGray, PTH[f"risk1"], comp=comp*(1 - 0.14*j)) for j in range(2)) or \
-   any(loc.check(LocateGray, PTH[f"risk2"], comp=comp*(1 - 0.14*j), v_comp=None) for j in range(2)):
+def is_risky(_loc, comp, region):
+    if _loc.button("risk0", region) or \
+   any(_loc.button("risk1", region, comp=comp*(1 - 0.14*j)) for j in range(2)) or \
+   any(_loc.button("risk2", region, comp=comp*(1 - 0.14*j), v_comp=None) for j in range(2)):
         return True
     return False
 
-def is_focused(loc):
-    if any(loc.check(LocateGray, PTH[f"focus{j}"], conf=0.85) for j in range(2)) or \
-       any(loc.check(LocateGray, PTH[f"focus{j+2}"], conf=0.85, v_comp=None) for j in range(2)):
+def is_focused(_loc, region):
+    if any(_loc.button(f"focus{j}", region, conf=0.85) for j in range(2)) or \
+       any(_loc.button(f"focus{j+2}", region, conf=0.85, v_comp=None) for j in range(2)):
         return True
     return False
 
-def is_event(loc):
-    if any(loc.check(LocateGray, PTH[f"event{j}"], conf=0.85) for j in range(2)) or \
-           loc.check(LocateGray, PTH[f"event2"], conf=0.9, v_comp=None):
+def is_event(_loc, region):
+    if any(_loc.button(f"event{j}", region, conf=0.85) for j in range(2)) or \
+           _loc.button("event2", region, conf=0.9, v_comp=None):
         return True
     return False
 
-def is_shop(loc):
-    if loc.check(LocateGray, PTH[f"shop0"]) or \
-       loc.check(LocateGray, PTH[f"shop1"], v_comp=None):
+def is_shop(_loc, region):
+    if _loc.button("shop0", region) or \
+       _loc.button("shop1", region, v_comp=None):
         return True
     return False
+
+def see_future(_loc, choices):
+    if len(choices) == 1: return choices[0]
+    for i in choices:
+        region = (906, 101 + i * 275, 859, 275)
+        _loc = _loc(conf=0.9, v_comp=v_list[i])
+        if any(_loc.button(f"event_future{j}", region) for j in range(2)) or \
+               _loc.button("event2", region, v_comp=None):
+            return i
+    return random.choice(choices)
 
 
 def directions():
@@ -94,32 +104,33 @@ def directions():
     for i, suffix in options.items():
         for j in range(2):
             comp_val = 1 - 0.14 * j
-            if LocateGray.check(PTH[suffix], region=(523, 303, 155, 473), wait=False, conf=0.85, comp=comp_val):
+            if now.button(suffix, "directions", conf=0.85, comp=comp_val):
                 regions[i] = (624, 101 + i * 275, 282, 275)
                 break
     return regions
 
 
-def enter():
-    if LocateGray.check(PTH["enter"], region=(1537, 739, 310, 141), click=True, wait=1):
+def enter(fight=False):
+    if now.button("enter", wait=1):
+        click.button("enter")
         gui.moveTo(1721, 999)
-        time.sleep(0.5)
+        connection()
         return True
     return False
 
 
 def move(): 
-    if not LocateGray.check(PTH["Move"], region=REG["Move"], wait=False) or \
-           LocateGray.check(PTH["EGOconfirm"], region=REG["EGOconfirm"], wait=False): return False
+    if not now.button("Move") or \
+           now.button("Confirm"): return False
     
     # run fail detection
-    dead = [gui.center(box) for box in LocateRGB.locate_all(PTH["0"], region=(261, 1019, 1391, 41), conf=0.95, threshold=50)]
+    dead = [gui.center(box) for box in LocateRGB.locate_all(PTH["0"], region=REG["alldead"], conf=0.95, threshold=50)]
     if len(dead) >= 6:
         gui.press("Esc")
-        time.sleep(0.5)
-        LocateGray.check(PTH["forfeit"], region=(662, 547, 151, 208), click=True)
-        time.sleep(0.5)
-        LocateGray.check(PTH["ConfirmInvert"], region=(987, 704, 318, 71), click=True)
+        chain_actions(click, [
+            Action("forfeit"),
+            Action("ConfirmInvert", ver="connecting"),
+        ])
         connection()
         return False
     # fail detection end
@@ -135,39 +146,40 @@ def move():
         if Dante is None: return False
     
     position(Dante)
-    
-    if LocateGray.check(PTH["victory"], region=REG["victory"], wait=False): return False
+
+    if now.button("victory"): return False
 
     regions = directions()
     status = [None, None, None]
 
     for i, region in regions.items():
-        loc = LocatePreset(region=region, comp=comp, v_comp=v_list[i], conf=0.8, wait=False)
+        _loc = LocatePreset(comp=comp, v_comp=v_list[i], conf=0.8, wait=False)
         if i == 1 and is_boss(region, comp):
             enter()
-            logging.info("Entering Bossfight")
+            #loc.button("TOBATTLE", wait=3)
+            logging.info("Entering Boss fight")
             return True
 
-        elif loc.check(LocateRGB, PTH["coin"], conf=0.9, v_comp=None):
-            if loc.check(LocateRGB, PTH["gift"], conf=0.9, v_comp=None):
-                if is_risky(loc, comp):
-                    status[i] = "Risk"
+        elif now_rgb.button("coin", region, conf=0.9, comp=comp):
+            if now_rgb.button("gift", region, conf=0.9, comp=comp):
+                if is_risky(_loc, comp, region):
+                    status[i] = "Risky"
                     continue
-                elif is_focused(loc):
+                elif is_focused(_loc, region):
                     status[i] = "Focused"
+                    continue
                 else:
-                    status[i] = "Abnormality"
+                    status[i] = "Miniboss"
+                    continue
             else:
-                status[i] = "Human"
+                status[i] = "Normal"
                 continue
 
-        elif is_event(loc):
-            gui.click(gui.center(regions[i]))
-            enter()
-            logging.info("Entering Event")
-            return True
+        elif is_event(_loc, region):
+            status[i] = "Event"
+            continue
 
-        elif is_shop(loc):
+        elif is_shop(_loc, region):
             gui.click(gui.center(regions[i]))
             enter()
             logging.info("Entering Shop")
@@ -175,20 +187,21 @@ def move():
     if any(status):
         for node in priority:
             if node in status:
-                id = random.choice([i for i, x in enumerate(status) if x == node])
+                id = see_future(_loc, [i for i, x in enumerate(status) if x == node])
                 gui.click(gui.center(regions[id]))
                 enter()
-                logging.info(f"Entering {node} fight")
+                #if node != "Event": loc.button("TOBATTLE", wait=3)
+                logging.info(f"Entering {node} {'fight'*(node!='Event')}")
                 return True
     
-    # if we fail:
+    # if we fail
+    gui.click(429, 480)
+    if enter(): return True
+
+    # if we double fail:
     for i in range(3):
         gui.moveTo(gui.center((624, 101 + i * 275, 282, 275)))
         gui.click()
         if enter():
             logging.info(f"Entering unknown node")
             return True
-        
-    # if we double fail
-    logging.info(f"Entering previous node")
-    return enter()

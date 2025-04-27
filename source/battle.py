@@ -1,23 +1,9 @@
 from source.utils.utils import *
 from source.event import event
+import source.utils.params as p
 
 
-sinners = ["YISANG", "DONQUIXOTE" , "ISHMAEL", "RODION", "SINCLAIR", "GREGOR"]
-
-SINNERS = {
-    "YISANG"    : ( 351, 207, 196, 285),
-    "FAUST"     : ( 547, 207, 196, 285),
-    "DONQUIXOTE": ( 743, 207, 196, 285),
-    "RYOSHU"    : ( 939, 207, 196, 285),
-    "MEURSAULT" : (1135, 207, 196, 285),
-    "HONGLU"    : (1331, 207, 196, 285),
-    "HEATHCLIFF": ( 351, 492, 196, 285),
-    "ISHMAEL"   : ( 547, 492, 196, 285),
-    "RODION"    : ( 743, 492, 196, 285),
-    "SINCLAIR"  : ( 939, 492, 196, 285),
-    "OUTIS"     : (1135, 492, 196, 285),
-    "GREGOR"    : (1331, 492, 196, 285)
-}
+exit_if = ["loading", "Move", "EGObin", "encounterreward", "victory"]
 
 sins = { # bgr values
     "wrath"   : (  0,   0, 254),
@@ -97,15 +83,17 @@ def select(sinners):
     selected = [gui.center(box) for box in LocateGray.locate_all(PTH["selected"])]
     num = len(selected)
     if num < 6:
-        for sinner in sinners:
-            if not LocateGray.check(PTH["selected"], region=SINNERS[sinner], wait=False):
-                gui.click(gui.center(SINNERS[sinner]))
+        for name in sinners:
+            if not now.button("selected", SINNERS[name]):
+                gui.click(gui.center(SINNERS[name]))
                 time.sleep(0.1)
                 num += 1 
                 if num == 6:
                     break
+
     gui.click(1728, 884) # to battle
-    
+    loading_halt()
+
 
 def chain(gear_start, gear_end, background):
     # Finding skill3 positions
@@ -141,23 +129,18 @@ def chain(gear_start, gear_end, background):
 
 
 def fight():
-    is_tobattle = LocateGray.check(PTH["TOBATTLE"], region=REG["TOBATTLE"], wait=False)
-    if not is_tobattle and not LocateGray.check(PTH["battleEGO"], region=REG["battleEGO"], wait=False): return False
-    elif is_tobattle: select(sinners)
+    is_tobattle = now.button("TOBATTLE")
+    is_battle   = now.button("battleEGO")
+    if not is_tobattle and not is_battle: return False
+    if is_tobattle: select(p.SELECTED)
 
     print("Entered Battle")
-
-    start_time = time.time()
-    while LocateGray.check(PTH["loading"], region=(1577, 408, 302, 91), wait=2):
-        if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
-        print("loading screen...")
-        time.sleep(0.5)
-
-
+    last_error = 0
     while True:
-        if LocateGray.check(PTH["battleEGO"], region=REG["battleEGO"], wait=1):
+        ck = False
+        if loc.button("battleEGO", wait=1):
             gui.click(500, 83, duration=0.1)
-
+            ck = True
             try:
                 gear_start = gui.center(LocateEdges.try_locate(PTH["gear"], region=(0, 761, 900, 179), conf=0.7))
                 gear_end = gui.center(LocateEdges.try_locate(PTH["gear2"], region=(350, 730, 1570, 232), conf=0.7))
@@ -168,29 +151,33 @@ def fight():
                 gui.press("p", 1, 0.1)
                 gui.press("enter", 1, 0.1)
 
-        if LocateGray.check(PTH["eventskip"], region=(850, 437, 103, 52), wait=False):
+        if now.button("eventskip"):
+            ck = True
             event()
 
-        if LocateGray.check(PTH["loading"], region=(1577, 408, 302, 91), wait=False)  or \
-           LocateGray.check(PTH["Move"], region=REG["Move"], wait=False)                 or \
-           LocateGray.check(PTH["EGObin"], region=(69, 31, 123, 120), wait=False)           or \
-           LocateGray.check(PTH["encounterreward"], region=REG["encounterreward"], wait=False) or \
-           LocateGray.check(PTH["victory"], region=REG["victory"], wait=False):
-            
-            start_time = time.time()
-            while LocateGray.check(PTH["loading"], region=(1577, 408, 302, 91), wait=False):
-                if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
-                time.sleep(0.1)
-    
-            print("Battle is over")
-            logging.info("Battle is over")
-
-            return True
+        for i in exit_if:
+            if now.button(i):
+                if i == "loading": loading_halt()
+                print("Battle is over")
+                logging.info("Battle is over")
+                return True
         
         if gui.getActiveWindowTitle() != 'LimbusCompany':
+            ck = True
             pause()
         
-        if LocateGray.check(PTH["pause"], region=REG["pause"], wait=False):
+        if now.button("pause"):
+            ck = True
             time.sleep(1)
         else:
             time.sleep(0.2)
+        
+        # stuck check
+        if ck == False:
+            if last_error != 0:
+                if time.time() - last_error > 30:
+                    raise RuntimeError
+            else:
+                last_error = time.time()
+        else:
+            last_error = 0

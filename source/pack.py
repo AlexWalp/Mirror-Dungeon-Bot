@@ -90,7 +90,7 @@ def pack_eval(level, regions, skip):
 
     # excluding owned ego gifts from evaluation
     ego_coords = [
-        coord for i, coord in enumerate(ego_coords)
+        coord for coord in ego_coords
         if all(abs(coord[0] - x) >= 25 for x in owned_x)
     ]
 
@@ -105,12 +105,10 @@ def pack_eval(level, regions, skip):
 
 
 def pack(level):
-    if not LocateGray.check(PTH["PackChoice"], region=(1757, 126, 115, 116), wait=0.2):
+    if not now.button("PackChoice"):
         return (False, level)
     
-    if LocateGray.check(PTH["hardDifficulty"], region=(893, 207, 115, 44), wait=False):
-        gui.moveTo(1349, 64)
-        gui.click()
+    now.button("hardDifficulty", click=(1349, 64))
 
     level = detect_char(region=(725, 151, 449, 52), digit=True)
 
@@ -144,15 +142,15 @@ def pack(level):
             gui.dragTo(x, y + 300, 0.5, button="left")
             break
         if skip != 3:
-            LocateGray.check(PTH["refresh"], region=(1493, 26, 257, 83), wait=1, click=True)
+            gui.click(1617, 62)
             gui.moveTo(1721, 999)
             time.sleep(2)
     
-    if LocateGray.check(PTH["Move"], region=REG["Move"], error=True) and level != 1:
-        start_time = time.time()
-        while LocateGray.check(PTH["Move"], region=REG["Move"], wait=False):
-            if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
-            time.sleep(0.1)
-        LocateGray.check(PTH["Move"], region=REG["Move"], error=True)
+    if try_loc.button("Move") and level != 1:
+        wait_for_condition(
+            condition=lambda: now.button("Move"),
+            interval=0.1
+        )
+        try_loc.button("Move")
     time.sleep(0.5)
     return (True, level)

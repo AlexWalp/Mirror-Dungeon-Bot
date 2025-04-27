@@ -4,15 +4,17 @@ PROBS = ["VeryHigh", "High", "Normal", "Low", "VeryLow"]
 
 
 def event():
-    if not LocateGray.check(PTH["eventskip"], region=REG["eventskip"], wait=False): return False
+    if not now.button("eventskip"): return False
 
     start_time = time.time()
     while True:
-        if time.time() - start_time > 100: raise RuntimeError("Infinite loop exited")
+        if time.time() - start_time > 100: return False
+        if gui.getActiveWindowTitle() != 'LimbusCompany':
+            pause()
 
         for _ in range(3): gui.click(906, 465)
 
-        if LocateGray.check(PTH["choices"], region=(1036, 152, 199, 77), wait=False):
+        if now.button("choices"):
             egos = LocateGray.locate_all(PTH["textEGO"], region=REG["textEGO"])
             print(egos)
             if not egos:
@@ -29,15 +31,19 @@ def event():
             except gui.ImageNotFoundException:
                 gui.click(gui.center(egos[0]))
 
-        LocateGray.check(PTH["Proceed"], region=(1539, 906, 316, 126), click=True, wait=False)
+        now_click.button("Proceed")
 
-        if LocateGray.check(PTH["check"], region=REG["check"], wait=False):
-            time.sleep(0.3)
-            for prob in PROBS:
-                if LocateGray.check(PTH[str(prob)], region=(42, 876, 1427, 74), click=True, wait=False):
-                    break
-            LocateGray.check(PTH["Commence"], region=(1539, 906, 316, 126), click=True)
+        if now.button("check"):
+            matches = {
+                prob: now.button(prob, "probs")
+                for prob in PROBS
+            }
+            if any(matches.values()):
+                for prob in PROBS:
+                    if now_click.button(prob, "probs"):
+                        click.button("Commence")
+                        break
 
-        if LocateGray.check(PTH["Continue"], region=(1539, 906, 316, 126), click=True, wait=False):
+        if now_click.button("Continue"):
             connection()
             return True
