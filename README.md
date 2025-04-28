@@ -134,61 +134,61 @@ or manually install:
 🧱 Floor 1
 Type      |  Avg Time  | Count
 --------------------------------
-Normal    |    0:43    |   2
-Focused   |    0:00    |   0
-Risky     |    0:00    |   0
-Miniboss  |    0:00    |   0
-Boss      |    0:40    |   1
+Normal    |    0:49    |  35  
+Focused   |    0:00    |   0  
+Risky     |    0:00    |   0  
+Miniboss  |    0:00    |   0  
+Boss      |    1:16    |  18  
 
 🧱 Floor 2
 Type      |  Avg Time  | Count
 --------------------------------
-Normal    |    0:36    |   2
-Focused   |    0:00    |   0
-Risky     |    1:01    |   1
-Miniboss  |    0:00    |   0
-Boss      |    1:06    |   1
+Normal    |    0:46    |  33  
+Focused   |    0:48    |   3  
+Risky     |    1:12    |   2  
+Miniboss  |    0:00    |   0  
+Boss      |    1:01    |  18  
 
 🧱 Floor 3
 Type      |  Avg Time  | Count
 --------------------------------
-Normal    |    0:39    |   2
-Focused   |    0:00    |   0
-Risky     |    0:00    |   0
-Miniboss  |    0:00    |   0
-Boss      |    2:39    |   1
+Normal    |    0:37    |  25
+Focused   |    0:47    |   3
+Risky     |    1:22    |   6
+Miniboss  |    0:55    |   1
+Boss      |    1:11    |  18
 
 🧱 Floor 4
 Type      |  Avg Time  | Count
 --------------------------------
-Normal    |    0:56    |   1
-Focused   |    1:42    |   1
-Risky     |    0:00    |   0
-Miniboss  |    0:00    |   0
-Boss      |    0:59    |   1
+Normal    |    1:04    |  20
+Focused   |    1:28    |   5
+Risky     |    1:24    |   4
+Miniboss  |    1:14    |   7
+Boss      |    1:10    |  18
 
 🧱 Floor 5
 Type      |  Avg Time  | Count
 --------------------------------
-Normal    |    1:01    |   1
-Focused   |    1:26    |   1
-Risky     |    0:00    |   0
-Miniboss  |    0:00    |   0
-Boss      |    1:26    |   1
+Normal    |    1:08    |  31
+Focused   |    1:32    |   8
+Risky     |    1:43    |   4
+Miniboss  |    0:57    |   4
+Boss      |    1:00    |  18
 
 📦 Floor Time Summary
 Floor | Avg Time | Count
 --------------------------
-  1   |   3:16   |   1
-  2   |   4:43   |   1
-  3   |   5:17   |   1
-  4   |   5:14   |   1
-  5   |   4:52   |   1
+  1   |   4:05   |  18
+  2   |   3:58   |  18
+  3   |   4:10   |  18
+  4   |   5:04   |  18
+  5   |   5:06   |  18
 
 🏁 Run Summary
 Successful Runs | Avg Run Time | Failed Runs | Total Time Wasted
 ----------------------------------------------------------------
-       1        |    23:43     |      0      |       0:00
+      18        |    22:44     |      0      |       0:00
 ```
 ---
 
