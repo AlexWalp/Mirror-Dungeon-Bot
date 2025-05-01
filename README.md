@@ -116,12 +116,12 @@ or manually install:
 
 # Sinners List
 ```
-1. YISANG          7.HEATHCLIFF
-2. FAUST           8.ISHMAEL
-3. DONQUIXOTE      9.RODION
-4. RYOSHU         10.SINCLAIR
-5. MEURSAULT      11.OUTIS
-6. HONGLU         12.GREGOR
+0. YISANG          6.HEATHCLIFF
+1. FAUST           7.ISHMAEL
+2. DONQUIXOTE      8.RODION
+3. RYOSHU          9.SINCLAIR
+4. MEURSAULT      10.OUTIS
+5. HONGLU         11.GREGOR
 ```
 > Select six sinners in ascending order when using the `SELECTED` command.
 ---
