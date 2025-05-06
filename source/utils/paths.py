@@ -22,6 +22,11 @@ def collect_png_paths(base_dir):
 
 PTH = collect_png_paths(ASSETS_DIR)
 
+# App.py assets
+APP_DIR = os.path.join(BASE_PATH,"ImageAssets/AppUI")
+APP_PTH = collect_png_paths(APP_DIR)
+ICON = os.path.join(BASE_PATH,"app_icon.ico")
+
 # regions for some buttons
 REG = {
     # Bot.py
@@ -85,6 +90,7 @@ REG = {
     "directions"     : ( 523,  303,  155,  473),
 
     # pack.py
+    "lvl"            : ( 957,  151,   25,   52),
     "PackChoice"     : (1757,  126,  115,  116),
     "hardDifficulty" : ( 893,  207,  115,   44),
 
@@ -123,4 +129,36 @@ SINNERS = {
     "SINCLAIR"  : ( 939, 492, 196, 285),
     "OUTIS"     : (1135, 492, 196, 285),
     "GREGOR"    : (1331, 492, 196, 285)
+}
+
+
+# Easy dungeon floors
+FLOORS = {
+    1: [
+        'TheForgotten', 'TheOutcast', 'NagelundHammer', 'FlatbrokeGamblers',
+        'AutomatedFactory', 'TheUnloving', 'FaithErosion', 'NestWorkshopandTechnology'
+    ],
+    2: [
+        'FlatbrokeGamblers', 'AutomatedFactory', 'TheUnloving', 'FaithErosion',
+        'NestWorkshopandTechnology', 'LakeWorld', 'HellsChicken', 'SEA',
+        'TobeCleaved', 'TobePierced', 'TobeCrushed'
+    ],
+    3: [
+        'TobeCleaved', 'TobePierced', 'TobeCrushed', 'TheUnconfronting', 'FallingFlowers',
+        'DregsoftheManor', 'EmotionalRepression', 'EmotionalSeduction', 'EmotionalIndolence',
+        'EmotionalCraving', 'EmotionalFlood', 'EmotionalSubservience', 'EmotionalJudgment'
+    ],
+    4: [
+        'MiracleinDistrict20', 'TheNoonofViolet', 'FullStoppedbyaBullet', 'TearfulThings',
+        'CrawlingAbyss', 'ACertainWorld', 'YieldMyFleshtoClaimTheirBones', 'TimekillingTime',
+        'MurderontheWARPExpress', 'RepressedWrath', 'AddictingLust', 'TreadwheelSloth',
+        'DevouredGluttony', 'DegradedGloom', 'VainPride', 'InsignificantEnvy'
+    ],
+    5: [
+        'TearfulThings', 'CrawlingAbyss', 'ACertainWorld', 'YieldMyFleshtoClaimTheirBones',
+        'TimekillingTime', 'MurderontheWARPExpress', 'RepressedWrath', 'AddictingLust',
+        'TreadwheelSloth', 'DevouredGluttony', 'DegradedGloom', 'VainPride', 'InsignificantEnvy',
+        'LCBRegularCheckup', 'NocturnalSweeping', 'SlicersDicers', 'PiercersPenetrators',
+        'CrushersBreakers'
+    ]
 }

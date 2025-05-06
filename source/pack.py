@@ -1,91 +1,95 @@
 from source.utils.utils import *
 
 
-def within_region(x, y, regions):
+def within_region(x, regions):
     for i, region in enumerate(regions):
-        x1, y1, w, h = region
-        if x1 < x < x1 + w and y1 < y < y1 + h:
+        x1, _, w, _ = region
+        if x1 < x < x1 + w:
             return i
+
         
+def SIFT_matching(template, kp2, des2, search_region, min_matches=40):
+    sift = cv2.SIFT_create(nfeatures=1700, contrastThreshold=0)
+    kp1, des1 = sift.detectAndCompute(template, None)
 
-def best_match(target, text, threshold=0.6):
-    target_len = len(target)
-    best_ratio = 0
+    if des1 is None or des2 is None: return None
 
-    empty_len = int((1 - threshold)*len(text))
-    text = empty_len*" " + text + empty_len*" "
+    bf = cv2.BFMatcher(cv2.NORM_L2)
+    good = bf.match(des1, des2)
 
-    for i in range(len(text) - target_len + 1):
-        substring = text[i:i + target_len]
-        matches = sum(1 for a, b in zip(target, substring) if a == b)
-        ratio = matches / target_len
+    if len(good) >= min_matches:
+        src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+        dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
 
-        best_ratio = max(best_ratio, ratio)
+        M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, maxIters=200)
+        if M is not None and mask is not None:
+            matches_mask = mask.ravel().tolist()
+            if sum(matches_mask) >= 0.25 * len(good):
+                h, w = template.shape
+                pts = np.float32([[0,0], [0,h], [w,h], [w,0]]).reshape(-1, 1, 2)
+                dst = cv2.perspectiveTransform(pts, M)
 
-    return best_ratio >= threshold
+                x_coords = dst[:,0,0]
+                y_coords = dst[:,0,1]
+                x_min, x_max = min(x_coords), max(x_coords)
+                y_min, y_max = min(y_coords), max(y_coords)
 
-
-def get_coords(keywords, results):
-    coords = []
-    for pack in keywords:
-        for result in results:
-            if best_match(pack, result[1]):
-                x = [p[0] for p in result[0]]
-                y = [p[1] for p in result[0]]
-                coords.append(gui.center((
-                    min(x) + 161, 
-                    min(y) + 657, 
-                    max(x) - min(x), 
-                    max(y) - min(y)
-                )))
-                break
-    return coords
+                if (x_max - x_min < 2 * w) and (y_max - y_min < 2 * h):
+                    x, y = int(x_min), int(y_min)
+                    return (search_region[0] + x, search_region[1] + y, int(x_max - x), int(y_max - y))
+    return None
 
 
 def pack_eval(level, regions, skip):
     
     # best packs
-    if level == 1: priority = ["Outcast", "Gamblers"]
-    elif level == 2: priority = ["Chicken"]
-    else: priority = []
+    priority = p.GIFTS[f"floor{level}"]
 
     # worst packs (suboptimal time)
     banned = []
     if level == 1 or level == 2:
-        banned = ["Factory", "Unloving", "Faith"]
+        banned = ["AutomatedFactory", "TheUnloving", "FaithErosion"]
     if level == 2 or level == 3:
-        banned += ["Crushed"]
+        banned += ["TobeCrushed"]
     if level == 4 or level == 5:
-        banned = ["Violet", "WARP", "Express", "Full", "Bullet", "Stopped", "Pride", "Abyss", "Time", "Nlocturnal", "Sweeping"]
-        # currently Full-Stop floor breaks pathing function, so we avoid it
+        banned = ["TheNoonofViolet", "MurderontheWARPExpress", "FullStoppedbyaBullet", "VainPride", "CrawlingAbyss", "TimekillingTime", "NocturnalSweeping"]
 
-    # getting text from pack names
-    data = np.array(gui.screenshot(region=(161, 657, 1582, 73)))
-    results = ocr.readtext(data, decoder='greedy')
+    packs = dict()
 
-    print(results) # testing
+    image = cv2.cvtColor(np.array(gui.screenshot(region=(161, 630, 1632, 100))), cv2.COLOR_RGB2GRAY) 
+    sift = cv2.SIFT_create(nfeatures=1700, contrastThreshold=0)
+    kp2, des2 = sift.detectAndCompute(image, None)   
+    for pack in FLOORS[level]:
+        if len(packs.keys()) >= 5: break
+        template = cv2.imread(PTH[pack], cv2.IMREAD_GRAYSCALE)
+        coords = SIFT_matching(template, kp2, des2, (161, 630, 1632, 100))
+        if coords:
+            x, _ = gui.center(coords)
+            if all(abs(x - existing) > 100 for existing in list(packs.values())):
+                packs[pack] = x
+    
+    packs = {pack: within_region(x, regions) for pack, x in packs.items()}
 
-    pr_coords = get_coords(priority, results) # locating all best packs coordinates
+    print(packs)
         
-    if pr_coords: # picking best pack
-        return within_region(pr_coords[0][0], pr_coords[0][1], regions)
+    if priority: # picking best pack
+        for pr in priority:
+            if pr in packs.keys():
+                return packs[pr]
     elif level < 3 and skip != 3:
         return None
     
-    bn_coords = get_coords(banned, results) # locating all worst packs coordinates
-    
     # removing S.H.I.T. packs
-    banned_indices = {within_region(x, y, regions) for x, y in bn_coords}
-    filtered = [region for i, region in enumerate(regions) if i not in banned_indices]
+    filtered = {pack: i for pack, i in packs.items() if pack not in banned}
 
     if not filtered and skip != 3: # if all packs are S.H.I.T.
         return None
     elif not filtered:
         print("May Ayin save us all!") # we have to pick S.H.I.T. 
-        return 0 # 16 and 5 
+        return 0
 
     # locating relevant ego gifts in floor rewards
-    ego_coords = [gui.center(box) for box in LocateRGB.locate_all(PTH["littleBurn"])]
+    ego_coords = [gui.center(box) for box in LocateRGB.locate_all(PTH[p.GIFTS["checks"][1]])]
     owned_x = [x + w for x, _, w, _ in LocateRGB.locate_all(PTH["OwnedSmall"])]
 
     # excluding owned ego gifts from evaluation
@@ -94,14 +98,17 @@ def pack_eval(level, regions, skip):
         if all(abs(coord[0] - x) >= 25 for x in owned_x)
     ]
 
-    weight = [0] * len(filtered) # evaluating each floor based on ego gifts
+    weight = [0] * len(regions) # evaluating each floor based on ego gifts
     for coord in ego_coords:
-        i = within_region(coord[0], coord[1], filtered)
+        i = within_region(coord[0], [regions[i] for i in filtered.values()])
         if i is not None:
             weight[i] += 1
 
-    index_max = max(range(len(weight)), key=weight.__getitem__)
-    return regions.index(filtered[index_max])
+    id = max(range(len(weight)), key=weight.__getitem__)
+    name = next((pack for pack, i in filtered.items() if i == id), None)
+    print(f"Entering {name}")
+    logging.info(f"Pack: {name}")
+    return id
 
 
 def pack(level):
@@ -110,7 +117,10 @@ def pack(level):
     
     now.button("hardDifficulty", click=(1349, 64))
 
-    level = detect_char(region=(725, 151, 449, 52), digit=True)
+    for i in range(1, 6):
+        if now.button(f"lvl{i}", "lvl"):
+            level = i
+            break
 
     print(f"Entering Floor {level}")
     logging.info(f"Floor {level}")
@@ -134,9 +144,6 @@ def pack(level):
         #gui.screenshot(f"choice/pack{int(time.time())}") # debugging
         if not id is None:
             region = regions[id]
-            name = detect_char(region=(region[0], 657, region[2], 73))
-            print(f"Entering {name}")
-            logging.info(f"Pack: {name}")
             x, y = (region[0] + (region[2] // 2), region[1] + (region[3] // 2))
             gui.moveTo(x, y)
             gui.dragTo(x, y + 300, 0.5, button="left")

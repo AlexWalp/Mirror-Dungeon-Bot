@@ -15,33 +15,34 @@ import source.utils.params as p
 # if ver has !    -> verification by screenshot region change (image correlation)
 
 # INIT RUN
-ACTIONS = [
-    Action("Drive"),
-    Action("MD"),
-    Action("Start"),
-    Action("enterInvert"),
-    Action("ConfirmTeam", ver="enterBonus"),
-    lambda: time.sleep(0.2),
-
-    ClickAction((401, 381), ver="money!"),
-    ClickAction((686, 381), ver="money!"),
-    ClickAction((966, 381), ver="money!"),
-    ClickAction((1241, 381), ver="money!"),
-
-    Action("enterBonus"),
-    Action("Confirm.0", ver="refuse"),
-
-    Action("BurnStart", "StartEGO", ver="gifts!"),
-    ClickAction((1239, 395), ver="selected!"),
-    ClickAction((1239, 549), ver="selected!"),
-    ClickAction((1624, 882)),
-
-    Action("Confirm"),
-    Action("Confirm", ver="loading"),
-    loading_halt
-]
 
 def dungeon_start():
+    ACTIONS = [
+        Action("Drive"),
+        Action("MD"),
+        Action("Start"),
+        Action("enterInvert"),
+        Action("ConfirmTeam", ver="enterBonus"),
+        lambda: time.sleep(0.2),
+
+        ClickAction((401, 381), ver="money!"),
+        ClickAction((686, 381), ver="money!"),
+        ClickAction((966, 381), ver="money!"),
+        ClickAction((1241, 381), ver="money!"),
+
+        Action("enterBonus"),
+        Action("Confirm.0", ver="refuse"),
+
+        Action(p.GIFTS["checks"][2], "StartEGO", ver="gifts!"),
+        ClickAction((1239, 395), ver="selected!"),
+        ClickAction((1239, 549), ver="selected!"),
+        ClickAction((1624, 882)),
+
+        Action("Confirm"),
+        Action("Confirm", ver="loading"),
+        loading_halt
+    ]
+    
     failed = 0
     while True:
         now_click.button("resume")
@@ -175,11 +176,15 @@ def main_loop():
             handle_fuckup()
             error += 1
 
-        if not ck:
-            if time.time() - last_error < 5:
-                handle_fuckup()
-                error += 1
-            last_error = time.time()
+        if ck == False:
+            if last_error != 0:
+                if time.time() - last_error > 30:
+                    handle_fuckup()
+                    error += 1
+            else:
+                last_error = time.time()
+        else:
+            last_error = 0
 
         if error > 20:
             logging.error('We are stuck')
@@ -188,7 +193,7 @@ def main_loop():
 
         time.sleep(0.2)
 
-
+# when cmd is run:
 def replay_loop():
     setup()
     number = input("How many mirrors will you grind? ")
@@ -215,6 +220,44 @@ def replay_loop():
 
 
 if __name__ == "__main__":
-    replay_loop()
-    if p.ALTF4:
-        close_limbus()
+    try:
+        replay_loop()
+        if p.ALTF4:
+            close_limbus()
+    except StopExecution:
+        sys.exit()
+
+
+# when App is run:
+def execute_me(count, affinity, sinners, log, bonus, restart, altf4, app):
+    p.TEAM = list(TEAMS.keys())[affinity]
+    p.GIFTS = TEAMS[p.TEAM]
+    p.SELECTED = [list(SINNERS.keys())[i] for i in sinners]
+    p.LOG = log
+    p.BONUS = bonus
+    p.RESTART = restart
+    p.ALTF4 = altf4
+    p.APP = app
+    
+    print(f"Grinding {count} mirrors...")
+    print("Switch to Limbus Window")
+    countdown(10)
+    
+    setup_logging(enable_logging=p.LOG)
+    
+    logging.info('Script started')
+
+    try:
+        for i in range(count):
+            logging.info(f'Iteration {i}')
+            completed = False
+            while not completed:
+                completed = main_loop()
+
+        if p.ALTF4:
+            close_limbus()
+    except StopExecution:
+        return
+    QMetaObject.invokeMethod(p.APP, "stop_execution", Qt.ConnectionType.QueuedConnection)
+    return
+

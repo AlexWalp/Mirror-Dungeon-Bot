@@ -2,4 +2,4 @@ numpy
 opencv-python-headless  
 pyautogui
 Pillow
-torchfree-ocr
+PyQt6
