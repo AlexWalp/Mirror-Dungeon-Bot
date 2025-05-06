@@ -102,7 +102,7 @@ Then you can run `App.py` for GUI interface or run `Bot.py` for cmd input withou
   - If you have multiple keyboard layouts, make sure you have **ENG** selected before starting the bot.
 
 ---
-# Settings To Run Wihout GUI:
+# Settings To Run Without GUI:
 
 **Upon startup, you can configure these settings:**
 
@@ -119,12 +119,12 @@ Then you can run `App.py` for GUI interface or run `Bot.py` for cmd input withou
 
 # Sinners List
 ```
-0. YISANG          6.HEATHCLIFF
-1. FAUST           7.ISHMAEL
-2. DONQUIXOTE      8.RODION
-3. RYOSHU          9.SINCLAIR
-4. MEURSAULT      10.OUTIS
-5. HONGLU         11.GREGOR
+1. YISANG          7.HEATHCLIFF
+2. FAUST           8.ISHMAEL
+3. DONQUIXOTE      9.RODION
+4. RYOSHU         10.SINCLAIR
+5. MEURSAULT      11.OUTIS
+6. HONGLU         12.GREGOR
 ```
 > Select six sinners in ascending order when using the `SELECTED` command.
 ---
