@@ -215,13 +215,21 @@ def fuse_loop():
 
 
 def balance(money):
+    bal = -1
     start_time = time.time()
-    while True:
+    while bal == -1:
         if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
-        bal = detect_char(region=(857, 175, 99, 57), digit=True)
-        if bal != None: break
-    if bal >= money: return True
-    return False
+        digits = []
+        for i in range(10):
+            pos = [gui.center(box) for box in LocateRGB.locate_all(PTH[f"cost{i}"], region=(857, 175, 99, 57), threshold=3, conf=0.95)]
+            for coord in pos:
+                digits.append((i, coord[0]))
+        digits = sorted(digits, key=lambda x: x[1])
+
+        bal = ""
+        for i in digits: bal += str(i[0])
+        bal = int(bal or -1)
+    return bal >= money
 
 
 def conf_gift():
@@ -313,7 +321,7 @@ def shop(level):
         if not loc_shop.button("+", "fuse_shelf"):
             # we really are on the first floor
             try:
-                for gift in p.GIFTS["uptie1"][:2]:
+                for gift in p.GIFTS["uptie1"]:
                     enhance(gift)
                 Action("power", click=(750, 873), ver="shop").execute(click)
                 buy_loop({3: 2}, skip=0, uptie=False)

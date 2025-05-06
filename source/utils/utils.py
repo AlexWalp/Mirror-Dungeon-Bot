@@ -1,18 +1,23 @@
-import time, os, sys
+import time, os
 
 print("Loading...")
 load_time = time.time()
 
-import numpy as np, pyautogui as gui, cv2, torchfree_ocr as myocr
+import numpy as np, pyautogui as gui, cv2
 from PIL import Image
 
 from source.utils.log_config import *
 from source.utils.paths import *
 import source.utils.params as p
 
-ocr = myocr.Reader(["en"])
+from PyQt6.QtCore import QMetaObject, Qt
+
+# ocr = myocr.Reader(["en"])
 
 print(f"All packages imported in {(time.time() - load_time):.2f} seconds")
+
+
+class StopExecution(Exception): pass
 
 
 def print_settings():
@@ -34,10 +39,9 @@ def print_settings():
 
 def parse_numbers(s):
     nums = []
-    i = 0
     for i in range(1, 13):
         if s.startswith(str(i)):
-            nums.append(i)
+            nums.append(i - 1)
             s = s[len(str(i)):]
     if len(nums) != 6 or s !="":
         return None
@@ -117,7 +121,7 @@ Select six sinners in ascending order when using the 'SELECTED' command.
             elif "FALSE" in do: p.LOG = False; print_settings()
             else: print("Incorrect format for LOG")
         elif do == "0":
-            sys.exit()
+            raise StopExecution()
         elif do == "1":
             break
 
@@ -134,35 +138,30 @@ def countdown(seconds): # no more than 99 seconds!
     print(" " * (len(f"Starting in: {seconds:2} [--------------------]")), end="\r")
     print("Grinding Time!")
 
-
 def pause():
-    while True:
-        print("The bot is paused...")
-        do = input("Press 1 to continue or press 0 to exit: ")
-        if do == "0":
-            sys.exit()
-        if do == "1":
-            countdown(5)
-            break
+    if p.APP:
+        QMetaObject.invokeMethod(p.APP, "to_pause", Qt.ConnectionType.QueuedConnection)
+        p.pause_event.clear()
+        p.pause_event.wait()
+        if p.stop_event.is_set():
+            raise StopExecution()
+        countdown(5)
+    else:
+        while True:
+            print("The bot is paused...")
+            do = input("Press 1 to continue or press 0 to exit: ")
+            if do == "0":
+                raise StopExecution()
+            if do == "1":
+                countdown(5)
+                break
 
 
 def close_limbus():
     if gui.getActiveWindowTitle() == 'LimbusCompany':
         gui.hotkey('alt', 'f4')
 
-    sys.exit()
-
-
-def detect_char(region=(0, 0, 1920, 1080), digit = False):
-    data = np.array(gui.screenshot(region=region))
-    results = ocr.readtext(data, decoder='greedy')
-    res = ''.join((i[1] for i in results))
-    if digit:
-        try:
-            res = int(''.join(char for char in res if char.isdigit()))
-        except ValueError:
-            res = None
-    return res
+    raise StopExecution()
 
 
 def wait_for_condition(condition, action=None, interval=0.5, timer=20):

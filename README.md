@@ -9,20 +9,22 @@
 
 **ChargeGrinder** is a Limbus Company bot that charges through MD5 for you
 
+<p align="center"><img src="ImageAssets/readme/preview.png" /></p>
+
 ### ⚡ Speed
-Usually, each floor takes no more than 5 minutes, so a full MD5 run lasts between **20–25 minutes**.
+Generally, each floor takes no more than 5 minutes, so a full MD5 run lasts between **20–25 minutes** for a Burn team.
 
 ---
 
 # ChargeGrinder:
 - ## Starts from any moment of dungeon exploration
   - But it is still recommended to start on main game screen
-- ## Uses default (burn) team
-  - ***Pick right team before launching the bot!***
+- ## Supports all team builds (Burn is recommended)
+  - ***Pick the right team before starting the bot!***
+  - Burn is the fastest team with average time of 22 minutes per run.
   - If team members are already selected, bot will **not** change your selection.
   - Bot only selects team memebers if selected number for battle is less than 6.
-  - Default members: **Don, Ishmael, Gregor, Sinclair, YiSang, and Rodion**.
-  - You can also set up your own team members.
+  - Recommended team:
   
 > ![team.png](ImageAssets/readme/team.png)
 ---
@@ -31,7 +33,7 @@ Usually, each floor takes no more than 5 minutes, so a full MD5 run lasts betwee
   - Avoids packs with high mortality rate and long fights such as: <p>
   **The Noon of Violet, Murder on the WARP Express, Full-Stopped by a Bullet, Timekilling Time, Nocturnal Sweeping** and some other.
   - Prioritizes floors with unique ego gifts such as: <p>
-  **The Outcast, Hell's Chicken**
+  **The Outcast, Hell's Chicken, To Claim their Bones** and some other.
 
 - ## Selects the best next node
   - The choice priority order: <p>
@@ -71,7 +73,7 @@ ChargeGrinder still needs additional features, testing, and bug fixes. However, 
 
 ### 📦 Option 1: Run the Prebuilt Executable
 - Launch **CGrinder.exe** from the `dist` folder—no additional files required.
-- On the first run, it will install recognition and detection models into the `User/.TorchfreeOCR` folder (~100 MB).
+- No OCR is used anymore, all detection is now done with open cv.
 
 ### 🐍 Option 2: Run with Python
 Make sure you have **Python 3** installed. Then either:
@@ -83,23 +85,24 @@ or manually install:
 - `opencv-python-headless`
 - `pyautogui`
 - `Pillow`
-- `torchfree-ocr`
+- `PyQt6`
+
+Then you can run `App.py` for GUI interface or run `Bot.py` for cmd input without GUI.
 
 ---
 # Usage:
 
 - **User Input:**  
-  You can set up sinners and other settings upon program execution. ChargeGrinder will then prompt you to enter the number of Mirror Dungeons to grind, and it will start running a few seconds after your response. 
-  After that you should switch to the Limbus Company window, main screen. It is not recommended to move the mouse while the bot is running, but you can Alt+Tab to another window, and the bot will pause.
+  You can set up sinners and other settings upon program execution. ChargeGrinder will start running in 10 seconds after that. 
+  In the meantime you should switch to the Limbus Company window, main screen. It is not recommended to move the mouse while the bot is running, but you can Alt+Tab to another window and the bot will pause.
 
 - **Runtime Requirements:**
   - Set the game resolution to **Full HD (1920 x 1080)** in fullscreen mode.
-  - Pre-select your burn team (members should be already selected).
-  - Start `Bot.py` from the project folder, configure your settings, and switch to the Limbus window on the main game screen.
+  - Pre-select your team.
   - If you have multiple keyboard layouts, make sure you have **ENG** selected before starting the bot.
 
 ---
-# Settings Overview
+# Settings To Run Wihout GUI:
 
 **Upon startup, you can configure these settings:**
 
@@ -126,7 +129,7 @@ or manually install:
 > Select six sinners in ascending order when using the `SELECTED` command.
 ---
 # stats.py
-- You can run stats.py file from with repository to view your MD run statistics
+- You can run stats.py file from this repository to view your MD run statistics
 - Make sure that `file = "game.log"` actually points to your `game.log` file
 - Output looks like this:
 ```
@@ -193,7 +196,6 @@ Successful Runs | Avg Run Time | Failed Runs | Total Time Wasted
 ---
 
 #  TODO List
-- Add support for different team builds (planned within a week).
-- Create a UI using **PyQt6**.
+- Add support for different screen resolutions
 - Add support for **Hard MD** runs (this seems possible).
 - Improve mouse behavior with more natural movements in the future (though the game doesn't track mouse movements, so not urgent).

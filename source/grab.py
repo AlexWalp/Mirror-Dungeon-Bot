@@ -9,7 +9,7 @@ def far_from_owned(coord, owned_x):
 def find_ego_affinity(owned_x):
     affinity = list(filter(
         lambda coord: far_from_owned(coord, owned_x),
-        [gui.center(box) for box in LocateRGB.locate_all(PTH["Burn"], region=REG["EGO"])]
+        [gui.center(box) for box in LocateRGB.locate_all(PTH[p.GIFTS["checks"][0]], region=REG["EGO"])]
     ))
     return next((
         (lvl, aff)
