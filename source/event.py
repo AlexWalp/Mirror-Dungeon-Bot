@@ -12,24 +12,25 @@ def event():
         if gui.getActiveWindowTitle() != 'LimbusCompany':
             pause()
 
-        for _ in range(3): gui.click(906, 465)
-
+        for _ in range(3): win_click(906, 465)
+        
         if now.button("choices"):
             egos = LocateGray.locate_all(PTH["textEGO"], region=REG["textEGO"])
             print(egos)
             if not egos:
-                gui.click(1348, 316)
+                choice = random.choice([316, 520])
+                win_click(1348, choice)
                 continue
             try:
                 win = LocateGray.try_locate(PTH["textWIN"], region=REG["textEGO"])
                 for box in egos:
                     if abs(box[1] - win[1]) > 80:
-                        gui.click(gui.center(box))
+                        win_click(gui.center(box))
                         break
                 else:
-                    gui.click(1356, 498)
+                    win_click(1356, 498)
             except gui.ImageNotFoundException:
-                gui.click(gui.center(egos[0]))
+                win_click(gui.center(egos[0]))
 
         now_click.button("Proceed")
 

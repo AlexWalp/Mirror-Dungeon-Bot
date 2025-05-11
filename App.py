@@ -5,7 +5,7 @@ import Bot
 os.environ['QT_LOGGING_RULES'] = 'qt.qpa.*=false'
 
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QLabel, QGraphicsOpacityEffect, QMessageBox
-from PyQt6.QtGui import QIcon, QFont, QPixmap, QPainter, QIntValidator
+from PyQt6.QtGui import QIcon, QFont, QPixmap, QPainter, QIntValidator, QFontDatabase
 from PyQt6.QtCore import Qt, QTimer, QEvent, QPropertyAnimation, QObject, pyqtSignal, QThread, pyqtSlot
 import webbrowser
 
@@ -175,7 +175,9 @@ class MyApp(QWidget):
         self.background = QPixmap(Bot.APP_PTH["UI"])
         
         self.inputField = QLineEdit(self)
-        self.inputField.setFont(QFont("Excelsior Sans", 30))
+        font_id = QFontDatabase.addApplicationFont(Bot.APP_PTH["ExcelsiorSans"])
+        if font_id != -1: family = QFontDatabase.applicationFontFamilies(font_id)[0]
+        self.inputField.setFont(QFont(family, 30))
         self.inputField.setGeometry(108, 100, 90, 50)
         self.inputField.setValidator(QIntValidator(0, 1000))
         self.inputField.setAlignment(Qt.AlignmentFlag.AlignCenter)

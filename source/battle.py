@@ -19,6 +19,8 @@ sins = { # bgr values
 def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=100, sin="envy"):
     median_rgb = np.median(background, axis=(0, 1)).astype(int)
     blended_rgb = (median_rgb * 0.45 + np.array(known_rgb) * 0.55).astype(int)
+
+    comp = p.WINDOW[2] / 1920
     
     lower_bound = np.clip(blended_rgb - threshold, 0, 255)
     upper_bound = np.clip(blended_rgb + threshold, 0, 255)
@@ -34,15 +36,15 @@ def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=1
         area = stats[i, cv2.CC_STAT_AREA]
         center = centroids[i]
         
-        if min_pixels <= area <= max_pixels:
+        if min_pixels*comp <= area <= max_pixels*comp:
             x = int(center[0])
-            x1, x2 = max(0, x-25), min(background.shape[1], x+25)
-            y1, y2 = 0, 10
+            x1, x2 = round(max(0, x-25*comp)), round(min(background.shape[1], x+25*comp))
+            y1, y2 = 0, round(10*comp)
             
             region_mask = mask[y1:y2, x1:x2]
             similar_pixels = np.count_nonzero(region_mask)
 
-            if 150 >= similar_pixels >= 20:
+            if 150*comp >= similar_pixels >= 20*comp:
                 cluster_centers.append(center)
     # print(sin)
     # print(centroids)
@@ -52,8 +54,8 @@ def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=1
     merged = []
     while cluster_centers:
         current = cluster_centers.pop()
-        group = [c for c in cluster_centers if np.linalg.norm(current - c) <= 50]
-        cluster_centers = [c for c in cluster_centers if np.linalg.norm(current - c) > 50]
+        group = [c for c in cluster_centers if np.linalg.norm(current - c) <= 50*comp]
+        cluster_centers = [c for c in cluster_centers if np.linalg.norm(current - c) > 50*comp]
         merged.append(np.mean([current] + group, axis=0))
     
     # filter by color patterns
@@ -61,16 +63,16 @@ def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=1
     while merged:
         center = merged.pop()
         x = int(center[0])
-        x1, x2 = max(0, x-30), min(background.shape[1], x+30)
-        y1, y2 = 0, 10
-        region_mask = mask[y1:y2, x1:x2]
+        x1, x2 = round(max(0, x-30*comp)), round(min(background.shape[1], x+30*comp))
+        y1, y2 = 0, round(min(mask.shape[0], 10*comp))
 
+        region_mask = mask[y1:y2, x1:x2]
         pattern = np.zeros((y2-y1, x2-x1), dtype=np.uint8)
         pattern = np.maximum(pattern, region_mask)
         try:
-            if pattern.shape[1] < 33 : raise gui.ImageNotFoundException
-            LocateGray.try_locate(PTH[str(sin)], pattern, region=(0, 0, pattern.shape[1], 10), conf=0.74, method=cv2.TM_CCORR_NORMED)
-            filtered.append(center[0])
+            if pattern.shape[1] < 33*comp : raise gui.ImageNotFoundException
+            LocateGray.try_locate(PTH[str(sin)], pattern, region=(0, 0, pattern.shape[1], round(10*comp)), conf=0.74, method=cv2.TM_CCORR_NORMED)
+            filtered.append(int(center[0]*1920/p.WINDOW[2]))
         except gui.ImageNotFoundException:
             # print(sin)
             # cv2.imwrite(f"{time.time()}{sin}.png", pattern)
@@ -85,13 +87,13 @@ def select(sinners):
     if num < 6:
         for name in sinners:
             if not now.button("selected", SINNERS[name]):
-                gui.click(gui.center(SINNERS[name]))
+                win_click(gui.center(SINNERS[name]))
                 time.sleep(0.1)
                 num += 1 
                 if num == 6:
                     break
 
-    gui.click(1728, 884) # to battle
+    win_click(1728, 884) # to battle
     loading_halt()
 
 
@@ -105,7 +107,7 @@ def chain(gear_start, gear_end, background):
         skill3 += find_skill3(background, sins[sin], sin=sin)
     moves = [False]*skill_num
     for coord in skill3:
-        bin_index = int(min(max((coord - 14 + 80*(2*((coord + gear_start[0] + 100)/1920) - 1)) // 115, 0), skill_num - 1)) # for full hd
+        bin_index = int(min(max((coord - 14 + 80*(2*((coord + gear_start[0] + 100)/1920) - 1)) // 115, 0), skill_num - 1))
         moves[bin_index] = True
     # print(gear_start)
     # print(gear_end)
@@ -113,15 +115,15 @@ def chain(gear_start, gear_end, background):
     # print(moves)
 
     # Chaining
-    gui.moveTo(gear_start)
+    win_moveTo(gear_start)
     gui.mouseDown()
     x += 75
     y -= 46
     for i in range(skill_num):
         if moves[i]:
-            gui.moveTo(x + 68, y + 200)
+            win_moveTo(x + 68, y + 200)
         else:
-            gui.moveTo(x + 68, y + 70)
+            win_moveTo(x + 68, y + 70)
         x += 115
     
     gui.press("enter", 1, 0.1)
@@ -139,12 +141,12 @@ def fight():
     while True:
         ck = False
         if loc.button("battleEGO", wait=1):
-            gui.click(500, 83, duration=0.1)
+            win_click(500, 83, duration=0.1)
             ck = True
             try:
                 gear_start = gui.center(LocateEdges.try_locate(PTH["gear"], region=(0, 761, 900, 179), conf=0.7))
                 gear_end = gui.center(LocateEdges.try_locate(PTH["gear2"], region=(350, 730, 1570, 232), conf=0.7))
-                background = cv2.cvtColor(np.array(gui.screenshot(region=(int(gear_start.x + 100), 775, int(gear_end.x - gear_start.x - 200), 10))), cv2.COLOR_RGB2BGR)
+                background = cv2.cvtColor(np.array(screenshot(region=(round(gear_start.x + 100), 775, round(gear_end.x - gear_start.x - 200), 10))), cv2.COLOR_RGB2BGR)
                 # background = cv2.cvtColor(np.array(gui.screenshot(f"skill_data/{time.time()}.png", region=(int(gear_start.x + 100), 775, int(gear_end.x - gear_start.x - 200), 10))), cv2.COLOR_RGB2BGR)
                 chain(gear_start, gear_end, background)
             except gui.ImageNotFoundException:

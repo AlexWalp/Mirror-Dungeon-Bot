@@ -12,7 +12,7 @@ def collect_png_paths(base_dir):
     path_dict = {}
     for root, _, files in os.walk(base_dir):
         for file in files:
-            if file.lower().endswith(".png"):
+            if file.lower().endswith(".png") or file.lower().endswith(".ttf"):
                 name = os.path.splitext(file)[0]
                 if name in path_dict:
                     raise ValueError(f"Duplicate image name detected: {name}")

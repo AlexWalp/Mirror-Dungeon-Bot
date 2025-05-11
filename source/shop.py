@@ -2,8 +2,8 @@ from source.utils.utils import *
 from itertools import combinations_with_replacement
 import source.utils.params as p
 
-loc_shop = loc_rgb(conf=0.85, wait=False)
-shop_click = loc_rgb(conf=0.85, click=True)
+loc_shop = loc_rgb(conf=0.82, wait=False)
+shop_click = loc_rgb(conf=0.82, click=True)
 
 item_points = {1: 3, 2: 6, 3: 10, 4: 15}
 COMBOS = list(combinations_with_replacement(range(1, 5), 3))
@@ -72,21 +72,20 @@ def inventory_check():
     coords = {1: [], 2: [], 3: [], 4: []}
     have = {}
 
-    fuse_shelf = cv2.cvtColor(np.array(gui.screenshot(region=REG["fuse_shelf"])), cv2.COLOR_RGB2BGR) # bgr
+    fuse_shelf = cv2.cvtColor(np.array(screenshot(region=REG["fuse_shelf"])), cv2.COLOR_RGB2BGR) # bgr
 
     for gift in p.GIFTS["all"]:
         try:
             res = loc_shop.try_find(gift, "fuse_shelf")
             print(f"got {gift}")
             have[gift] = res
-            cv2.rectangle(fuse_shelf, (int(res[0] - 982), int(res[1] - 367)), (int(res[0] - 860), int(res[1] - 245)), (0, 0, 0), -1)
+            fuse_shelf = rectangle(fuse_shelf, (int(res[0] - 982), int(res[1] - 367)), (int(res[0] - 860), int(res[1] - 245)), (0, 0, 0), -1)
         except gui.ImageNotFoundException:
             continue
-
     for i in range(4, 0, -1):
         found = [gui.center(box) for box in LocateRGB.locate_all(PTH[str(i)], region=REG["fuse_shelf"], image=fuse_shelf, threshold=50)]
         for res in found:
-            cv2.rectangle(fuse_shelf, (int(res[0] - 940), int(res[1] - 317)), (int(res[0] - 818), int(res[1] - 195)), (0, 0, 0), -1)
+            fuse_shelf = rectangle(fuse_shelf, (int(res[0] - 940), int(res[1] - 317)), (int(res[0] - 818), int(res[1] - 195)), (0, 0, 0), -1)
         for coord in found:
             coords[i].append(coord)
     
@@ -186,7 +185,7 @@ def fuse():
 
 def confirm_affinity():
     click_rgb.button(p.GIFTS["checks"][3], "affinity!")
-    gui.click(1194, 841)
+    win_click(1194, 841)
 
 def init_fuse():
     chain_actions(shop_click, [
@@ -195,7 +194,7 @@ def init_fuse():
         ClickAction((469, 602), ver="keywordSel")
     ])
     click_rgb.button(p.GIFTS["checks"][3], "affinity!")
-    gui.click(1194, 841)
+    win_click(1194, 841)
 
 def fuse_loop():
     skip = 0
@@ -221,14 +220,16 @@ def balance(money):
         if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
         digits = []
         for i in range(10):
-            pos = [gui.center(box) for box in LocateRGB.locate_all(PTH[f"cost{i}"], region=(857, 175, 99, 57), threshold=3, conf=0.95)]
+            pos = [gui.center(box) for box in LocateRGB.locate_all(PTH[f"cost{i}"], region=(857, 175, 99, 57), threshold=7, conf=0.92)]
             for coord in pos:
-                digits.append((i, coord[0]))
+                if all(abs(coord[0] - existing_coord) > 7 for _, existing_coord in digits):
+                    digits.append((i, coord[0]))
         digits = sorted(digits, key=lambda x: x[1])
 
         bal = ""
         for i in digits: bal += str(i[0])
         bal = int(bal or -1)
+    print("money", bal)
     return bal >= money
 
 
@@ -242,12 +243,11 @@ def conf_gift():
     )
 
 def update_shelf():
-    shop_shelf = cv2.cvtColor(np.array(gui.screenshot(region=REG["buy_shelf"])), cv2.COLOR_RGB2BGR)
-
+    shop_shelf = cv2.cvtColor(np.array(screenshot(region=REG["buy_shelf"])), cv2.COLOR_RGB2BGR)
     for ignore in ["purchased", "cost"]:
         found = [gui.center(box) for box in LocateRGB.locate_all(PTH[str(ignore)], region=REG["buy_shelf"], image=shop_shelf, threshold=20)]
         for res in found:
-            cv2.rectangle(shop_shelf, (int(res[0] - 70 - 809), int(res[1] - 25 - 300)), (int(res[0] + 70 - 809), int(res[1] + 150 - 300)), (0, 0, 0), -1)
+            shop_shelf = rectangle(shop_shelf, (int(res[0] - 70 - 809), int(res[1] - 25 - 300)), (int(res[0] + 70 - 809), int(res[1] + 150 - 300)), (0, 0, 0), -1)
     return shop_shelf
 
 def buy(missing):
@@ -256,7 +256,7 @@ def buy(missing):
     for gift in p.GIFTS["buy"]:
         try:
             res = loc_shop.try_find(gift, "buy_shelf", image=shop_shelf, comp=0.75)
-            gui.click(res)
+            win_click(res)
             conf_gift()
             output = True
             shop_shelf = update_shelf()
@@ -267,7 +267,7 @@ def buy(missing):
         for _ in range(missing[tier]):
             try:
                 res = loc_shop.try_find(f"buy{tier}", "buy_shelf", image=shop_shelf, conf=0.9)
-                gui.click(res)
+                win_click(res)
                 conf_gift()
                 shop_shelf = update_shelf()
             except gui.ImageNotFoundException:
@@ -278,18 +278,22 @@ def buy(missing):
 def buy_loop(missing, skip, uptie=True):
     result = buy(missing)
     if not result or not uptie:
-        if skip < 1 and balance(200):
-            Action("shop", click=(1715, 176), ver="keywordRef").execute(shop_click)
-            wait_for_condition(
-                condition=lambda: now.button("keywordRef"), 
-                action=confirm_affinity
-            )
-            connection()
-            skip += 1
+        try: 
+            if skip < 1 and balance(200):
+                Action("shop", click=(1715, 176), ver="keywordRef").execute(shop_click)
+                wait_for_condition(
+                    condition=lambda: now.button("keywordRef"), 
+                    action=confirm_affinity
+                )
+                connection()
+                skip += 1
 
-            result = buy(missing)
+                result = buy(missing)
+        except RuntimeError:
+            print("no cash, sorry")
+
         if skip < 2 and balance(200):
-            gui.click(1489, 177) # free reroll
+            win_click(1489, 177) # free reroll
             connection()
 
             skip += 1
@@ -304,7 +308,7 @@ def enhance(template):
             Action("power"),
             Action("Confirm.2", ver="power")
         ])
-        gui.moveTo(1215, 939)
+        win_moveTo(1215, 939)
 
 def leave():
     chain_actions(click, [

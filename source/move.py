@@ -1,5 +1,4 @@
 from source.utils.utils import *
-import random
 
 
 priority = ["Event", "Normal", "Miniboss", "Risky", "Focused"]
@@ -38,11 +37,11 @@ def zoom(direction):
 
 
 def position(object):
-    gui.moveTo(object)
+    win_moveTo(object)
     gui.mouseDown()
-    gui.moveTo(429, 480, 0.4, tween=gui.easeInOutQuad)
+    win_moveTo(429, 480, duration=0.4, tween=gui.easeInOutQuad)
     gui.mouseUp()
-    gui.moveTo(429, 710)
+    win_moveTo(429, 710)
     gui.click()
 
 
@@ -54,7 +53,7 @@ def hook():
 
 
 def is_boss(region, comp):
-    image = cv2.cvtColor(np.array(gui.screenshot(region=region)), cv2.COLOR_RGB2BGR)
+    image = cv2.cvtColor(np.array(screenshot(region=region)), cv2.COLOR_RGB2BGR)
     red_mask = cv2.inRange(image, np.array([0, 0, 180]), np.array([50, 50, 255]))
     return now_click.button("boss", region, image=red_mask, comp=comp, conf=0.6)
 
@@ -113,7 +112,7 @@ def directions():
 def enter(fight=False):
     if now.button("enter", wait=1):
         click.button("enter")
-        gui.moveTo(1721, 999)
+        win_moveTo(1721, 999)
         connection()
         return True
     return False
@@ -127,6 +126,7 @@ def move():
     dead = [gui.center(box) for box in LocateRGB.locate_all(PTH["0"], region=REG["alldead"], conf=0.95, threshold=50)]
     if len(dead) >= 6:
         gui.press("Esc")
+        time.sleep(0.5)
         chain_actions(click, [
             Action("forfeit"),
             Action("ConfirmInvert", ver="connecting"),
@@ -180,7 +180,7 @@ def move():
             continue
 
         elif is_shop(_loc, region):
-            gui.click(gui.center(regions[i]))
+            win_click(gui.center(regions[i]))
             enter()
             logging.info("Entering Shop")
             return True
@@ -188,19 +188,19 @@ def move():
         for node in priority:
             if node in status:
                 id = see_future(_loc, [i for i, x in enumerate(status) if x == node])
-                gui.click(gui.center(regions[id]))
+                win_click(gui.center(regions[id]))
                 enter()
                 #if node != "Event": loc.button("TOBATTLE", wait=3)
                 logging.info(f"Entering {node} {'fight'*(node!='Event')}")
                 return True
     
     # if we fail
-    gui.click(429, 480)
+    win_click(429, 480)
     if enter(): return True
 
     # if we double fail:
     for i in range(3):
-        gui.moveTo(gui.center((624, 101 + i * 275, 282, 275)))
+        win_moveTo(gui.center((624, 101 + i * 275, 282, 275)))
         gui.click()
         if enter():
             logging.info(f"Entering unknown node")

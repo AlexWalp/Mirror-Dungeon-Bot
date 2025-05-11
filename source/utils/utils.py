@@ -3,7 +3,7 @@ import time, os
 print("Loading...")
 load_time = time.time()
 
-import numpy as np, pyautogui as gui, cv2
+import numpy as np, pyautogui as gui, cv2, ctypes, random
 from PIL import Image
 
 from source.utils.log_config import *
@@ -18,6 +18,7 @@ print(f"All packages imported in {(time.time() - load_time):.2f} seconds")
 
 
 class StopExecution(Exception): pass
+class WindowError(Exception): pass
 
 
 def print_settings():
@@ -90,11 +91,14 @@ LOG - Save events and errors to 'game.log'.
 Select six sinners in ascending order when using the 'SELECTED' command.
 """)
         elif "TEAM" in do:
-            if "BURN" in do:
-                p.TEAM = "BURN"
-                print_settings()
-            else:
-                print("This setting is not supported yet")
+            if "BURN" in do: p.TEAM = "BURN"; print_settings()
+            elif "BLEED" in do: p.TEAM = "BLEED"; print_settings()
+            elif "TREMOR" in do: p.TEAM = "TREMOR"; print_settings()
+            elif "RUPTURE" in do: p.TEAM = "RUPTURE"; print_settings()
+            elif "SINKING" in do: p.TEAM = "SINKING"; print_settings()
+            elif "POISE" in do: p.TEAM = "POISE"; print_settings()
+            elif "CHARGE" in do: p.TEAM = "CHARGE"; print_settings()
+            else: print("Incorrect format for SELECTED")
         elif "SELECTED" in do:
             num = ''.join(filter(str.isdigit, do))
             num_list = parse_numbers(num)
@@ -102,8 +106,7 @@ Select six sinners in ascending order when using the 'SELECTED' command.
                 list_of_sinners = list(SINNERS.keys())
                 p.SELECTED = [list_of_sinners[i] for i in num_list]
                 print_settings()
-            else:
-                print("Incorrect format for SELECTED")
+            else: print("Incorrect format for SELECTED")
         elif "BONUS" in do:
             if "TRUE" in do: p.BONUS = True; print_settings()
             elif "FALSE" in do: p.BONUS = False; print_settings()
@@ -124,6 +127,93 @@ Select six sinners in ascending order when using the 'SELECTED' command.
             raise StopExecution()
         elif do == "1":
             break
+
+
+def check_window():
+    screen_width = ctypes.windll.user32.GetSystemMetrics(0)
+    screen_height = ctypes.windll.user32.GetSystemMetrics(1)
+        
+    left, top, width, height = p.WINDOW
+    in_bounds = (
+        0 <= left <= screen_width and
+        0 <= top <= screen_height and
+        left + width <= screen_width and
+        top + height <= screen_height
+    )
+    if not in_bounds:
+        raise WindowError("Window is partially or completely out of screen bounds!")
+
+def set_window():
+    hwnd = ctypes.windll.user32.FindWindowW(None, "LimbusCompany")
+
+    rect = ctypes.wintypes.RECT()
+    ctypes.windll.user32.GetClientRect(hwnd, ctypes.byref(rect))
+
+    pt = ctypes.wintypes.POINT(0, 0)
+    ctypes.windll.user32.ClientToScreen(hwnd, ctypes.byref(pt))
+
+    client_width = rect.right - rect.left
+    client_height = rect.bottom - rect.top
+    left, top = pt.x, pt.y
+
+    target_ratio = 16 / 9
+    if client_width / client_height > target_ratio:
+        target_height = client_height
+        target_width = int(target_height * target_ratio)
+    elif client_width / client_height < target_ratio:
+        target_width = client_width
+        target_height = int(target_width / target_ratio)
+    else:
+        target_width = client_width
+        target_height = client_height
+
+    left += (client_width - target_width) // 2
+    top += (client_height - target_height) // 2
+
+    p.WINDOW = (left, top, target_width, target_height)
+    check_window()
+    print("WINDOW:", p.WINDOW)
+
+
+def screenshot(region=(0, 0, 1920, 1080)):
+    x, y, w, h = region
+    comp = p.WINDOW[2] / 1920
+    return gui.screenshot(region=(
+        round(p.WINDOW[0] + x*comp),
+        round(p.WINDOW[1] + y*comp),
+        round(w*comp),
+        round(h*comp)
+    ))
+
+def rectangle(image, point1, point2, color, type):
+    comp = p.WINDOW[2] / 1920
+    x1, y1 = point1
+    x1, y1 = int(x1*comp), int(y1*comp)
+    x2, y2 = point2
+    x2, y2 = int(x2*comp), int(y2*comp)
+    return cv2.rectangle(image, (x1, y1), (x2, y2), color, type)
+
+
+def win_click(*args, **kwargs):
+    if len(args) == 1: x, y = args[0]
+    else: x, y = args
+    comp = p.WINDOW[2] / 1920
+    x, y = int(p.WINDOW[0] + x*comp), int(p.WINDOW[1] + y*comp)
+    gui.click(x, y, **kwargs)
+
+def win_moveTo(*args, **kwargs):
+    if len(args) == 1: x, y = args[0]
+    else: x, y = args
+    comp = p.WINDOW[2] / 1920
+    x, y = int(p.WINDOW[0] + x*comp), int(p.WINDOW[1] + y*comp)
+    gui.moveTo(x, y, **kwargs)
+
+def win_dragTo(*args, **kwargs):
+    if len(args) == 1: x, y = args[0]
+    else: x, y = args
+    comp = p.WINDOW[2] / 1920
+    x, y = int(p.WINDOW[0] + x*comp), int(p.WINDOW[1] + y*comp)
+    gui.dragTo(x, y, **kwargs)
 
 
 def countdown(seconds): # no more than 99 seconds!
@@ -185,7 +275,7 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
         if isinstance(image, str):
             image = cv2.imread(image, cv2.IMREAD_UNCHANGED)
         if image is None:
-            image = gui.screenshot(region=region)
+            image = screenshot(region=region)
         if isinstance(image, Image.Image):
             image = np.array(image)
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
@@ -194,7 +284,7 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
         return image
 
     @staticmethod
-    def _load_template(template, comp=None, v_comp=None):
+    def _load_template(template, comp=1, v_comp=None):
         if isinstance(template, str):
             template = cv2.imread(template, cv2.IMREAD_UNCHANGED)
         elif isinstance(template, Image.Image):
@@ -205,11 +295,10 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
                 template = cv2.cvtColor(template, cv2.COLOR_RGB2BGR)
         elif not isinstance(template, np.ndarray):
             raise TypeError(f"Locate doesn't support template type '{type(template).__name__}'")
-        if comp and not (0 < comp <= 1):
-            raise ValueError(f"Invalid compression value: '{comp}'")
-        elif comp:
-            new_size = (int(template.shape[1] * comp), int(template.shape[0] * comp))
-            template = cv2.resize(template, new_size, interpolation=cv2.INTER_AREA)
+    
+        comp = comp*(p.WINDOW[2] / 1920)
+        if comp != 1:
+            template = cv2.resize(template, None, fx=comp, fy=comp, interpolation=cv2.INTER_LINEAR)
         if v_comp and not (0 < v_comp <= 1):
             raise ValueError(f"Invalid vertical compression value: '{v_comp}'")
         elif v_comp:
@@ -250,7 +339,10 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
         result = cv2.matchTemplate(image, template, method)
         match_w, match_h = template.shape[1], template.shape[0]
         for (x, y) in cls._compare(result, conf, method):
-            yield (x + x_off, y + y_off, match_w, match_h)
+            comp = 1920 / p.WINDOW[2]
+            x_fullhd = int(x*comp) + x_off
+            y_fullhd = int(y*comp) + y_off
+            yield (x_fullhd, y_fullhd, int(match_w*comp), int(match_h*comp))
 
     @classmethod
     def _locate(cls, template, image=None, region=None, conf=None, method=None, **kwargs):
@@ -306,7 +398,7 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
             try:
                 res = cls.try_locate(template, image, region, conf, **kwargs)
                 if isinstance(template, str):
-                    print(f"located {os.path.splitext(os.path.basename(template))[0]}")
+                    print(f"located {os.path.splitext(os.path.basename(template))[0]}", res)
                 else: print("located image")
 
                 if click:
@@ -314,7 +406,7 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
                         res = click
                     else:
                         res = gui.center(res)
-                    gui.moveTo(res, duration=0.1)
+                    win_moveTo(res, duration=0.1)
                     gui.doubleClick(duration=0.1)
                     if isinstance(template, str):
                         print(f"clicked {os.path.splitext(os.path.basename(template))[0]}")
@@ -361,7 +453,7 @@ class LocateEdges(LocateGray):
 
 
 class LocatePreset:
-    def __init__(self, method=LocateGray, image=None, region=None, comp=None, v_comp=None, conf=0.9, wait=5, click=False, error=False):
+    def __init__(self, method=LocateGray, image=None, region=None, comp=1, v_comp=None, conf=0.9, wait=5, click=False, error=False):
         self.method = method
         self.params = {
             "image": image,
@@ -407,13 +499,13 @@ class LocatePreset:
             action = lambda: self.method.check(path, **params)
         else:
             x, y = overrides["click"] # assuming that click is specified correctly
-            action = lambda: (gui.click(x, y), True)[1]
+            action = lambda: (win_click(x, y), True)[1]
         
         if isinstance(ver, str) and "!" in ver:
             ver = REG[ver]
 
         if isinstance(ver, tuple):
-            state0 = gui.screenshot(region=ver)
+            state0 = screenshot(region=ver)
 
         result = action()
 
@@ -427,7 +519,7 @@ class LocatePreset:
                 if isinstance(ver, str):
                     condition = lambda: not self.button(ver, wait=False, click=False, error=False)
                 else:
-                    condition = lambda: LocateGray.check(state0, image=gui.screenshot(region=ver), wait=False, conf=0.98)
+                    condition = lambda: LocateGray.check(state0, image=screenshot(region=ver), wait=False, conf=0.98)
                     # print(LocateGray.get_conf(state0, image=gui.screenshot(region=ver)))
 
                 verified = wait_for_condition(condition, timer=3)
@@ -435,7 +527,7 @@ class LocatePreset:
                     print(f"Verifier failed (attempt {i}), reclicking...")
                     # Reclick the original target
                     if len(args) == 0:
-                        gui.click(x, y)
+                        win_click(x, y)
                         result = True
                     else:
                         result = self.method.check(path, **params)
@@ -543,7 +635,8 @@ def chain_actions(preset: LocatePreset, actions: list):
 
 def handle_fuckup():
     if gui.getActiveWindowTitle() == 'LimbusCompany':
-        gui.moveTo(1509, 978)
+        set_window()
+        win_moveTo(1509, 978)
         gui.press("Esc")
         gui.press("Esc")
         if loc.button("forfeit", wait=1):

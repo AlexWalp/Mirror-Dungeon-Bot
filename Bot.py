@@ -94,6 +94,7 @@ def handle_bonus():
 
 TERMIN = [
     Action("victory", click=(1693, 841)),
+    lambda: win_moveTo(1710, 982),
     Action("Claim", ver="ClaimInvert"),
     handle_bonus,
     Action("ClaimInvert"),
@@ -114,6 +115,7 @@ def dungeon_end():
 # FAIL RUN
 FAIL = [
     Action("defeat", click=(1693, 841)),
+    lambda: win_moveTo(1710, 982),
     Action("Claim"),
     Action("GiveUp"),
     Action("ConfirmInvert", ver="loading"),
@@ -140,15 +142,15 @@ def main_loop():
     level = 1
     while True:
         if now.button("ServerError"):
-            gui.click(1100, 700)
+            win_click(1100, 700)
             time.sleep(10)
             if now_click.button("ServerError"):
                 logging.error('Server error happened')
 
         if now.button("EventEffect"):
-            gui.click(773, 521)
+            win_click(773, 521)
             time.sleep(0.2)
-            gui.click(967, 774)
+            win_click(967, 774)
 
         if gui.getActiveWindowTitle() != 'LimbusCompany':
             pause()
@@ -211,6 +213,7 @@ def replay_loop():
     setup_logging(enable_logging=p.LOG)
     
     logging.info('Script started')
+    set_window()
 
     for i in range(number):
         logging.info(f'Iteration {i}')
@@ -246,6 +249,7 @@ def execute_me(count, affinity, sinners, log, bonus, restart, altf4, app):
     setup_logging(enable_logging=p.LOG)
     
     logging.info('Script started')
+    set_window()
 
     try:
         for i in range(count):

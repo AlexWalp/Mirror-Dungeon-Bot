@@ -9,5 +9,7 @@ RESTART = True
 ALTF4 = False
 APP = None
 
+WINDOW = (0, 0, 1920, 1080)
+
 pause_event = threading.Event()
 stop_event = threading.Event()

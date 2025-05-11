@@ -24,7 +24,7 @@ def find_ego_affinity(owned_x):
 
 def get_gift(coord):
     chain_actions(click, [
-        lambda: gui.click(coord),
+        lambda: win_click(coord),
         ClickAction((1687, 870), ver="Confirm")
     ])
 
@@ -46,7 +46,7 @@ def grab_EGO():
         if ego_aff and lvl == ego_aff[0]:
             get_gift(ego_aff[1])
             return True
-        elif coord := LocateRGB.locate(PTH[f"tier{lvl}"], region=REG["EGO"]):
+        elif coord := LocateRGB.locate(PTH[f"tier{lvl}"], region=REG["EGO"], conf=0.92):
             get_gift(gui.center(coord))
             return True
     return False
@@ -61,7 +61,7 @@ def get_card(card):
 def grab_card():
     if not now.button("encounterreward"): return False
 
-    gui.moveTo(1000, 900)
+    win_moveTo(1000, 900)
     now_click.button("Cancel") # if was misclicked
     time.sleep(1)
 
@@ -80,6 +80,6 @@ def grab_card():
 
 def confirm():
     if not now_click.button("Confirm"): return False
-    gui.moveTo(965, 878)
+    win_moveTo(965, 878)
     now_click.button("Confirm")
     return True

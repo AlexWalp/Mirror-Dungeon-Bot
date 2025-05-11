@@ -10,6 +10,7 @@ a = Analysis(
         ('ImageAssets\\UI\\pack\\easy\\*.png', 'ImageAssets\\UI\\pack\\easy'),
         ('ImageAssets\\UI\\pack\\level\\*.png', 'ImageAssets\\UI\\pack\\level'),
         ('ImageAssets\\AppUI\\*.png', 'ImageAssets\\AppUI'),
+        ('ImageAssets\\AppUI\\font\\*.ttf', 'ImageAssets\\AppUI\\font'),
         ('ImageAssets\\AppUI\\selected\\*.png', 'ImageAssets\\AppUI\\selected'),
         ('ImageAssets\\UI\\*.png', 'ImageAssets\\UI'),
         ('ImageAssets\\UI\\battle\\*.png', 'ImageAssets\\UI\\battle'),

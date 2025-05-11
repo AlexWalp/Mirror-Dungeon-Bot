@@ -97,7 +97,8 @@ Then you can run `App.py` for GUI interface or run `Bot.py` for cmd input withou
   In the meantime you should switch to the Limbus Company window, main screen. It is not recommended to move the mouse while the bot is running, but you can Alt+Tab to another window and the bot will pause.
 
 - **Runtime Requirements:**
-  - Set the game resolution to **Full HD (1920 x 1080)** in fullscreen mode.
+  - Set the in-game resolution to **16 x 9** (Full HD is best, but **1280 x 720** also works). Both fullscreen and windowed modes are supported.<p>
+  *Make sure that the Limbus Company window is fully visible!*
   - Pre-select your team.
   - If you have multiple keyboard layouts, make sure you have **ENG** selected before starting the bot.
 
