@@ -197,6 +197,5 @@ Successful Runs | Avg Run Time | Failed Runs | Total Time Wasted
 ---
 
 #  TODO List
-- Add support for different screen resolutions
 - Add support for **Hard MD** runs (this seems possible).
 - Improve mouse behavior with more natural movements in the future (though the game doesn't track mouse movements, so not urgent).

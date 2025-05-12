@@ -322,7 +322,7 @@ def shop(level):
 
     if level == 1:
         ClickAction((250, 581), ver="power").execute(click)
-        if not loc_shop.button("+", "fuse_shelf"):
+        if not loc_shop.button("+", "fuse_shelf", conf=0.95):
             # we really are on the first floor
             try:
                 for gift in p.GIFTS["uptie1"]:
