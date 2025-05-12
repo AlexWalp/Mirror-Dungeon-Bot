@@ -6,9 +6,7 @@
                \____/_/ /_/\__,_/_/   \__, /\___/   \____/_/  /_/_/ /_/\__,_/\___/_/     
                                      /____/
 ```
-
 **ChargeGrinder** is a Limbus Company bot that charges through MD5 for you
-
 <p align="center"><img src="ImageAssets/readme/preview.png" /></p>
 
 ### ⚡ Speed
@@ -70,8 +68,8 @@ ChargeGrinder still needs additional features, testing, and bug fixes. However, 
 
 ---
 # Installation
-
-### 📦 Option 1: Run the Prebuilt Executable
+### 📦 Option 1: Run the Prebuilt Executable 
+[![Download](https://img.shields.io/badge/CGrinder.exe-Download-blue.svg)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/download/v1.0.0/CGrinder.exe) <p>
 - Launch **CGrinder.exe** from the `dist` folder—no additional files required.
 - No OCR is used anymore, all detection is now done with open cv.
 
