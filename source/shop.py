@@ -2,8 +2,8 @@ from source.utils.utils import *
 from itertools import combinations_with_replacement
 import source.utils.params as p
 
-loc_shop = loc_rgb(conf=0.82, wait=False)
-shop_click = loc_rgb(conf=0.82, click=True)
+loc_shop = loc_rgb(conf=0.8, wait=False, method=cv2.TM_SQDIFF_NORMED)
+shop_click = loc_shop(click=True, wait=5)
 
 item_points = {1: 3, 2: 6, 3: 10, 4: 15}
 COMBOS = list(combinations_with_replacement(range(1, 5), 3))
@@ -79,11 +79,11 @@ def inventory_check():
             res = loc_shop.try_find(gift, "fuse_shelf")
             print(f"got {gift}")
             have[gift] = res
-            fuse_shelf = rectangle(fuse_shelf, (int(res[0] - 982), int(res[1] - 367)), (int(res[0] - 860), int(res[1] - 245)), (0, 0, 0), -1)
+            fuse_shelf = rectangle(fuse_shelf, (int(res[0] - 982), int(res[1] - 367)), (int(res[0] - 860), int(res[1] - 235)), (0, 0, 0), -1)
         except gui.ImageNotFoundException:
             continue
     for i in range(4, 0, -1):
-        found = [gui.center(box) for box in LocateRGB.locate_all(PTH[str(i)], region=REG["fuse_shelf"], image=fuse_shelf, threshold=50)]
+        found = [gui.center(box) for box in LocateRGB.locate_all(PTH[str(i)], region=REG["fuse_shelf"], image=fuse_shelf, threshold=50, method=cv2.TM_SQDIFF_NORMED)]
         for res in found:
             fuse_shelf = rectangle(fuse_shelf, (int(res[0] - 940), int(res[1] - 317)), (int(res[0] - 818), int(res[1] - 195)), (0, 0, 0), -1)
         for coord in found:
@@ -144,6 +144,7 @@ def perform_clicks(to_click):
 
 
 def fuse():
+    time.sleep(0.2)
     coords, have = inventory_check()
     to_click = []
     is_special = False
@@ -155,21 +156,22 @@ def fuse():
     #     print("no usless ego gift")
 
     # get powerful ego gift
-    if not loc_shop.button(p.GIFTS["uptie2"], "fuse_shelf"):
+    if not p.GIFTS["uptie2"] in have.keys():
         missing = actual_fuse(4, coords)
         if missing: return missing
-        is_special = True
+        if loc_shop.button(p.GIFTS["uptie2"], "fuse_shelf", wait=0.2):
+            is_special = True
 
     # get fused ego gift
-    elif not loc_shop.button(p.GIFTS["goal"], "fuse_shelf"):
+    elif not p.GIFTS["goal"] in have.keys():
         for name, tier in p.GIFTS["fuse2"].items():
-            if not name in have:
+            if not name in have.keys():
                 if tier != None:
                     missing = actual_fuse(tier, coords)
                     return missing
                 else: # need to fuse
                     for name, tier in p.GIFTS["fuse1"].items():
-                        if not name in have:
+                        if not name in have.keys():
                             missing = actual_fuse(tier, coords)
                             return missing
                         to_click.append(have[name])
@@ -178,8 +180,7 @@ def fuse():
         perform_clicks(to_click)
     else: raise NotImplementedError
 
-    if is_special and loc_shop.button(p.GIFTS["uptie2"], "fuse_shelf"):
-        enhance_special()
+    if is_special: enhance_special()
     return None
 
 
@@ -250,33 +251,67 @@ def update_shelf():
             shop_shelf = rectangle(shop_shelf, (int(res[0] - 70 - 809), int(res[1] - 25 - 300)), (int(res[0] + 70 - 809), int(res[1] + 150 - 300)), (0, 0, 0), -1)
     return shop_shelf
 
+def filter_x_distance(points, x_tol=2, y_tol=25):
+    points = sorted(points, key=lambda p: p[0])
+    result = []
+    for p in points:
+        if all(abs(p[0] - q[0]) >= x_tol or abs(p[1] - q[1]) > y_tol for q in result):
+            result.append(p)
+    return result
+
+def get_shop(shop_shelf):
+    tier1 = [gui.center(box) for box in LocateRGB.locate_all(PTH["buy1"], region=REG["buy_shelf"], image=shop_shelf, threshold=4, conf=0.92, method=cv2.TM_SQDIFF_NORMED)]
+    tier4 = [gui.center(box) for box in LocateRGB.locate_all(PTH["buy4"], region=REG["buy_shelf"], image=shop_shelf, threshold=10, conf=0.92, method=cv2.TM_SQDIFF_NORMED)]
+    tier1 = filter_x_distance(tier1)
+    have = {1: [], 2: [], 3: []}
+    visited = set()
+    for i, pt_i in enumerate(tier1):
+        if i in visited: continue
+        count = 1
+        for j in range(i + 1, len(tier1)):
+            pt_j = tier1[j]
+            if all(abs(pt_i[k] - pt_j[k]) <= 25 for k in range(2)):
+                visited.add(j)
+                count += 1
+        have[min(count, 3)].append(pt_i)
+    have[1] = [
+        (fx, fy) for (fx, fy) in have[1]
+        if not any(abs(fx - x) <= 25 and abs(fy - y) <= 25 for (x, y) in tier4)
+    ]
+    return have
+
 def buy(missing):
     shop_shelf = update_shelf()
     output = False
     for gift in p.GIFTS["buy"]:
         try:
-            res = loc_shop.try_find(gift, "buy_shelf", image=shop_shelf, comp=0.75)
+            res = loc_shop.try_find(gift, "buy_shelf", image=shop_shelf, comp=0.75, conf=0.7)
+            print(f"got {gift}")
             win_click(res)
             conf_gift()
             output = True
             shop_shelf = update_shelf()
         except gui.ImageNotFoundException:
             continue
+    if output: return True, missing # got build
 
+    gained = {1: 0, 2: 0, 3: 0}
     for tier in sorted(missing.keys(), reverse=True):
         for _ in range(missing[tier]):
-            try:
-                res = loc_shop.try_find(f"buy{tier}", "buy_shelf", image=shop_shelf, conf=0.9)
-                win_click(res)
+            have = get_shop(shop_shelf)
+            print(f"got {have}")
+            if have[tier]:
+                win_click(have[tier][0])
                 conf_gift()
                 shop_shelf = update_shelf()
-            except gui.ImageNotFoundException:
-                return output
-    return True
-
+                gained[tier] += 1
+            else:
+                return output, {key: missing[key] - gained[key] for key in missing} # got something
+    return True, {} # got everything
 
 def buy_loop(missing, skip, uptie=True):
-    result = buy(missing)
+    print("need", missing)
+    result, missing = buy(missing)
     if not result or not uptie:
         try: 
             if skip < 1 and balance(200):
@@ -288,7 +323,7 @@ def buy_loop(missing, skip, uptie=True):
                 connection()
                 skip += 1
 
-                result = buy(missing)
+                result, missing = buy(missing)
         except RuntimeError:
             print("no cash, sorry")
 
@@ -297,7 +332,8 @@ def buy_loop(missing, skip, uptie=True):
             connection()
 
             skip += 1
-            result = buy(missing)
+            new_result, _ = buy(missing)
+            result = result or new_result
     return result, skip
 
 
@@ -338,5 +374,6 @@ def shop(level):
     if 5 > level > 1:
         fuse_loop()
 
+    time.sleep(0.2)
     leave()
     return True

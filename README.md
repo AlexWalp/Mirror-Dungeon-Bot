@@ -1,12 +1,14 @@
 ```
-                  ________                             ______     _           __         
-                 / ____/ /_  ____ __________ ____     / ____/____(_)___  ____/ /__  _____
-                / /   / __ \/ __ `/ ___/ __ `/ _ \   / / __/ ___/ / __ \/ __  / _ \/ ___/
-               / /___/ / / / /_/ / /  / /_/ /  __/  / /_/ / /  / / / / / /_/ /  __/ /    
-               \____/_/ /_/\__,_/_/   \__, /\___/   \____/_/  /_/_/ /_/\__,_/\___/_/     
-                                     /____/
+                   ________                             ______     _           __         
+                  / ____/ /_  ____ __________ ____     / ____/____(_)___  ____/ /__  _____
+                 / /   / __ \/ __ `/ ___/ __ `/ _ \   / / __/ ___/ / __ \/ __  / _ \/ ___/
+                / /___/ / / / /_/ / /  / /_/ /  __/  / /_/ / /  / / / / / /_/ /  __/ /    
+                \____/_/ /_/\__,_/_/   \__, /\___/   \____/_/  /_/_/ /_/\__,_/\___/_/     
+                                      /____/
+
+                          A Limbus Company bot that charges through MD5 for you
 ```
-**ChargeGrinder** is a Limbus Company bot that charges through MD5 for you
+
 <p align="center"><img src="ImageAssets/readme/preview.png" /></p>
 
 ### ⚡ Speed
@@ -95,10 +97,15 @@ Then you can run `App.py` for GUI interface or run `Bot.py` for cmd input withou
   In the meantime you should switch to the Limbus Company window, main screen. It is not recommended to move the mouse while the bot is running, but you can Alt+Tab to another window and the bot will pause.
 
 - **Runtime Requirements:**
-  - Set the in-game resolution to **16 x 9** (Full HD is best, but **1280 x 720** also works). Both fullscreen and windowed modes are supported.<p>
+  - Set the in-game resolution to **16:9** ratio (**1920 x 1080** is best, but **1280 x 720** also works). Both fullscreen and windowed modes are supported.<p>
   *Make sure that the Limbus Company window is fully visible!*
   - Pre-select your team.
   - If you have multiple keyboard layouts, make sure you have **ENG** selected before starting the bot.
+# Recommended Graphics Settings:
+<p align="center" style="font-size: 19px; font-weight: bold">Fullscreen</p>
+<p align="center"><img src="ImageAssets/readme/fullscreen.png" /></p>
+<p align="center" style="font-size: 19px; font-weight: bold">Windowed</p>
+<p align="center"><img src="ImageAssets/readme/windowed.png" /></p>
 
 ---
 # Settings To Run Without GUI:

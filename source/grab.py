@@ -46,7 +46,7 @@ def grab_EGO():
         if ego_aff and lvl == ego_aff[0]:
             get_gift(ego_aff[1])
             return True
-        elif coord := LocateRGB.locate(PTH[f"tier{lvl}"], region=REG["EGO"], conf=0.92):
+        elif coord := LocateRGB.locate(PTH[f"tier{lvl}"], region=REG["EGO"], method=cv2.TM_SQDIFF_NORMED):
             get_gift(gui.center(coord))
             return True
     return False

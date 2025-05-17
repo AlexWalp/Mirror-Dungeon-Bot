@@ -205,3 +205,4 @@ def move():
         if enter():
             logging.info(f"Entering unknown node")
             return True
+    return False

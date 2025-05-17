@@ -12,8 +12,6 @@ import source.utils.params as p
 
 from PyQt6.QtCore import QMetaObject, Qt
 
-# ocr = myocr.Reader(["en"])
-
 print(f"All packages imported in {(time.time() - load_time):.2f} seconds")
 
 
@@ -172,6 +170,10 @@ def set_window():
 
     p.WINDOW = (left, top, target_width, target_height)
     check_window()
+
+    if int(client_width / 16) != int(client_height / 9):
+        p.WARNING(f"Game window ({client_width} x {client_height}) is not 16:9\nIt is recommended to set the game to either\n1920 x 1080 or 1280 x 720")
+
     print("WINDOW:", p.WINDOW)
 
 
@@ -245,6 +247,7 @@ def pause():
             if do == "1":
                 countdown(5)
                 break
+    set_window()
 
 
 def close_limbus():
@@ -380,13 +383,11 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
         positions = []
 
         try:
-            seen = set()
             boxes = cls._locate(template, image, region, conf, **kwargs)
             for x, y, w, h in boxes:
                 if any((abs(x - fx) <= threshold and abs(y - fy) <= threshold) for fx, fy, _, _ in positions):
                     continue
                 positions.append((x, y, w, h))
-                seen.add((x, y))
         finally: 
             return positions
     
@@ -453,14 +454,15 @@ class LocateEdges(LocateGray):
 
 
 class LocatePreset:
-    def __init__(self, method=LocateGray, image=None, region=None, comp=1, v_comp=None, conf=0.9, wait=5, click=False, error=False):
-        self.method = method
+    def __init__(self, cl=LocateGray, image=None, region=None, comp=1, v_comp=None, conf=0.9, wait=5, click=False, error=False, method=None):
+        self.cl = cl
         self.params = {
             "image": image,
             "region": region,
             "comp": comp,
             "v_comp": v_comp,
             "conf": conf,
+            "method": method,
             "wait": wait,
             "click": click,
             "error": error,
@@ -469,7 +471,7 @@ class LocatePreset:
     def __call__(self, **overrides):
         params = self.params.copy()
         params.update(overrides)
-        return LocatePreset(method=self.method, **params)
+        return LocatePreset(cl=self.cl, **params)
 
     def try_find(self, *args, **overrides):
         if   len(args) == 1: key, region_key = args[0], args[0]
@@ -478,10 +480,10 @@ class LocatePreset:
         path = PTH[key.split('.')[0]]
         region = REG[region_key] if isinstance(region_key, str) else region_key
 
-        params = dict(list(self.params.items())[:5])
+        params = dict(list(self.params.items())[:6])
         params.update(overrides)
         params["region"] = region
-        result = self.method.try_locate(path, **params)
+        result = self.cl.try_locate(path, **params)
         return gui.center(result)
     
     def button(self, *args, ver=False, **overrides):
@@ -496,7 +498,7 @@ class LocatePreset:
             params = self.params.copy()
             params.update(overrides)
             params["region"] = region
-            action = lambda: self.method.check(path, **params)
+            action = lambda: self.cl.check(path, **params)
         else:
             x, y = overrides["click"] # assuming that click is specified correctly
             action = lambda: (win_click(x, y), True)[1]
@@ -530,7 +532,7 @@ class LocatePreset:
                         win_click(x, y)
                         result = True
                     else:
-                        result = self.method.check(path, **params)
+                        result = self.cl.check(path, **params)
 
                     if not result:
                         # Button disappeared + verifier false — unrecoverable
@@ -551,7 +553,7 @@ now       = loc(wait=False)
 try_click = click(error=True)
 now_click = click(wait=False)
 
-loc_rgb = LocatePreset(method=LocateRGB)
+loc_rgb = LocatePreset(cl=LocateRGB)
 
 click_rgb = loc_rgb(click=True)
 try_rgb   = loc_rgb(error=True)

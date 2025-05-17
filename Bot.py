@@ -82,14 +82,16 @@ def collect_rewards():
     )
 
 def click_bonus():
-    if now_rgb.button("bonus", click=True) or \
-       now_rgb.button("bonus_off", click=True):
-        return True
+    if now_rgb.button("bonus", click=True):
+        time.sleep(0.2)
+        if not now_rgb.button("bonus"):
+            return True
     return False
 
 def handle_bonus():
-    if p.BONUS: return
-    if not wait_for_condition(lambda: not click_bonus):
+    if p.BONUS or now_rgb.button("bonus_off"): return
+    time.sleep(0.2)
+    if not wait_for_condition(lambda: not click_bonus()):
         raise RuntimeError
 
 TERMIN = [
@@ -232,7 +234,7 @@ if __name__ == "__main__":
 
 
 # when App is run:
-def execute_me(count, affinity, sinners, log, bonus, restart, altf4, app):
+def execute_me(count, affinity, sinners, log, bonus, restart, altf4, app, warning):
     p.TEAM = list(TEAMS.keys())[affinity]
     p.GIFTS = TEAMS[p.TEAM]
     p.SELECTED = [list(SINNERS.keys())[i] for i in sinners]
@@ -241,6 +243,7 @@ def execute_me(count, affinity, sinners, log, bonus, restart, altf4, app):
     p.RESTART = restart
     p.ALTF4 = altf4
     p.APP = app
+    p.WARNING = warning
     
     print(f"Grinding {count} mirrors...")
     print("Switch to Limbus Window")
@@ -249,9 +252,9 @@ def execute_me(count, affinity, sinners, log, bonus, restart, altf4, app):
     setup_logging(enable_logging=p.LOG)
     
     logging.info('Script started')
-    set_window()
 
     try:
+        set_window()
         for i in range(count):
             logging.info(f'Iteration {i}')
             completed = False
@@ -262,6 +265,9 @@ def execute_me(count, affinity, sinners, log, bonus, restart, altf4, app):
             close_limbus()
     except StopExecution:
         return
+    except ZeroDivisionError: # gotta launch the game
+        raise RuntimeError("Launch Limbus Company!")
+
     QMetaObject.invokeMethod(p.APP, "stop_execution", Qt.ConnectionType.QueuedConnection)
     return
 

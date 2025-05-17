@@ -13,6 +13,7 @@ import webbrowser
 class BotWorker(QObject):
     finished = pyqtSignal()
     error = pyqtSignal(str)
+    warning = pyqtSignal(str)
 
     def __init__(self, count, affinity, sinners, log, bonus, restart, altf4, app):
         super().__init__()
@@ -35,7 +36,8 @@ class BotWorker(QObject):
                 self.bonus,
                 self.restart,
                 self.altf4,
-                self.app
+                self.app,
+                warning=self.warning.emit
             )
         except Exception as e:
             self.error.emit(str(e))
@@ -176,8 +178,8 @@ class MyApp(QWidget):
         
         self.inputField = QLineEdit(self)
         font_id = QFontDatabase.addApplicationFont(Bot.APP_PTH["ExcelsiorSans"])
-        if font_id != -1: family = QFontDatabase.applicationFontFamilies(font_id)[0]
-        self.inputField.setFont(QFont(family, 30))
+        if font_id != -1: self.family = QFontDatabase.applicationFontFamilies(font_id)[0]
+        self.inputField.setFont(QFont(self.family, 30))
         self.inputField.setGeometry(108, 100, 90, 50)
         self.inputField.setValidator(QIntValidator(0, 1000))
         self.inputField.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -222,7 +224,16 @@ class MyApp(QWidget):
         self.play.setGeometry(268, 443, 73, 69)
         self.play.clicked.connect(self.proceed)
         self.play.setStyleSheet('background: transparent; border: none;')
-        
+
+        self.warn = QLabel(self.progress)
+        self.warn.setPixmap(QPixmap(Bot.APP_PTH['warning']))
+        self.warn.hide()
+
+        self.warn_txt = QLabel(self.warn)
+        self.warn_txt.setFont(QFont(self.family, 25))
+        self.warn_txt.setGeometry(80, 700, 540, 100)
+        self.warn_txt.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.warn_txt.setStyleSheet('color: #FF8080; background: transparent; border: none;')
 
         self.selected_button_order = []
 
@@ -407,6 +418,7 @@ class MyApp(QWidget):
         self.thread.finished.connect(self.thread.deleteLater)
 
         self.worker.error.connect(self.handle_bot_error)
+        self.worker.warning.connect(self.handle_bot_warning)
 
         self.thread.start()
 
@@ -419,6 +431,7 @@ class MyApp(QWidget):
 
     def proceed(self):
         self.pause.hide()
+        self.warn.hide()
         self.rerun.raise_()
         self.rerun.show()
         p.pause_event.set()
@@ -436,11 +449,13 @@ class MyApp(QWidget):
         self.rerun.hide()
         self.pause.hide()
         self.progress.hide()
+        self.warn.hide()
         
     def handle_bot_error(self, message):
         self.run.hide()
         self.pause.hide()
         self.rerun.hide()
+        self.warn.hide()
 
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Critical)
@@ -451,6 +466,11 @@ class MyApp(QWidget):
         msg.exec()
 
         self.close()
+
+    def handle_bot_warning(self, message):
+        self.warn.raise_()
+        self.warn_txt.setText(message)
+        self.warn.show()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
