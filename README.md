@@ -71,7 +71,7 @@ ChargeGrinder still needs additional features, testing, and bug fixes. However, 
 ---
 # Installation
 ### 📦 Option 1: Run the Prebuilt Executable 
-[![Download](https://img.shields.io/badge/CGrinder.exe-Download-blue.svg)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/download/v1.0.0/CGrinder.exe) <p>
+[![Download](https://img.shields.io/badge/CGrinder.exe-Download-blue.svg)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/download/v1.0.2/CGrinder.exe) <p>
 - Launch **CGrinder.exe** from the `dist` folder—no additional files required.
 - No OCR is used anymore, all detection is now done with open cv.
 
