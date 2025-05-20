@@ -245,6 +245,7 @@ def conf_gift():
 
 def update_shelf():
     shop_shelf = cv2.cvtColor(np.array(screenshot(region=REG["buy_shelf"])), cv2.COLOR_RGB2BGR)
+    shop_shelf = rectangle(shop_shelf, (52, 33), (224, 195), (0, 0, 0), -1)
     for ignore in ["purchased", "cost"]:
         found = [gui.center(box) for box in LocateRGB.locate_all(PTH[str(ignore)], region=REG["buy_shelf"], image=shop_shelf, threshold=20)]
         for res in found:
