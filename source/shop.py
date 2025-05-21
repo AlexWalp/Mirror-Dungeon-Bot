@@ -176,6 +176,7 @@ def fuse():
                             return missing
                         to_click.append(have[name])
                     perform_clicks(to_click)
+                    return None
             to_click.append(have[name])
         perform_clicks(to_click)
     else: raise NotImplementedError
