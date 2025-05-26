@@ -22,8 +22,8 @@ TEAMS = {
         "floor1" : ["FaithErosion", "TheOutcast"],
         "floor2" : ["HellsChicken", "FaithErosion"],
         "floor3" : [],
-        "floor4" : ["YieldMyFleshtoClaimTheirBones"],
-        "floor5" : ["YieldMyFleshtoClaimTheirBones"],
+        "floor4" : [],
+        "floor5" : [],
         "uptie1" : ["clerid"], # wolf
         "uptie2" : "redstained",
         "goal"   : "redmist",
@@ -90,8 +90,8 @@ TEAMS = {
         "floor1" : [],
         "floor2" : [],
         "floor3" : [],
-        "floor4" : ["YieldMyFleshtoClaimTheirBones"],
-        "floor5" : ["YieldMyFleshtoClaimTheirBones"],
+        "floor4" : [],
+        "floor5" : [],
         "uptie1" : ["stonetomb"], # holder
         "uptie2" : "clearmirror",
         "goal"   : "luckypouch",

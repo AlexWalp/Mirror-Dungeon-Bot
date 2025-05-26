@@ -1,3 +1,10 @@
+<p align="center">
+<img alt="version" src="https://img.shields.io/github/v/release/AlexWalp/Mirror-Dungeon-Bot">
+<img alt="download" src="https://img.shields.io/github/downloads/AlexWalp/Mirror-Dungeon-Bot/total">
+<img alt="language" src="https://img.shields.io/badge/Language-Python-blue">
+<img alt="platform" src="https://img.shields.io/badge/platform-Windows-blue">
+</p>
+
 ```
                    ________                             ______     _           __         
                   / ____/ /_  ____ __________ ____     / ____/____(_)___  ____/ /__  _____
@@ -31,9 +38,9 @@ Generally, each floor takes no more than 5 minutes, so a full MD5 run lasts betw
 
 - ## Selects Floor Packs
   - Avoids packs with high mortality rate and long fights such as: <p>
-  **The Noon of Violet, Murder on the WARP Express, Full-Stopped by a Bullet, Timekilling Time, Nocturnal Sweeping** and some other.
+  **The Noon of Violet, Murder on the WARP Express, Full-Stopped by a Bullet, Timekilling Time, Nocturnal Sweeping, To Claim their Bones** and some other.
   - Prioritizes floors with unique ego gifts such as: <p>
-  **The Outcast, Hell's Chicken, To Claim their Bones** and some other.
+  **The Outcast, Hell's Chicken** and some other.
 
 - ## Selects the best next node
   - The choice priority order: <p>
@@ -64,9 +71,20 @@ Generally, each floor takes no more than 5 minutes, so a full MD5 run lasts betw
 - ## Reclicks if action failed
   - Sometimes timings mess up, so in order to address this issue most bot actions are double-verified.
 
-
 **Limitations:**  
 ChargeGrinder still needs additional features, testing, and bug fixes. However, it can successfully grind a few easy dungeons while you are asleep (that's how I do it at least).
+
+---
+
+# Video showcase:
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=z3zJ8AMfWpw" style="display: inline-block; overflow: hidden; width: 500px; height: 300px; border-radius: 8px;">
+    <img 
+      src="https://img.youtube.com/vi/z3zJ8AMfWpw/0.jpg" 
+      alt="Showcase"
+      style="width: 100%; height: auto; transform: scale(1.15); object-fit: cover;" />
+  </a>
+</p>
 
 ---
 # Installation
@@ -97,6 +115,7 @@ Then you can run `App.py` for GUI interface or run `Bot.py` for cmd input withou
   In the meantime you should switch to the Limbus Company window, main screen. It is not recommended to move the mouse while the bot is running, but you can Alt+Tab to another window and the bot will pause.
 
 - **Runtime Requirements:**
+  - ***Game interface must be in English!***
   - Set the in-game resolution to **16:9** ratio (**1920 x 1080** is best, but **1280 x 720** also works). Both fullscreen and windowed modes are supported.<p>
   *Make sure that the Limbus Company window is fully visible!*
   - Pre-select your team.

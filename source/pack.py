@@ -60,7 +60,7 @@ def pack_eval(level, regions, skip):
     if level == 2 or level == 3:
         banned += ["TobeCrushed"]
     if level == 4 or level == 5:
-        banned = ["TheNoonofViolet", "MurderontheWARPExpress", "FullStoppedbyaBullet", "VainPride", "CrawlingAbyss", "TimekillingTime", "NocturnalSweeping"]
+        banned = ["TheNoonofViolet", "MurderontheWARPExpress", "FullStoppedbyaBullet", "VainPride", "CrawlingAbyss", "TimekillingTime", "NocturnalSweeping", "YieldMyFleshtoClaimTheirBones"]
 
     packs = dict()
 
