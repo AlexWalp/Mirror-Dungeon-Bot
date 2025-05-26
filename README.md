@@ -78,11 +78,8 @@ ChargeGrinder still needs additional features, testing, and bug fixes. However, 
 
 # Video showcase:
 <p align="center">
-  <a href="https://www.youtube.com/watch?v=z3zJ8AMfWpw" style="display: inline-block; overflow: hidden; width: 500px; height: 300px; border-radius: 8px;">
-    <img 
-      src="https://img.youtube.com/vi/z3zJ8AMfWpw/0.jpg" 
-      alt="Showcase"
-      style="width: 100%; height: auto; transform: scale(1.15); object-fit: cover;" />
+  <a href="https://www.youtube.com/watch?v=z3zJ8AMfWpw">
+    <img src="https://img.youtube.com/vi/z3zJ8AMfWpw/maxresdefault.jpg" alt="Showcase" />
   </a>
 </p>
 
