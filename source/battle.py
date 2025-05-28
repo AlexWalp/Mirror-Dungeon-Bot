@@ -150,8 +150,12 @@ def fight():
                 # background = cv2.cvtColor(np.array(gui.screenshot(f"skill_data/{time.time()}.png", region=(int(gear_start.x + 100), 775, int(gear_end.x - gear_start.x - 200), 10))), cv2.COLOR_RGB2BGR)
                 chain(gear_start, gear_end, background)
             except gui.ImageNotFoundException:
-                gui.press("p", 1, 0.1)
-                gui.press("enter", 1, 0.1)
+                ctypes.windll.user32.keybd_event(0x50,0,0,0)
+                ctypes.windll.user32.keybd_event(0x50, 0, 0x0002, 0)
+                ctypes.windll.user32.keybd_event(0x0D, 0, 0, 0)
+                ctypes.windll.user32.keybd_event(0x0D, 0, 0x0002, 0)
+                #gui.press("p", 1, 0.1)
+                #gui.press("enter", 1, 0.1)
 
         if now.button("eventskip"):
             ck = True
