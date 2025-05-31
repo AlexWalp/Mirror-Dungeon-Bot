@@ -40,7 +40,7 @@ REG = {
     "refuse"         : (1181,  818,  295,  124),
     "StartEGO"       : ( 198,  207,  937,  682),
     "Claim"          : (1540,  831,  299,  132),
-    "ConfirmInvert"  : ( 987,  704,  318,   71),
+    "ConfirmInvert"  : ( 987,  704,  318,  130),
     "ClaimInvert"    : (1156,  776,  360,   94),
     "victory"        : (1426,  116,  366,  184),
     "defeat"         : (1426,  116,  366,  184),
@@ -57,8 +57,9 @@ REG = {
 
     # battle.py
     "TOBATTLE"       : (1586,  820,  254,  118),
-    "battleEGO"      : (1525,  104,  395,   81),
+    "winrate"        : ( 350,  730, 1570,  232),
     "pause"          : (1724,   16,   83,   84),
+    "Confirm_alt"    : ( 960,  689,  350,  100),
 
     # event.py
     "textEGO"        : (1031,  254,  713,  516),
@@ -114,6 +115,13 @@ REG = {
     # utils.py
     "connecting"     : (1548,   66,  293,   74),
     "loading"        : (1577,  408,  302,   91),
+
+    # lux.py
+    "Lux"            : ( 523,  145,  301,  212),
+    "Exp"            : (  68,  319,  289,  135),
+    # regions not binded to an image
+    "pick!"          : ( 417,  667, 1428,   95),
+    "thd!"           : (1152,  324,  163,  462),
 }
 
 SINNERS = {
@@ -162,3 +170,19 @@ FLOORS = {
         'CrushersBreakers'
     ]
 }
+
+BANNED = [
+    "AutomatedFactory", "TheUnloving", "FaithErosion", "TobeCrushed", "TheNoonofViolet", 
+    "MurderontheWARPExpress", "FullStoppedbyaBullet", "VainPride", "CrawlingAbyss", "TimekillingTime", 
+    "NocturnalSweeping", "YieldMyFleshtoClaimTheirBones"
+]
+
+
+FLOORS_UNIQUE = []
+
+seen = set()
+for floor in sorted(FLOORS):
+    for item in FLOORS[floor]:
+        if item not in seen:
+            seen.add(item)
+            FLOORS_UNIQUE.append(item)

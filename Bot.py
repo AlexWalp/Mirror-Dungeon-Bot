@@ -5,6 +5,7 @@ from source.pack import pack
 from source.move import move
 from source.grab import grab_card, grab_EGO, confirm
 from source.shop import shop
+from source.lux import grind_lux, check_enkephalin
 from source.teams import TEAMS
 import source.utils.params as p
 
@@ -15,6 +16,18 @@ import source.utils.params as p
 # if ver has !    -> verification by screenshot region change (image correlation)
 
 # INIT RUN
+
+start_locations = {
+    "Drive": 0, 
+    "MD": 1, 
+    "Start": 2, 
+    "enterInvert": 3, 
+    "ConfirmTeam": 4, 
+    "enterBonus": 6, 
+    "Confirm.0": 11, 
+    "refuse": 12, 
+    "Confirm": 17
+}
 
 def dungeon_start():
     ACTIONS = [
@@ -46,26 +59,16 @@ def dungeon_start():
     failed = 0
     while True:
         now_click.button("resume")
-        locations = {
-            "Drive": 0, 
-            "MD": 1, 
-            "Start": 2, 
-            "enterInvert": 3, 
-            "ConfirmTeam": 4, 
-            "enterBonus": 6, 
-            "Confirm.0": 11, 
-            "refuse": 12, 
-            "Confirm": 17
-        }
-        for key in locations.keys():
+        for key in start_locations.keys():
             if now.button(key):
-                i = locations[key]
+                i = start_locations[key]
                 break
         else: break
         try:
             chain_actions(try_click, ACTIONS[i:])
         except RuntimeError:
             failed += 1
+            win_moveTo(1509, 978)
         if failed > 5:
             print("Initialization error")
             logging.error("Initialization error")
@@ -181,12 +184,21 @@ def main_loop():
             error += 1
 
         if ck == False:
-            if last_error != 0:
-                if time.time() - last_error > 30:
-                    handle_fuckup()
-                    error += 1
+            # check if start
+            for key in start_locations.keys():
+                if now.button(key):
+                    dungeon_start()
+                    error = 0
+                    last_error = 0
+                    level = 1
+                    break
             else:
-                last_error = time.time()
+                if last_error != 0:
+                    if time.time() - last_error > 30:
+                        handle_fuckup()
+                        error += 1
+                else:
+                    last_error = time.time()
         else:
             last_error = 0
 
@@ -194,6 +206,7 @@ def main_loop():
             logging.error('We are stuck')
             if p.ALTF4:
                 close_limbus()
+            raise StopExecution # change maybe
 
         time.sleep(0.2)
 
@@ -207,6 +220,11 @@ def replay_loop():
         print("I respect that")
         return
     
+    # count_exp = 1
+    # count_thd = 1
+    # grind_lux(count_exp, count_thd)
+
+
     print(f"Grinding {number} mirrors...")
     print("Switch to Limbus Window")
     countdown(10)
@@ -218,6 +236,8 @@ def replay_loop():
     set_window()
 
     for i in range(number):
+        if p.NETZACH: check_enkephalin()
+
         logging.info(f'Iteration {i}')
         completed = False
         while not completed:
@@ -234,7 +254,7 @@ if __name__ == "__main__":
 
 
 # when App is run:
-def execute_me(count, affinity, sinners, log, bonus, restart, altf4, app, warning):
+def execute_me(is_lux, count, count_exp, count_thd, affinity, sinners, priority, avoid, log, bonus, restart, altf4, enkephalin, skip, app, warning):
     p.TEAM = list(TEAMS.keys())[affinity]
     p.GIFTS = TEAMS[p.TEAM]
     p.SELECTED = [list(SINNERS.keys())[i] for i in sinners]
@@ -242,8 +262,26 @@ def execute_me(count, affinity, sinners, log, bonus, restart, altf4, app, warnin
     p.BONUS = bonus
     p.RESTART = restart
     p.ALTF4 = altf4
+    p.NETZACH = enkephalin
+    p.SKIP = skip
     p.APP = app
     p.WARNING = warning
+
+    if is_lux:
+        try:
+            set_window()
+            grind_lux(count_exp, count_thd)
+            QMetaObject.invokeMethod(p.APP, "stop_execution", Qt.ConnectionType.QueuedConnection)
+            return
+        except StopExecution:
+            return
+        except ZeroDivisionError: # gotta launch the game
+            raise RuntimeError("Launch Limbus Company!")
+        
+    p.PICK = generate_packs(priority)
+    p.IGNORE = generate_packs(avoid)
+    print(p.PICK)
+    
     
     print(f"Grinding {count} mirrors...")
     print("Switch to Limbus Window")
@@ -256,6 +294,8 @@ def execute_me(count, affinity, sinners, log, bonus, restart, altf4, app, warnin
     try:
         set_window()
         for i in range(count):
+            if p.NETZACH: check_enkephalin()
+
             logging.info(f'Iteration {i}')
             completed = False
             while not completed:

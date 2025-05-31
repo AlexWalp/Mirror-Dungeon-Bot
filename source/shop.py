@@ -72,7 +72,7 @@ def inventory_check():
     coords = {1: [], 2: [], 3: [], 4: []}
     have = {}
 
-    fuse_shelf = cv2.cvtColor(np.array(screenshot(region=REG["fuse_shelf"])), cv2.COLOR_RGB2BGR) # bgr
+    fuse_shelf = screenshot(region=REG["fuse_shelf"]) # bgr
 
     for gift in p.GIFTS["all"]:
         try:
@@ -245,7 +245,7 @@ def conf_gift():
     )
 
 def update_shelf():
-    shop_shelf = cv2.cvtColor(np.array(screenshot(region=REG["buy_shelf"])), cv2.COLOR_RGB2BGR)
+    shop_shelf = screenshot(region=REG["buy_shelf"])
     shop_shelf = rectangle(shop_shelf, (52, 33), (224, 195), (0, 0, 0), -1)
     for ignore in ["purchased", "cost"]:
         found = [gui.center(box) for box in LocateRGB.locate_all(PTH[str(ignore)], region=REG["buy_shelf"], image=shop_shelf, threshold=20)]
@@ -373,8 +373,9 @@ def shop(level):
             # the bot was started midway, so this is not the first floor
             level = 2
             Action("power", click=(750, 873), ver="shop").execute(click)
-    if 5 > level > 1:
+    if 5 > level > 1 or (not p.SKIP and level == 5):
         fuse_loop()
+    
 
     time.sleep(0.2)
     leave()

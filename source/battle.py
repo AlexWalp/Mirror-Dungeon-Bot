@@ -3,7 +3,7 @@ from source.event import event
 import source.utils.params as p
 
 
-exit_if = ["loading", "Move", "EGObin", "encounterreward", "victory"]
+exit_if = ["loading", "Move", "EGObin", "encounterreward", "victory", "defeat"]
 
 sins = { # bgr values
     "wrath"   : (  0,   0, 254),
@@ -83,15 +83,27 @@ def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=1
 
 def select(sinners):
     selected = [gui.center(box) for box in LocateGray.locate_all(PTH["selected"])]
-    num = len(selected)
-    if num < 6:
-        for name in sinners:
-            if not now.button("selected", SINNERS[name]):
-                win_click(gui.center(SINNERS[name]))
-                time.sleep(0.1)
-                num += 1 
-                if num == 6:
-                    break
+    correct = 0
+    to_click = []
+    regions = [SINNERS[name] for name in sinners]
+    for region in regions:
+        if any(region[0] < point[0] < region[0]+region[2] and  
+               region[1] < point[1] < region[1]+region[3] 
+               for point in selected):
+            correct += 1
+        else:
+            to_click.append(gui.center(region))
+    if len(selected) > correct:
+        ClickAction((1713, 712), ver="Confirm_alt").execute(click)
+        wait_for_condition(lambda: now_click.button("Confirm_alt"))
+        time.sleep(0.5)
+        for region in regions:
+            win_click(gui.center(region))
+            time.sleep(0.1)
+    elif to_click:
+        for i in to_click:
+            win_click(i)
+            time.sleep(0.1)
 
     win_click(1728, 884) # to battle
     loading_halt()
@@ -130,9 +142,9 @@ def chain(gear_start, gear_end, background):
     gui.mouseUp()
 
 
-def fight():
+def fight(lux=False):
     is_tobattle = now.button("TOBATTLE")
-    is_battle   = now.button("battleEGO")
+    is_battle   = now.button("winrate")
     if not is_tobattle and not is_battle: return False
     if is_tobattle: select(p.SELECTED)
 
@@ -140,16 +152,17 @@ def fight():
     last_error = 0
     while True:
         ck = False
-        if loc.button("battleEGO", wait=1):
-            win_click(500, 83, duration=0.1)
+        if loc.button("winrate", wait=1):
             ck = True
             try:
+                if lux: raise gui.ImageNotFoundException
                 gear_start = gui.center(LocateEdges.try_locate(PTH["gear"], region=(0, 761, 900, 179), conf=0.7))
                 gear_end = gui.center(LocateEdges.try_locate(PTH["gear2"], region=(350, 730, 1570, 232), conf=0.7))
-                background = cv2.cvtColor(np.array(screenshot(region=(round(gear_start.x + 100), 775, round(gear_end.x - gear_start.x - 200), 10))), cv2.COLOR_RGB2BGR)
-                # background = cv2.cvtColor(np.array(gui.screenshot(f"skill_data/{time.time()}.png", region=(int(gear_start.x + 100), 775, int(gear_end.x - gear_start.x - 200), 10))), cv2.COLOR_RGB2BGR)
+                background = screenshot(region=(round(gear_start[0] + 100), 775, round(gear_end[0] - gear_start[0] - 200), 10))
+                # background = gui.screenshot(f"skill_data/{time.time()}.png", region=(int(gear_start.x + 100), 775, int(gear_end.x - gear_start.x - 200), 10))
                 chain(gear_start, gear_end, background)
             except gui.ImageNotFoundException:
+                win_click(1549, 750, duration=0.1)
                 gui.press("p", 1, 0.1)
                 gui.press("enter", 1, 0.1)
 

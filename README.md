@@ -98,25 +98,29 @@ pip install -r requirements.txt
 or manually install:
 - `numpy`
 - `opencv-python-headless`
-- `pyautogui`
-- `Pillow`
 - `PyQt6`
 
 Then you can run `App.py` for GUI interface or run `Bot.py` for cmd input without GUI.
 
 ---
 # Usage:
-
-- **User Input:**  
   You can set up sinners and other settings upon program execution. ChargeGrinder will start running in 10 seconds after that. 
   In the meantime you should switch to the Limbus Company window, main screen. It is not recommended to move the mouse while the bot is running, but you can Alt+Tab to another window and the bot will pause.
 
-- **Runtime Requirements:**
+<div align="center">
+  <img src="ImageAssets/readme/up_warning.gif"/>
+</div>
+
+# Important:
   - ***Game interface must be in English!***
-  - Set the in-game resolution to **16:9** ratio (**1920 x 1080** is best, but **1280 x 720** also works). Both fullscreen and windowed modes are supported.<p>
+  - Set the in-game resolution to **16:9** ratio (**1920x1080** is best, but **1280x720** also works). Both fullscreen and windowed modes are supported.<p>
   *Make sure that the Limbus Company window is fully visible!*
-  - Pre-select your team.
-  - If you have multiple keyboard layouts, make sure you have **ENG** selected before starting the bot.
+  - And don't forget to pre-select your team!
+
+<p align="center">
+  <img src="ImageAssets/readme/down_warning.gif"/>
+</p>
+
 # Recommended Graphics Settings:
 <p align="center" style="font-size: 19px; font-weight: bold">Fullscreen</p>
 <p align="center"><img src="ImageAssets/readme/fullscreen.png" /></p>

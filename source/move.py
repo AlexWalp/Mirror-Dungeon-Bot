@@ -38,9 +38,7 @@ def zoom(direction):
 
 def position(object):
     win_moveTo(object)
-    gui.mouseDown()
-    win_moveTo(429, 480, duration=0.4, tween=gui.easeInOutQuad)
-    gui.mouseUp()
+    win_dragTo(429, 480, duration=0.4)
     win_moveTo(429, 710)
     gui.click()
 
@@ -53,7 +51,7 @@ def hook():
 
 
 def is_boss(region, comp):
-    image = cv2.cvtColor(np.array(screenshot(region=region)), cv2.COLOR_RGB2BGR)
+    image = screenshot(region=region)
     red_mask = cv2.inRange(image, np.array([0, 0, 180]), np.array([50, 50, 255]))
     return now_click.button("boss", region, image=red_mask, comp=comp, conf=0.6)
 
@@ -109,9 +107,12 @@ def directions():
     return regions
 
 
-def enter(fight=False):
-    if now.button("enter", wait=1):
-        click.button("enter")
+def enter(wait=1):
+    if now.button("enter", wait=wait):
+        wait_for_condition(
+            condition= lambda: now.button("enter"),
+            action=lambda: click.button("enter")
+        )
         win_moveTo(1721, 999)
         connection()
         return True
@@ -119,6 +120,7 @@ def enter(fight=False):
 
 
 def move(): 
+    enter(wait=False)
     if not now.button("Move") or \
            now.button("Confirm"): return False
     

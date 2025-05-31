@@ -2,7 +2,7 @@
 TEAMS = {
     "BURN": {
         "checks" : ["Burn", "smallBurn", "BurnStart", "reBurn"],
-        "floor1" : ["TheOutcast", "FlatbrokeGamblers"],
+        "floor1" : ["TheOutcast"],
         "floor2" : ["HellsChicken"],
         "floor3" : [],
         "floor4" : [],

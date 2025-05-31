@@ -3,9 +3,9 @@ import time, os
 print("Loading...")
 load_time = time.time()
 
-import numpy as np, pyautogui as gui, cv2, ctypes, random
-from PIL import Image
+import numpy as np, cv2, ctypes, random
 
+import source.utils.windows_utils as gui
 from source.utils.log_config import *
 from source.utils.paths import *
 import source.utils.params as p
@@ -177,15 +177,15 @@ def set_window():
     print("WINDOW:", p.WINDOW)
 
 
-def screenshot(region=(0, 0, 1920, 1080)):
+def screenshot(region=(0, 0, 1920, 1080)): # works only for cv2!
     x, y, w, h = region
     comp = p.WINDOW[2] / 1920
-    return gui.screenshot(region=(
+    return np.array(gui.screenshot(region=(
         round(p.WINDOW[0] + x*comp),
         round(p.WINDOW[1] + y*comp),
         round(w*comp),
         round(h*comp)
-    ))
+    )))
 
 def rectangle(image, point1, point2, color, type):
     comp = p.WINDOW[2] / 1920
@@ -268,6 +268,15 @@ def wait_for_condition(condition, action=None, interval=0.5, timer=20):
     return True
 
 
+def generate_packs(priority):
+    packs = {f"floor{i}": [] for i in range(1, 6)}
+    for i in range(1, 6):
+        for pack in priority:
+            if pack in FLOORS[i]:
+                packs[f"floor{i}"].append(pack)
+    return packs
+
+
 class Locate(): # if inputing np.ndarray, convert to BGR first!
     conf=0.9
     region=(0, 0, 1920, 1080)
@@ -276,12 +285,9 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
     @staticmethod
     def _prepare_image(image, region):
         if isinstance(image, str):
-            image = cv2.imread(image, cv2.IMREAD_UNCHANGED)
+            image = cv2.imread(image)
         if image is None:
             image = screenshot(region=region)
-        if isinstance(image, Image.Image):
-            image = np.array(image)
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         if not isinstance(image, np.ndarray):
             raise TypeError(f"Locate doesn't support image type '{type(image).__name__}'")
         return image
@@ -289,13 +295,7 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
     @staticmethod
     def _load_template(template, comp=1, v_comp=None):
         if isinstance(template, str):
-            template = cv2.imread(template, cv2.IMREAD_UNCHANGED)
-        elif isinstance(template, Image.Image):
-            template = np.array(template)
-            if template.shape[-1] == 4:
-                template = cv2.cvtColor(template, cv2.COLOR_RGBA2BGRA)
-            else:
-                template = cv2.cvtColor(template, cv2.COLOR_RGB2BGR)
+            template = cv2.imread(template)
         elif not isinstance(template, np.ndarray):
             raise TypeError(f"Locate doesn't support template type '{type(template).__name__}'")
     
@@ -408,7 +408,7 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
                     else:
                         res = gui.center(res)
                     win_moveTo(res, duration=0.1)
-                    gui.doubleClick(duration=0.1)
+                    gui.click(duration=0.1)
                     if isinstance(template, str):
                         print(f"clicked {os.path.splitext(os.path.basename(template))[0]}")
                     else: print("clicked image")
@@ -425,13 +425,7 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
 
 
 class LocateRGB(Locate):
-    @classmethod
-    def _convert(cls, template, image):
-        if image.shape[2] == 4:
-            image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
-        if template.shape[2] == 4:
-            template = cv2.cvtColor(template, cv2.COLOR_BGRA2BGR)
-        return template, image
+    pass
 
 
 class LocateGray(Locate):
@@ -562,7 +556,7 @@ now_rgb   = loc_rgb(wait=False)
 def loading_halt():
     wait_for_condition(
         condition=lambda: not now.button("loading"),
-        timer=2,
+        timer=3,
         interval=0.1
     )
     wait_for_condition(

@@ -51,20 +51,14 @@ def SIFT_matching(template, kp2, des2, search_region, min_matches=40):
 def pack_eval(level, regions, skip):
     
     # best packs
-    priority = p.GIFTS[f"floor{level}"]
+    priority = p.PICK[f"floor{level}"]
 
     # worst packs (suboptimal time)
-    banned = []
-    if level == 1 or level == 2:
-        banned = ["AutomatedFactory", "TheUnloving", "FaithErosion"]
-    if level == 2 or level == 3:
-        banned += ["TobeCrushed"]
-    if level == 4 or level == 5:
-        banned = ["TheNoonofViolet", "MurderontheWARPExpress", "FullStoppedbyaBullet", "VainPride", "CrawlingAbyss", "TimekillingTime", "NocturnalSweeping", "YieldMyFleshtoClaimTheirBones"]
+    banned = p.IGNORE[f"floor{level}"]
 
     packs = dict()
 
-    image = cv2.cvtColor(np.array(screenshot(region=(161, 630, 1632, 100))), cv2.COLOR_RGB2GRAY) 
+    image = screenshot(region=(161, 630, 1632, 100))
     sift = cv2.SIFT_create(nfeatures=1700, contrastThreshold=0)
     kp2, des2 = sift.detectAndCompute(image, None)   
     for pack in FLOORS[level]:

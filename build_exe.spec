@@ -7,6 +7,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('app_icon.ico', '.'),
+        ('ImageAssets\\UI\\lux\\*.png', 'ImageAssets\\UI\\lux'),
         ('ImageAssets\\UI\\pack\\easy\\*.png', 'ImageAssets\\UI\\pack\\easy'),
         ('ImageAssets\\UI\\pack\\level\\*.png', 'ImageAssets\\UI\\pack\\level'),
         ('ImageAssets\\AppUI\\*.png', 'ImageAssets\\AppUI'),
@@ -59,7 +60,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='CGrinder',
+    name='app',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
