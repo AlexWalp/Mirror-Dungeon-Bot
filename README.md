@@ -29,18 +29,20 @@ Generally, each floor takes no more than 5 minutes, so a full MD5 run lasts betw
 - ## Supports all team builds (Burn is recommended)
   - ***Pick the right team before starting the bot!***
   - Burn is the fastest team with average time of 22 minutes per run.
-  - If team members are already selected, bot will **not** change your selection.
-  - Bot only selects team memebers if selected number for battle is less than 6.
   - Recommended team:
   
 > ![team.png](ImageAssets/readme/team.png)
 ---
 
 - ## Selects Floor Packs
-  - Avoids packs with high mortality rate and long fights such as: <p>
+  - ### By default:
+    - Avoids packs with high mortality rate and long fights such as: <p>
   **The Noon of Violet, Murder on the WARP Express, Full-Stopped by a Bullet, Timekilling Time, Nocturnal Sweeping, To Claim their Bones** and some other.
-  - Prioritizes floors with unique ego gifts such as: <p>
+    - Prioritizes floors with unique ego gifts such as: <p>
   **The Outcast, Hell's Chicken** and some other.
+  - ## You can set your own pack priority in config!
+
+  <p align="center"><img src="ImageAssets/readme/config.png" /></p>
 
 - ## Selects the best next node
   - The choice priority order: <p>
@@ -68,6 +70,10 @@ Generally, each floor takes no more than 5 minutes, so a full MD5 run lasts betw
   - Upties and buys affinity-related gifts
 - ## Restarts if run fails
   - If 6 or more sinners are dead, the bot (with default settings) will restart the run.
+- ## Supports Luxcavation grind
+
+<p align="center"><img src="ImageAssets/readme/lux.png" /></p>
+
 - ## Reclicks if action failed
   - Sometimes timings mess up, so in order to address this issue most bot actions are double-verified.
 
@@ -87,7 +93,7 @@ ChargeGrinder still needs additional features, testing, and bug fixes. However, 
 # Installation
 ### 📦 Option 1: Run the Prebuilt Executable 
 [![Download](https://img.shields.io/badge/CGrinder.exe-Download-blue.svg)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/download/v1.0.3/CGrinder.exe) <p>
-- Launch **CGrinder.exe** from the `dist` folder—no additional files required.
+- Launch **app.exe** from the `dist` folder—no additional files required.
 - No OCR is used anymore, all detection is now done with open cv.
 
 ### 🐍 Option 2: Run with Python
@@ -96,8 +102,8 @@ Make sure you have **Python 3** installed. Then either:
 pip install -r requirements.txt
 ```
 or manually install:
-- `numpy`
 - `opencv-python-headless`
+- `numpy`
 - `PyQt6`
 
 Then you can run `App.py` for GUI interface or run `Bot.py` for cmd input without GUI.
