@@ -434,6 +434,7 @@ class MyApp(QWidget):
         self.inputField.setValidator(QIntValidator(0, 1000))
         self.inputField.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.inputField.setStyleSheet('color: #EDD1AC; background: transparent; border: none;')
+        self.inputField.setText("9999")
 
         self.overlay = QLabel(self)
         overlay_pixmap = QPixmap(Bot.APP_PTH['frames'])
