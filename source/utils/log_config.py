@@ -1,12 +1,16 @@
-import logging, sys
+import logging, sys, os
 
 def setup_logging(enable_logging: bool = True, log_file = 'game.log', log_level=logging.INFO):
     if not enable_logging:
         logging.disable(logging.CRITICAL)
         return
-    
+
+    documents_path = os.path.join(os.environ["USERPROFILE"], "Documents", "ChargeGrinder")
+    if not os.path.exists(documents_path):
+        os.makedirs(documents_path)
+
     logging.basicConfig(
-        filename=log_file,
+        filename=f"{documents_path}/{log_file}",
         level=log_level,
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
