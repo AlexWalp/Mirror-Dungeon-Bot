@@ -39,8 +39,7 @@ def zoom(direction):
 def position(object):
     win_moveTo(object)
     win_dragTo(429, 480, duration=0.4)
-    win_moveTo(429, 710)
-    gui.click()
+    win_click(429, 710)
 
 
 def hook():

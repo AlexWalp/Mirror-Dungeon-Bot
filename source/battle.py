@@ -83,17 +83,28 @@ def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=1
 
 def select(sinners):
     selected = [gui.center(box) for box in LocateGray.locate_all(PTH["selected"])]
+    backup = [gui.center(box) for box in LocateGray.locate_all(PTH["backup"])]
     correct = 0
+    correct_back = 0
     to_click = []
     regions = [SINNERS[name] for name in sinners]
-    for region in regions:
-        if any(region[0] < point[0] < region[0]+region[2] and  
-               region[1] < point[1] < region[1]+region[3] 
-               for point in selected):
+    for i, region in enumerate(regions):
+        ck = False
+        if any(
+            region[0] < point[0] < region[0]+region[2] and  
+            region[1] < point[1] < region[1]+region[3] 
+            for point in selected) and i < 7:
             correct += 1
-        else:
+            ck = True
+        if i > 5 and any(
+            region[0] < point[0] < region[0]+region[2] and  
+            region[1] < point[1] < region[1]+region[3] 
+            for point in backup):
+            correct_back += 1
+            ck = True
+        if not ck:
             to_click.append(gui.center(region))
-    if len(selected) > correct:
+    if len(selected) > correct or len(backup) > correct_back:
         ClickAction((1713, 712), ver="Confirm_alt").execute(click)
         wait_for_condition(lambda: now_click.button("Confirm_alt"))
         time.sleep(0.5)

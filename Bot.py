@@ -267,6 +267,12 @@ def execute_me(is_lux, count, count_exp, count_thd, affinity, sinners, priority,
     p.APP = app
     p.WARNING = warning
 
+    try:
+        setup_logging(enable_logging=p.LOG)
+    except PermissionError:
+        print("No logging I guess")
+        setup_logging(enable_logging=False)
+
     if is_lux:
         try:
             set_window()
@@ -286,8 +292,6 @@ def execute_me(is_lux, count, count_exp, count_thd, affinity, sinners, priority,
     print(f"Grinding {count} mirrors...")
     print("Switch to Limbus Window")
     countdown(10)
-    
-    setup_logging(enable_logging=p.LOG)
     
     logging.info('Script started')
 

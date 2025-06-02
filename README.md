@@ -82,7 +82,7 @@ ChargeGrinder still needs additional features, testing, and bug fixes. However, 
 
 ---
 
-# Video showcase:
+# Video showcase (old version 1.0.3):
 <p align="center">
   <a href="https://www.youtube.com/watch?v=z3zJ8AMfWpw">
     <img src="https://img.youtube.com/vi/z3zJ8AMfWpw/maxresdefault.jpg" alt="Showcase" />
@@ -92,7 +92,7 @@ ChargeGrinder still needs additional features, testing, and bug fixes. However, 
 ---
 # Installation
 ### 📦 Option 1: Run the Prebuilt Executable 
-[![Download](https://img.shields.io/badge/CGrinder.exe-Download-blue.svg)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/download/v1.1.0/app.exe) <p>
+[![Download](https://img.shields.io/badge/app.exe-Download-blue.svg)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/download/v1.1.0/app.exe) <p>
 - Launch **app.exe** from the `dist` folder—no additional files required.
 - No OCR is used anymore, all detection is now done with open cv.
 
@@ -228,5 +228,4 @@ Successful Runs | Avg Run Time | Failed Runs | Total Time Wasted
 ---
 
 #  TODO List
-- Add support for **Hard MD** runs (this seems possible).
-- Improve mouse behavior with more natural movements in the future (though the game doesn't track mouse movements, so not urgent).
+- Add support for **Hard MD** runs

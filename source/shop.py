@@ -2,7 +2,7 @@ from source.utils.utils import *
 from itertools import combinations_with_replacement
 import source.utils.params as p
 
-loc_shop = loc_rgb(conf=0.8, wait=False, method=cv2.TM_SQDIFF_NORMED)
+loc_shop = loc_rgb(conf=0.83, wait=False, method=cv2.TM_SQDIFF_NORMED)
 shop_click = loc_shop(click=True, wait=5)
 
 item_points = {1: 3, 2: 6, 3: 10, 4: 15}
