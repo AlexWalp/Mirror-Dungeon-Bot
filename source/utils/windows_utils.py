@@ -238,15 +238,12 @@ def mouseUp(button='left', delay=0.09):
     _human_delay(delay, delay + 0.02)
 
 
-# Custom exception for fail-safe
-class FailSafeException(Exception): pass
 
+class FailSafeException(Exception): pass
 class ImageNotFoundException(Exception): pass
 
 # Global fail-safe settings
 FAILSAFE = True
-FAILSAFE_POINTS = [(0, 0)]  # Top-left corner by default
-FAILSAFE_REGION = (0, 0, 100, 100)  # Default region: top-left 100x100 pixels
 FAILSAFE_ENABLED = True
 
 def set_failsafe(state=True):
@@ -254,15 +251,6 @@ def set_failsafe(state=True):
     global FAILSAFE_ENABLED
     FAILSAFE_ENABLED = state
 
-def set_failsafe_points(points):
-    """Set specific points that trigger fail-safe (e.g., [(0,0), (1919,0)])"""
-    global FAILSAFE_POINTS
-    FAILSAFE_POINTS = points
-
-def set_failsafe_region(region):
-    """Set a region that triggers fail-safe (left, top, width, height)"""
-    global FAILSAFE_REGION
-    FAILSAFE_REGION = region
 
 def _fail_safe_check():
     """Check if mouse is in fail-safe position and raise exception if needed"""
@@ -272,21 +260,10 @@ def _fail_safe_check():
     x, y = get_position()
     width, height = get_screen_size()
     
-    # Check screen boundaries
-    if not (0 <= x <= width) or not (0 <= y <= height):
+    if not (0 < x < width) or not (0 < y < height):
         raise FailSafeException(f"Mouse out of screen bounds at ({x}, {y})")
-    
-    # Check specific fail-safe points
-    for point in FAILSAFE_POINTS:
-        if abs(x - point[0]) < 5 and abs(y - point[1]) < 5:
-            raise FailSafeException(f"Mouse at fail-safe point {point}")
-    
-    # Check fail-safe region
-    left, top, r_width, r_height = FAILSAFE_REGION
-    if left <= x <= left + r_width and top <= y <= top + r_height:
-        raise FailSafeException(f"Mouse in fail-safe region {FAILSAFE_REGION}")
 
-# Updated moveTo function with fail-safe
+
 def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True):
     _fail_safe_check()
     
@@ -356,32 +333,32 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True):
     time.sleep(final_delay)
     _fail_safe_check()  
 
-# Updated click function with fail-safe
-def click(x=None, y=None, button='left', clicks=1, interval=0.1, duration=0.0, tween=easeInOutQuad):
+
+def click(x=None, y=None, button='left', clicks=1, interval=0.1, duration=0.0, tween=easeInOutQuad, delay=0.03):
     _fail_safe_check()
     
     if x is not None and y is not None:
-        moveTo(x, y, duration, tween, delay=0.05)
+        moveTo(x, y, duration, tween, delay=delay+0.02)
         
     elif duration > 0:
         current_x, current_y = get_position()
-        moveTo(current_x, current_y, duration, tween, delay=0.05)
+        moveTo(current_x, current_y, duration, tween, delay=delay+0.02)
     else:
         time.sleep(0.02)
 
     for i in range(clicks):
         _fail_safe_check()
         
-        mouseDown(button, delay=0.03)
-        mouseUp(button, delay=0.03)
+        mouseDown(button, delay=delay)
+        mouseUp(button, delay=delay)
         
         if interval > 0 and i < clicks - 1:
             time.sleep(interval)
             _fail_safe_check()
 
-# Updated dragTo function with fail-safe
+
 def dragTo(x, y, duration=0.1, tween=easeInOutQuad, button='left', start_x=None, start_y=None):
-    _fail_safe_check()  # Pre-drag check
+    _fail_safe_check() 
     
     if start_x is not None and start_y is not None:
         moveTo(start_x, start_y)
@@ -389,7 +366,7 @@ def dragTo(x, y, duration=0.1, tween=easeInOutQuad, button='left', start_x=None,
     mouseDown(button, delay=0.03)
     moveTo(x, y, duration, tween, humanize=False)
     mouseUp(button, delay=0.03)
-    _fail_safe_check()  # Post-drag check
+    _fail_safe_check()
 
 def scroll(clicks, x=None, y=None):
     if x is not None and y is not None:
@@ -399,7 +376,7 @@ def scroll(clicks, x=None, y=None):
         INPUT(type=INPUT_MOUSE, union=INPUT_UNION(mi=MOUSEINPUT(
             dx=0,
             dy=0,
-            mouseData=clicks * 120,  # One click = 120 units
+            mouseData=clicks * 120,
             dwFlags=MOUSEEVENTF_WHEEL,
             time=0,
             dwExtraInfo=0

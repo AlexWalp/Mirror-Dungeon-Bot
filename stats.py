@@ -1,7 +1,7 @@
 import re
 from collections import defaultdict
 
-file = "dist/game.log"
+file = "game.log"
 
 def parse_floors(log_file):
     with open(log_file, "r") as f:

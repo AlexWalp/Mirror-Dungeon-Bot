@@ -2,7 +2,7 @@ from source.utils.utils import *
 from itertools import combinations_with_replacement
 import source.utils.params as p
 
-loc_shop = loc_rgb(conf=0.83, wait=False, method=cv2.TM_SQDIFF_NORMED)
+loc_shop = loc_rgb(wait=False, method=cv2.TM_SQDIFF_NORMED, conf=0.8)
 shop_click = loc_shop(click=True, wait=5)
 
 item_points = {1: 3, 2: 6, 3: 10, 4: 15}
@@ -73,15 +73,23 @@ def inventory_check():
     have = {}
 
     fuse_shelf = screenshot(region=REG["fuse_shelf"]) # bgr
+    sift = cv2.SIFT_create(nfeatures=3000, contrastThreshold=0)
+    kp2, des2 = sift.detectAndCompute(fuse_shelf, None)
 
     for gift in p.GIFTS["all"]:
-        try:
-            res = loc_shop.try_find(gift, "fuse_shelf")
-            print(f"got {gift}")
+        template = cv2.imread(PTH[gift], cv2.IMREAD_GRAYSCALE)
+        res = SIFT_matching(template, kp2, des2, REG["fuse_shelf"], min_matches=10, nfeatures=3000)
+        if res:
+            res = gui.center(res)
             have[gift] = res
             fuse_shelf = rectangle(fuse_shelf, (int(res[0] - 982), int(res[1] - 367)), (int(res[0] - 860), int(res[1] - 235)), (0, 0, 0), -1)
-        except gui.ImageNotFoundException:
-            continue
+        # try:
+        #     res = loc_shop.try_find(gift, "fuse_shelf")
+        #     print(f"got {gift}")
+        #     have[gift] = res
+        #     fuse_shelf = rectangle(fuse_shelf, (int(res[0] - 982), int(res[1] - 367)), (int(res[0] - 860), int(res[1] - 235)), (0, 0, 0), -1)
+        # except gui.ImageNotFoundException:
+        #     continue
     for i in range(4, 0, -1):
         found = [gui.center(box) for box in LocateRGB.locate_all(PTH[str(i)], region=REG["fuse_shelf"], image=fuse_shelf, threshold=50, method=cv2.TM_SQDIFF_NORMED)]
         for res in found:
@@ -216,13 +224,15 @@ def fuse_loop():
 
 
 def balance(money):
+    time.sleep(0.1)
     bal = -1
     start_time = time.time()
+    # gui.screenshot(f"cost{time.time()}.png", region=(857, 175, 99, 57)) # debugging
     while bal == -1:
         if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
         digits = []
-        for i in range(10):
-            pos = [gui.center(box) for box in LocateRGB.locate_all(PTH[f"cost{i}"], region=(857, 175, 99, 57), threshold=7, conf=0.92)]
+        for i in range(9, -1, -1):
+            pos = [gui.center(box) for box in LocateRGB.locate_all(PTH[f"cost{i}"], region=(857, 175, 99, 57), threshold=7, conf=0.95, method=cv2.TM_SQDIFF_NORMED)]
             for coord in pos:
                 if all(abs(coord[0] - existing_coord) > 7 for _, existing_coord in digits):
                     digits.append((i, coord[0]))
@@ -319,7 +329,7 @@ def buy_loop(missing, skip, uptie=True):
             if skip < 1 and balance(200):
                 Action("shop", click=(1715, 176), ver="keywordRef").execute(shop_click)
                 wait_for_condition(
-                    condition=lambda: now.button("keywordRef"), 
+                    condition=lambda: now.button("keywordRef") and not now.button("connecting"), 
                     action=confirm_affinity
                 )
                 connection()
@@ -357,6 +367,7 @@ def leave():
 
 def shop(level):
     if not now.button("shop"): return False
+    time.sleep(0.2)
 
     if level == 1:
         ClickAction((250, 581), ver="power").execute(click)
@@ -376,7 +387,6 @@ def shop(level):
     if 5 > level > 1 or (not p.SKIP and level == 5):
         fuse_loop()
     
-
-    time.sleep(0.2)
+    time.sleep(0.1)
     leave()
     return True

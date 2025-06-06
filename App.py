@@ -408,9 +408,16 @@ class MyApp(QWidget):
         self.is_lux = False
         self.count_exp = 1
         self.count_thd = 3
-
-        self.priority = self.get_priority(self.affinity)
-        self.avoid = Bot.BANNED
+        
+        if sm.config_exists(self.affinity):
+            self.priority = sm.get_config(self.affinity)
+        else: 
+            self.priority = self.get_priority(self.affinity)
+        
+        if sm.config_exists(7):
+            self.avoid = sm.get_config(7)
+        else:
+            self.avoid = Bot.BANNED
 
         self.sinner_selections = {i: sm.get_team(i) for i in range(10)}
         self.affinity_lux = self._day()
@@ -418,7 +425,14 @@ class MyApp(QWidget):
 
         self._init_ui()
         self._create_buttons()
-        
+    
+    #     self.debug_timer = QTimer()
+    #     self.debug_timer.timeout.connect(self.print_state)
+    #     self.debug_timer.start(2000)  # 2000 ms = 2 sec
+
+    # def print_state(self):
+    #     print(f"Current state - Affinity: {self.affinity}, Priority: {self.priority}")
+          
     def _init_ui(self):
         """Initialize main window settings"""
         self.setWindowTitle("app")
@@ -607,14 +621,21 @@ class MyApp(QWidget):
                 combo.setCurrentText(current_text)
 
     def handle_item_removed(self, item):
+        # Remove from both lists (if present)
+        if item in self.priority:
+            self.priority.remove(item)  # ACTUALLY remove from priority
+        if item in self.avoid:
+            self.avoid.remove(item)  # ACTUALLY remove from avoid
+        
+        # Rest of your existing logic for available_items
         if item not in self.available_items:
-            # Insert in original position
             orig_index = next((i for i, x in enumerate(self.all) if x == item), -1)
             if orig_index >= 0:
                 self.available_items.insert(orig_index, item)
             else:
                 self.available_items.append(item)
         
+        # Update comboboxes
         for combo in self.combo_boxes:
             current_text = combo.currentText()
             combo.clear()

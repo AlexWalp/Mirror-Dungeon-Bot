@@ -11,50 +11,18 @@ def within_region(x, regions):
     else:
         return None
 
-        
-def SIFT_matching(template, kp2, des2, search_region, min_matches=40):
-    comp = p.WINDOW[2] / 1920
-    if comp != 1:
-        template = cv2.resize(template, None, fx=comp, fy=comp, interpolation=cv2.INTER_LINEAR)
-
-    sift = cv2.SIFT_create(nfeatures=1700, contrastThreshold=0)
-    kp1, des1 = sift.detectAndCompute(template, None)
-
-    if des1 is None or des2 is None: return None
-
-    bf = cv2.BFMatcher(cv2.NORM_L2)
-    good = bf.match(des1, des2)
-
-    if len(good) >= min_matches:
-        src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
-        dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
-
-        M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, maxIters=200)
-        if M is not None and mask is not None:
-            matches_mask = mask.ravel().tolist()
-            if sum(matches_mask) >= 0.25 * len(good):
-                h, w = template.shape
-                pts = np.float32([[0,0], [0,h], [w,h], [w,0]]).reshape(-1, 1, 2)
-                dst = cv2.perspectiveTransform(pts, M)
-
-                x_coords = dst[:,0,0]
-                y_coords = dst[:,0,1]
-                x_min, x_max = min(x_coords), max(x_coords)
-                y_min, y_max = min(y_coords), max(y_coords)
-
-                if (x_max - x_min < 2 * w) and (y_max - y_min < 2 * h):
-                    x, y = int(x_min), int(y_min)
-                    return (search_region[0] + x, search_region[1] + y, int(x_max - x), int(y_max - y))
-    return None
-
 
 def pack_eval(level, regions, skip):
     
     # best packs
     priority = p.PICK[f"floor{level}"]
+    print(priority)
+    logging.info(f"Pick: {priority}")
 
     # worst packs (suboptimal time)
     banned = p.IGNORE[f"floor{level}"]
+    print(banned)
+    logging.info(f"Ignore: {banned}")
 
     packs = dict()
 
@@ -75,7 +43,7 @@ def pack_eval(level, regions, skip):
         for pack, x in packs.items() 
         if (region_id := within_region(x, regions)) is not None
     }
-
+    logging.info(packs)
     print(packs)
         
     if priority: # picking best pack
@@ -150,6 +118,7 @@ def pack(level):
 
 
     for skip in range(skips + 1):
+        time.sleep(0.2)
         id = pack_eval(level, regions, skip)
         #gui.screenshot(f"choice/pack{int(time.time())}") # debugging
         if not id is None:

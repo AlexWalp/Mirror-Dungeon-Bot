@@ -92,6 +92,7 @@ def click_bonus():
     return False
 
 def handle_bonus():
+    time.sleep(0.2)
     if p.BONUS or now_rgb.button("bonus_off"): return
     time.sleep(0.2)
     if not wait_for_condition(lambda: not click_bonus()):

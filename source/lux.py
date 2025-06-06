@@ -14,9 +14,9 @@ def is_full():
 def check_enkephalin():
     if not is_full(): return
 
-    ClickAction((601, 1004), ver="ConfirmInvert").execute(click)
-    win_click(1208, 496, duration=0.2)
-    Action("ConfirmInvert", ver="connecting").execute(click)
+    ClickAction((601, 1004), ver="ConfirmInvert.1").execute(click)
+    win_click(1208, 496, duration=0.5)
+    Action("ConfirmInvert.1", ver="connecting").execute(click)
     win_click(1593, 833, duration=0.2)
     time.sleep(0.5)
 
@@ -50,7 +50,7 @@ def grind_lux(count_exp, count_thd):
         fight(lux=True)
 
         if now.button("victory"):
-            time.sleep(0.2)
+            time.sleep(0.3)
             gui.press("Esc")
             if loc.button("Exp"):
                 count_exp-= 1
@@ -63,14 +63,15 @@ def grind_lux(count_exp, count_thd):
     while count_thd:
         if not now.button("winrate") and not now.button("Exp"): start_lux()
         if gui.getActiveWindowTitle() != 'LimbusCompany': pause()
-        wait_for_condition(lambda: not now.button("Exp"))
+
         if now.button("Exp"):
             win_click(225, 492)
             time.sleep(1)
             win_click(553, 721)
 
-        wait_for_condition(lambda: not now.button("EnterSmall", "thd!"))
-        time.sleep(1)
+            wait_for_condition(lambda: not now.button("EnterSmall", "thd!"))
+            time.sleep(0.5)
+
         choices = LocateRGB.locate_all(PTH["EnterSmall"], region=REG["thd!"])
         if len(choices) != 0:
             choices.sort(key=lambda box: box[1], reverse=True)
@@ -81,7 +82,7 @@ def grind_lux(count_exp, count_thd):
         fight(lux=True)
 
         if now.button("victory"):
-            time.sleep(0.2)
+            time.sleep(0.3)
             gui.press("Esc")
             if loc.button("Exp"):
                 count_thd -= 1

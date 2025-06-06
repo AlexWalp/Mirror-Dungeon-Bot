@@ -40,7 +40,7 @@ REG = {
     "refuse"         : (1181,  818,  295,  124),
     "StartEGO"       : ( 198,  207,  937,  682),
     "Claim"          : (1540,  831,  299,  132),
-    "ConfirmInvert"  : ( 987,  704,  318,  130),
+    "ConfirmInvert"  : ( 987,  704,  318,   71),
     "ClaimInvert"    : (1156,  776,  360,   94),
     "victory"        : (1426,  116,  366,  184),
     "defeat"         : (1426,  116,  366,  184),
@@ -50,6 +50,7 @@ REG = {
     "EventEffect"    : ( 710,  215,  507,   81),
     "bonus"          : ( 881,  338,  204,   74),
     "bonus_off"      : ( 881,  338,  204,   74),
+    "ConfirmInvert.1": ( 987,  704,  318,  130),
     # regions not binded to an image
     "money!"         : (1718,   47,   57,   40),
     "gifts!"         : (1173,  324,  129,  125),

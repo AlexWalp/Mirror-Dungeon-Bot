@@ -41,6 +41,7 @@ Generally, each floor takes no more than 5 minutes, so a full MD5 run lasts betw
     - Prioritizes floors with unique ego gifts such as: <p>
   **The Outcast, Hell's Chicken** and some other.
   - ## You can set your own pack priority in config!
+    - ***Important note: Prioritized packs are specific to each team type, but Avoided packs apply globally to all teams.***
 
   <p align="center"><img src="ImageAssets/readme/config.png" /></p>
 
@@ -92,7 +93,7 @@ ChargeGrinder still needs additional features, testing, and bug fixes. However, 
 ---
 # Installation
 ### 📦 Option 1: Run the Prebuilt Executable 
-[![Download](https://img.shields.io/badge/app.exe-Download-blue.svg)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/download/v1.1.1/app.exe) <p>
+[![Download](https://img.shields.io/badge/app.exe-Download-blue.svg)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/download/v1.1.2/app.exe) <p>
 - Launch **app.exe** from the `dist` folder—no additional files required.
 - No OCR is used anymore, all detection is now done with open cv.
 

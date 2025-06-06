@@ -186,6 +186,10 @@ def screenshot(region=(0, 0, 1920, 1080)): # works only for cv2!
         round(w*comp),
         round(h*comp)
     )))
+    # if delay:
+    #     elapsed = time.time() - start_time
+    #     if elapsed < 0.03: time.sleep(0.03 - elapsed)
+    # return image
 
 def rectangle(image, point1, point2, color, type):
     comp = p.WINDOW[2] / 1920
@@ -445,6 +449,42 @@ class LocateEdges(LocateGray):
         image_edges = cv2.Canny(image, th1, th2)
         template_edges = cv2.Canny(template, th1, th2)
         return template_edges, image_edges
+    
+
+def SIFT_matching(template, kp2, des2, search_region, min_matches=40, nfeatures=1700):
+    comp = p.WINDOW[2] / 1920
+    if comp != 1:
+        template = cv2.resize(template, None, fx=comp, fy=comp, interpolation=cv2.INTER_LINEAR)
+
+    sift = cv2.SIFT_create(nfeatures=nfeatures, contrastThreshold=0)
+    kp1, des1 = sift.detectAndCompute(template, None)
+
+    if des1 is None or des2 is None: return None
+
+    bf = cv2.BFMatcher(cv2.NORM_L2)
+    good = bf.match(des1, des2)
+
+    if len(good) >= min_matches:
+        src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+        dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+
+        M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, maxIters=200)
+        if M is not None and mask is not None:
+            matches_mask = mask.ravel().tolist()
+            if sum(matches_mask) >= 0.25 * len(good):
+                h, w = template.shape
+                pts = np.float32([[0,0], [0,h], [w,h], [w,0]]).reshape(-1, 1, 2)
+                dst = cv2.perspectiveTransform(pts, M)
+
+                x_coords = dst[:,0,0]
+                y_coords = dst[:,0,1]
+                x_min, x_max = min(x_coords), max(x_coords)
+                y_min, y_max = min(y_coords), max(y_coords)
+
+                if (x_max - x_min < 2 * w) and (y_max - y_min < 2 * h):
+                    x, y = int(x_min), int(y_min)
+                    return (search_region[0] + x, search_region[1] + y, int(x_max - x), int(y_max - y))
+    return None
 
 
 class LocatePreset:
@@ -518,7 +558,7 @@ class LocatePreset:
                     condition = lambda: LocateGray.check(state0, image=screenshot(region=ver), wait=False, conf=0.98)
                     # print(LocateGray.get_conf(state0, image=gui.screenshot(region=ver)))
 
-                verified = wait_for_condition(condition, timer=3)
+                verified = wait_for_condition(condition, interval=0.1, timer=3)
                 if not verified:
                     print(f"Verifier failed (attempt {i}), reclicking...")
                     # Reclick the original target
