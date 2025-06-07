@@ -2,8 +2,6 @@ from source.utils.utils import *
 
 
 def within_region(x, regions):
-    comp = 1920 / p.WINDOW[2]
-    x = int(x*comp)
     for i, region in enumerate(regions):
         x1, _, w, _ = region
         if x1 < x < x1 + w:

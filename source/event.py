@@ -16,14 +16,14 @@ def event():
         
         if now.button("choices"):
             time.sleep(0.1)
-            egos = LocateGray.locate_all(PTH["textEGO"], region=REG["textEGO"])
+            egos = LocateGray.locate_all(PTH["textEGO"], region=REG["textEGO"], conf=0.85)
             print(egos)
             if not egos:
                 choice = random.choice([316, 520])
                 win_click(1348, choice, delay=0)
                 continue
             try:
-                win = LocateGray.try_locate(PTH["textWIN"], region=REG["textEGO"])
+                win = LocateGray.try_locate(PTH["textWIN"], region=REG["textEGO"], conf=0.85)
                 for box in egos:
                     if abs(box[1] - win[1]) > 80:
                         win_click(gui.center(box), delay=0)

@@ -80,6 +80,7 @@ def inventory_check():
         template = cv2.imread(PTH[gift], cv2.IMREAD_GRAYSCALE)
         res = SIFT_matching(template, kp2, des2, REG["fuse_shelf"], min_matches=10, nfeatures=3000)
         if res:
+            print("got", gift)
             res = gui.center(res)
             have[gift] = res
             fuse_shelf = rectangle(fuse_shelf, (int(res[0] - 982), int(res[1] - 367)), (int(res[0] - 860), int(res[1] - 235)), (0, 0, 0), -1)
@@ -224,7 +225,7 @@ def fuse_loop():
 
 
 def balance(money):
-    time.sleep(0.1)
+    answer_me = True
     bal = -1
     start_time = time.time()
     # gui.screenshot(f"cost{time.time()}.png", region=(857, 175, 99, 57)) # debugging
@@ -232,7 +233,7 @@ def balance(money):
         if time.time() - start_time > 20: raise RuntimeError("Infinite loop exited")
         digits = []
         for i in range(9, -1, -1):
-            pos = [gui.center(box) for box in LocateRGB.locate_all(PTH[f"cost{i}"], region=(857, 175, 99, 57), threshold=7, conf=0.95, method=cv2.TM_SQDIFF_NORMED)]
+            pos = [gui.center(box) for box in LocateRGB.locate_all(PTH[f"cost{i}"], region=(857, 175, 99, 57), threshold=7, conf=0.9, method=cv2.TM_SQDIFF_NORMED)]
             for coord in pos:
                 if all(abs(coord[0] - existing_coord) > 7 for _, existing_coord in digits):
                     digits.append((i, coord[0]))
@@ -241,6 +242,10 @@ def balance(money):
         bal = ""
         for i in digits: bal += str(i[0])
         bal = int(bal or -1)
+        if bal != -1 and bal < money and answer_me: 
+            time.sleep(0.2)
+            answer_me = False # you game me an answer, but not your own
+            bal = -1 # I will ask again
     print("money", bal)
     return bal >= money
 

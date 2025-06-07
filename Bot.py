@@ -274,30 +274,26 @@ def execute_me(is_lux, count, count_exp, count_thd, affinity, sinners, priority,
         print("No logging I guess")
         setup_logging(enable_logging=False)
 
-    if is_lux:
-        try:
-            set_window()
-            grind_lux(count_exp, count_thd)
-            QMetaObject.invokeMethod(p.APP, "stop_execution", Qt.ConnectionType.QueuedConnection)
-            return
-        except StopExecution:
-            return
-        except ZeroDivisionError: # gotta launch the game
-            raise RuntimeError("Launch Limbus Company!")
+
+    if not is_lux:    
+        p.PICK = generate_packs(priority)
+        p.IGNORE = generate_packs(avoid)
+        print(p.PICK)
         
-    p.PICK = generate_packs(priority)
-    p.IGNORE = generate_packs(avoid)
-    print(p.PICK)
-    
-    
-    print(f"Grinding {count} mirrors...")
-    print("Switch to Limbus Window")
-    countdown(10)
-    
-    logging.info('Script started')
+        
+        print(f"Grinding {count} mirrors...")
+        print("Switch to Limbus Window")
+        countdown(10)
+        
+        logging.info('Script started')
 
     try:
         set_window()
+        if is_lux:
+            grind_lux(count_exp, count_thd)
+            QMetaObject.invokeMethod(p.APP, "stop_execution", Qt.ConnectionType.QueuedConnection)
+            return
+
         for i in range(count):
             if p.NETZACH: check_enkephalin()
 

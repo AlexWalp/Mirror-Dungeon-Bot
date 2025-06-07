@@ -28,7 +28,7 @@ Generally, each floor takes no more than 5 minutes, so a full MD5 run lasts betw
   - But it is still recommended to start on main game screen
 - ## Supports all team builds (Burn is recommended)
   - ***Pick the right team before starting the bot!***
-  - Burn is the fastest team with average time of 22 minutes per run.
+  - Burn is the fastest team with average time of 23 minutes per run.
   - Recommended team:
   
 > ![team.png](ImageAssets/readme/team.png)

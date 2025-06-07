@@ -166,6 +166,7 @@ def fight(lux=False):
     while True:
         ck = False
         if loc.button("winrate", wait=1):
+            time.sleep(0.1)
             ck = True
             try:
                 if lux: raise gui.ImageNotFoundException

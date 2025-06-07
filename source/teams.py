@@ -62,9 +62,9 @@ TEAMS = {
         "uptie2" : "thrill",
         "goal"   : "trance",
         "fuse1"  : {},
-        "fuse2"  : {"battery": 3, "rope": 2, "bundle": 1}, # trance        
-        "buy"    : ["thrill", "breast", "battery", "rope", "thunderbranch", "bundle"],
-        "all"    : ["thrill", "lasso", "lamp", "breast", "battery", "rope", "thunderbranch", "brooch", "bundle", "trance"],
+        "fuse2"  : {"battery": 3, "rope": 2, "bundle": 1}, # trance
+        "buy"    : ["thrill", "breast", "thunderbranch", "battery", "rope", "bundle", "umbrella"],
+        "all"    : ["thrill", "lasso", "lamp", "breast", "battery", "rope", "thunderbranch", "brooch", "bundle", "trance", "umbrella"],
     },
 
     # Sinking

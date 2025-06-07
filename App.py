@@ -761,11 +761,13 @@ class MyApp(QWidget):
             'save': CustomButton(self, {
                 'geometry': (90, 394, 125, 43),
                 'click_handler': self.save,
+                'glow': Bot.APP_PTH['save']
             }),
 
             'reset': CustomButton(self, {
                 'geometry': (481, 394, 125, 43),
                 'click_handler': self.reset,
+                'glow': Bot.APP_PTH['clear']
             }),
 
             'MD': CustomButton(self.lux, {
@@ -776,6 +778,7 @@ class MyApp(QWidget):
             'config': CustomButton(self, {
                 'geometry': (209, 160, 217, 55),
                 'click_handler': lambda: (self.config.show(), self.config.raise_()),
+                'glow': Bot.APP_PTH['settings']
             }),
 
             'save_config': CustomButton(self.config, {

@@ -257,7 +257,7 @@ def pause():
 def close_limbus():
     if gui.getActiveWindowTitle() == 'LimbusCompany':
         gui.hotkey('alt', 'f4')
-
+    if p.APP: QMetaObject.invokeMethod(p.APP, "stop_execution", Qt.ConnectionType.QueuedConnection)
     raise StopExecution()
 
 
@@ -482,8 +482,10 @@ def SIFT_matching(template, kp2, des2, search_region, min_matches=40, nfeatures=
                 y_min, y_max = min(y_coords), max(y_coords)
 
                 if (x_max - x_min < 2 * w) and (y_max - y_min < 2 * h):
-                    x, y = int(x_min), int(y_min)
-                    return (search_region[0] + x, search_region[1] + y, int(x_max - x), int(y_max - y))
+                    comp_inv = 1920 / p.WINDOW[2]
+                    x_fullhd = int(x_min*comp_inv) + search_region[0]
+                    y_fullhd = int(y_min*comp_inv) + search_region[1]
+                    return (x_fullhd, y_fullhd, int((x_max - x_min)*comp), int((y_max - y_min)*comp))
     return None
 
 
