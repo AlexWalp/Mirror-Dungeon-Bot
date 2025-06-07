@@ -627,7 +627,8 @@ class MyApp(QWidget):
         if item in self.avoid:
             self.avoid.remove(item)  # ACTUALLY remove from avoid
         
-        # Rest of your existing logic for available_items
+        # Rest of your existing logic
+        # Fucking schizo
         if item not in self.available_items:
             orig_index = next((i for i, x in enumerate(self.all) if x == item), -1)
             if orig_index >= 0:
@@ -635,7 +636,6 @@ class MyApp(QWidget):
             else:
                 self.available_items.append(item)
         
-        # Update comboboxes
         for combo in self.combo_boxes:
             current_text = combo.currentText()
             combo.clear()
