@@ -756,6 +756,7 @@ class MyApp(QWidget):
             'lux': CustomButton(self, {
                 'geometry': (475, 95, 196, 57),
                 'click_handler': self.set_lux,
+                'glow': Bot.APP_PTH['luxbtn']
             }),
 
             'save': CustomButton(self, {
@@ -773,6 +774,7 @@ class MyApp(QWidget):
             'MD': CustomButton(self.lux, {
                 'geometry': (475, 3, 196, 57),
                 'click_handler': self.lux_hide,
+                'glow': Bot.APP_PTH['md']
             }),
 
             'config': CustomButton(self, {
@@ -784,11 +786,13 @@ class MyApp(QWidget):
             'save_config': CustomButton(self.config, {
                 'geometry': (265, 13, 254, 63),
                 'click_handler': self.save_config,
+                'glow': Bot.APP_PTH['saveconf']
             }),
 
             'del_config': CustomButton(self.config, {
                 'geometry': (530, 13, 150, 63),
                 'click_handler': lambda: self.reset_to_defaults(self.affinity),
+                'glow': Bot.APP_PTH['del']
             }),
             
 

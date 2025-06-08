@@ -120,7 +120,7 @@ def select(sinners):
     loading_halt()
 
 
-def chain(gear_start, gear_end, background, delay):
+def chain(gear_start, gear_end, background):
     # Finding skill3 positions
     x, y = gear_start
     length = gear_end[0] - gear_start[0]
@@ -132,7 +132,6 @@ def chain(gear_start, gear_end, background, delay):
     for coord in skill3:
         bin_index = int(min(max((coord - 14 + 80*(2*((coord + gear_start[0] + 100)/1920) - 1)) // 115, 0), skill_num - 1))
         moves[bin_index] = True
-        if delay: time.sleep(delay)
     # print(gear_start)
     # print(gear_end)
     # print(length)
@@ -162,7 +161,6 @@ def fight(lux=False):
 
     print("Entered Battle")
     last_error = 0
-    delay = 0
     while True:
         ck = False
         if loc.button("winrate", wait=1):
@@ -173,11 +171,13 @@ def fight(lux=False):
                 gear_start = gui.center(LocateEdges.try_locate(PTH["gear"], region=(0, 761, 900, 179), conf=0.7))
                 gear_end = gui.center(LocateEdges.try_locate(PTH["gear2"], region=(350, 730, 1570, 232), conf=0.7))
                 background = screenshot(region=(round(gear_start[0] + 100), 775, round(gear_end[0] - gear_start[0] - 200), 10))
-                chain(gear_start, gear_end, background, delay)
+                chain(gear_start, gear_end, background)
 
                 # success check
                 time.sleep(1)
-                if now.button("winrate"): delay += 0.1
+                if now.button("winrate"):
+                    gui.press("p", 1, 0.1)
+                    gui.press("enter", 1, 0.1)
             except gui.ImageNotFoundException:
                 win_click(1549, 750, duration=0.1)
                 gui.press("p", 1, 0.1)

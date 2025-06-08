@@ -9,6 +9,7 @@ a = Analysis(
         ('app_icon.ico', '.'),
         ('ImageAssets\\UI\\lux\\*.png', 'ImageAssets\\UI\\lux'),
         ('ImageAssets\\UI\\pack\\easy\\*.png', 'ImageAssets\\UI\\pack\\easy'),
+        ('ImageAssets\\UI\\pack\\hard\\*.png', 'ImageAssets\\UI\\pack\\hard'),
         ('ImageAssets\\UI\\pack\\level\\*.png', 'ImageAssets\\UI\\pack\\level'),
         ('ImageAssets\\AppUI\\*.png', 'ImageAssets\\AppUI'),
         ('ImageAssets\\AppUI\\font\\*.ttf', 'ImageAssets\\AppUI\\font'),

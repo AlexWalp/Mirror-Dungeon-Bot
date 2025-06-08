@@ -159,12 +159,12 @@ FLOORS = {
     ],
     4: [
         'MiracleinDistrict20', 'TheNoonofViolet', 'FullStoppedbyaBullet', 'TearfulThings',
-        'CrawlingAbyss', 'ACertainWorld', 'YieldMyFleshtoClaimTheirBones', 'TimekillingTime',
+        'CrawlingAbyss', 'ACertainWorld', 'toClaimTheirBones', 'TimekillingTime',
         'MurderontheWARPExpress', 'RepressedWrath', 'AddictingLust', 'TreadwheelSloth',
         'DevouredGluttony', 'DegradedGloom', 'VainPride', 'InsignificantEnvy'
     ],
     5: [
-        'TearfulThings', 'CrawlingAbyss', 'ACertainWorld', 'YieldMyFleshtoClaimTheirBones',
+        'TearfulThings', 'CrawlingAbyss', 'ACertainWorld', 'toClaimTheirBones',
         'TimekillingTime', 'MurderontheWARPExpress', 'RepressedWrath', 'AddictingLust',
         'TreadwheelSloth', 'DevouredGluttony', 'DegradedGloom', 'VainPride', 'InsignificantEnvy',
         'LCBRegularCheckup', 'NocturnalSweeping', 'SlicersDicers', 'PiercersPenetrators',
@@ -175,7 +175,52 @@ FLOORS = {
 BANNED = [
     "AutomatedFactory", "TheUnloving", "FaithErosion", "TobeCrushed", "TheNoonofViolet", 
     "MurderontheWARPExpress", "FullStoppedbyaBullet", "VainPride", "CrawlingAbyss", "TimekillingTime", 
-    "NocturnalSweeping", "YieldMyFleshtoClaimTheirBones"
+    "NocturnalSweeping", "toClaimTheirBones"
+]
+
+
+# Hard dungeon floors
+HARD_FLOORS = {
+    1: [
+        'TheForgotten', 'TheOutcast', 'NagelundHammer', 'FlatbrokeGamblers',
+        'AutomatedFactory', 'TheUnloving', 'FaithErosion', 'NestWorkshopandTechnology', 
+        'LakeWorld', 'TobeCleaved', 'TobePierced', 'TobeCrushed', 'DregsoftheManor'
+    ],
+    2: [
+        'AutomatedFactory', 'TheUnloving', 'HellsChicken', 'SEA', 'TobeCleaved', 'TobePierced', 
+        'TobeCrushed', 'FallingFlowers', 'EmotionalRepression', 'EmotionalSeduction', 'EmotionalIndolence',
+        'EmotionalCraving', 'EmotionalFlood', 'EmotionalSubservience', 'EmotionalJudgment'
+    ],
+    3: [
+        'TheUnconfronting', 'MiracleinDistrict20', 'TheNoonofViolet', 'FullStoppedbyaBullet', 
+        'TearfulThings', 'CrawlingAbyss', 'ACertainWorld', 'toClaimTheirBones', 'RepressedWrath', 
+        'AddictingLust', 'TreadwheelSloth', 'DevouredGluttony', 'DegradedGloom', 'VainPride', 
+        'InsignificantEnvy', 'SlicersDicers', 'PiercersPenetrators', 'CrushersBreakers',
+        'RisingPowerSupply', 'DeepSigh', 'SinkingPang', 'CrushingExternalForce', 'DizzyingWaves',
+        'TrickledSanguineBlood', 'BurningHaze'
+    ],
+    4: [
+        'TearfulThings', 'CrawlingAbyss', 'ACertainWorld', 'toClaimTheirBones', 'TimekillingTime', 
+        'MurderontheWARPExpress', 'RepressedWrath', 'AddictingLust', 'TreadwheelSloth', 
+        'DevouredGluttony', 'DegradedGloom', 'VainPride', 'InsignificantEnvy', 'ThunderandLightning', 
+        'PoisedBreathing', 'SinkingDeluge', 'UnrelentingMight', 'AbnormalSeismicZone', 
+        'MountainofCorpsesSeaofBlood', 'SeasonoftheFlame', 'toClaimTheirBonesBokGak',
+        'MiracleinDistrict20BokGak', 'Line2', 'Line1', 'TheEvilDefining', 'TheUnchanging'
+    ],
+    5: [
+        'TimekillingTime', 'MurderontheWARPExpress', 'LCBRegularCheckup', 'NocturnalSweeping', 
+        'ThunderandLightning', 'PoisedBreathing', 'SinkingDeluge', 'UnrelentingMight',
+        'AbnormalSeismicZone', 'MountainofCorpsesSeaofBlood', 'SeasonoftheFlame', 'PitifulEnvy', 
+        'TyrannicalPride', 'SunkGloom', 'ExcessiveGluttony', 'InertSloth', 'TanglingLust', 
+        'UnboundWrath', 'toClaimTheirBonesBokGak', 'MiracleinDistrict20BokGak', 'Line4', 'Line3',
+        'TheInfiniteProcession', 'TheHeartbreaking', 'LaManchalandReopening', 'TheEvilDefining',
+        'TheUnchanging'
+    ]
+}
+
+HARD_BANNED = [
+    "TheNoonofViolet", "MurderontheWARPExpress", "FullStoppedbyaBullet", "TimekillingTime", 
+    "NocturnalSweeping", 'Line4', 'Line3', 'toClaimTheirBonesBokGak'
 ]
 
 

@@ -25,7 +25,7 @@ def pack_eval(level, regions, skip):
     packs = dict()
 
     image = screenshot(region=(161, 630, 1632, 100))
-    sift = cv2.SIFT_create(nfeatures=1700, contrastThreshold=0)
+    sift = cv2.SIFT_create(nfeatures=2000, contrastThreshold=0)
     kp2, des2 = sift.detectAndCompute(image, None)   
     for pack in FLOORS[level]:
         if len(packs.keys()) >= 5: break

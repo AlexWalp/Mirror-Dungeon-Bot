@@ -402,9 +402,9 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
         for i in range(int(wait * 10)):
             try:
                 res = cls.try_locate(template, image, region, conf, **kwargs)
-                if isinstance(template, str):
-                    print(f"located {os.path.splitext(os.path.basename(template))[0]}", res)
-                else: print("located image")
+                # if isinstance(template, str):
+                #     print(f"located {os.path.splitext(os.path.basename(template))[0]}", res)
+                # else: print("located image")
 
                 if click:
                     if isinstance(click, tuple) and len(click) == 2:
@@ -413,16 +413,16 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
                         res = gui.center(res)
                     win_moveTo(res, duration=0.1)
                     gui.click(duration=0.1)
-                    if isinstance(template, str):
-                        print(f"clicked {os.path.splitext(os.path.basename(template))[0]}")
-                    else: print("clicked image")
+                    # if isinstance(template, str):
+                    #     print(f"clicked {os.path.splitext(os.path.basename(template))[0]}")
+                    # else: print("clicked image")
                 return True         
             except gui.ImageNotFoundException:
                 if wait > 0.1:
                     time.sleep(0.1)
-        if isinstance(template, str):
-            print(f"image {os.path.splitext(os.path.basename(template))[0]} not found")
-        else: print("image not found")
+        # if isinstance(template, str):
+        #     print(f"image {os.path.splitext(os.path.basename(template))[0]} not found")
+        # else: print("image not found")
         if error:
             raise RuntimeError("Something unexpected happened. This code still needs debugging")
         return False
@@ -451,7 +451,7 @@ class LocateEdges(LocateGray):
         return template_edges, image_edges
     
 
-def SIFT_matching(template, kp2, des2, search_region, min_matches=40, nfeatures=1700):
+def SIFT_matching(template, kp2, des2, search_region, min_matches=40, nfeatures=2000):
     comp = p.WINDOW[2] / 1920
     if comp != 1:
         template = cv2.resize(template, None, fx=comp, fy=comp, interpolation=cv2.INTER_LINEAR)
