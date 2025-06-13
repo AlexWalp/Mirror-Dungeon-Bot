@@ -28,7 +28,7 @@ Generally, each floor takes no more than 5 minutes, so a full MD5 run lasts betw
   - But it is still recommended to start on main game screen
 - ## Supports all team builds (Burn is recommended)
   - ***Pick the right team before starting the bot!***
-  - Burn is the fastest team with average time of 23 minutes per run.
+  - Burn is the fastest team with average time of 22 minutes per run.
   - Recommended team:
   
 > ![team.png](ImageAssets/readme/team.png)
@@ -47,9 +47,11 @@ Generally, each floor takes no more than 5 minutes, so a full MD5 run lasts betw
 
 - ## Selects the best next node
   - The choice priority order: <p>
-**Event, Normal fight, Miniboss fight, Risky fight, Focused fight**
-  - Mostly the bot just looks at the next 3 nodes, but it will also look 2 nodes ahead if the next node choice is uncertain. 
-  - The main purpose of node picking is minimizing time.
+**Event, Normal fight, Miniboss fight, Focused fight, Risky fight**
+  - The bot analyzes all visible nodes and builds the fastest path:
+> ![paths.png](ImageAssets/readme/paths.png)
+  - Time cost of each node: <p>
+  **Event: 0s, Normal: 52s, Miniboss: 67s, Focused: 77s, Risky: 87s**
   - Bot can detect:
 > ![nodes.png](ImageAssets/readme/nodes.png)
 
@@ -93,7 +95,7 @@ ChargeGrinder still needs additional features, testing, and bug fixes. However, 
 ---
 # Installation
 ### 📦 Option 1: Run the Prebuilt Executable 
-[![Download](https://img.shields.io/badge/app.exe-Download-blue.svg)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/download/v1.1.3/app.exe) <p>
+[![Download](https://img.shields.io/badge/app.exe-Download-blue.svg)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/download/v1.2.0/app.exe) <p>
 - Launch **app.exe** from the `dist` folder—no additional files required.
 - No OCR is used anymore, all detection is now done with open cv.
 
@@ -129,7 +131,7 @@ Then you can run `App.py` for GUI interface or run `Bot.py` for cmd input withou
 </p>
 
 # Recommended Graphics Settings:
-<p align="center" style="font-size: 19px; font-weight: bold">Fullscreen</p>
+<p align="center" style="font-size: 19px; font-weight: bold">Fullscreen (Use windowed Full HD if your screen resolution is higher!)</p>
 <p align="center"><img src="ImageAssets/readme/fullscreen.png" /></p>
 <p align="center" style="font-size: 19px; font-weight: bold">Windowed</p>
 <p align="center"><img src="ImageAssets/readme/windowed.png" /></p>

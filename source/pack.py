@@ -26,11 +26,11 @@ def pack_eval(level, regions, skip):
 
     image = screenshot(region=(161, 630, 1632, 100))
     sift = cv2.SIFT_create(nfeatures=2000, contrastThreshold=0)
-    kp2, des2 = sift.detectAndCompute(image, None)   
+    kp2, des2 = sift.detectAndCompute(image, None)
     for pack in FLOORS[level]:
         if len(packs.keys()) >= 5: break
         template = cv2.imread(PTH[pack], cv2.IMREAD_GRAYSCALE)
-        coords = SIFT_matching(template, kp2, des2, (161, 630, 1632, 100))
+        coords = SIFT_matching(template, kp2, des2, (161, 630, 1632, 100), nfeatures=2000, contrastThreshold=0)
         if coords:
             x, _ = gui.center(coords)
             if all(abs(x - existing) > 100 for existing in list(packs.values())):
@@ -118,7 +118,7 @@ def pack(level):
     for skip in range(skips + 1):
         time.sleep(0.2)
         id = pack_eval(level, regions, skip)
-        #gui.screenshot(f"choice/pack{int(time.time())}") # debugging
+        # cv2.imwrite(f"choices/pack{int(time.time())}.png", screenshot()) # debugging
         if not id is None:
             region = regions[id]
             x, y = (region[0] + (region[2] // 2), region[1] + (region[3] // 2))

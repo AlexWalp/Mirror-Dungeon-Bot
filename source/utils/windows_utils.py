@@ -260,7 +260,7 @@ def _fail_safe_check():
     x, y = get_position()
     width, height = get_screen_size()
     
-    if not (0 < x < width) or not (0 < y < height):
+    if (x == 0 or x == width - 1) and (y == 0 or y == height - 1):
         raise FailSafeException(f"Mouse out of screen bounds at ({x}, {y})")
 
 

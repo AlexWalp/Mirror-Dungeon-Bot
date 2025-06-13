@@ -22,10 +22,13 @@ def check_enkephalin():
 
 
 def start_lux():
-    if now.button("Drive"):
-        Action("Drive", ver="Lux").execute(click)
-    if now.button("Lux"):
-        Action("Lux", ver="Exp").execute(click)
+    try:
+        if now.button("Drive"):
+            Action("Drive", ver="Lux").execute(click)
+        if now.button("Lux"):
+            Action("Lux", ver="Exp").execute(click)
+    except RuntimeError:
+        print("Lux init failed")
 
 
 def grind_lux(count_exp, count_thd):
@@ -50,16 +53,17 @@ def grind_lux(count_exp, count_thd):
         fight(lux=True)
 
         if now.button("victory"):
-            time.sleep(0.3)
+            time.sleep(0.5)
             gui.press("Esc")
             if loc.button("Exp"):
                 count_exp-= 1
         elif now.button("defeat"):
+            time.sleep(0.5)
             if not p.RESTART:
                 raise RuntimeError("Luxcavation failed!")
             gui.press("Enter")
 
-    p.SELECTED = p.SELECTED[:6]
+    p.SELECTED = p.SELECTED[:7]
     while count_thd:
         if not now.button("winrate") and not now.button("Exp"): start_lux()
         if gui.getActiveWindowTitle() != 'LimbusCompany': pause()
@@ -82,11 +86,12 @@ def grind_lux(count_exp, count_thd):
         fight(lux=True)
 
         if now.button("victory"):
-            time.sleep(0.3)
+            time.sleep(0.5)
             gui.press("Esc")
             if loc.button("Exp"):
                 count_thd -= 1
         elif now.button("defeat"):
+            time.sleep(0.5)
             if not p.RESTART:
                 raise RuntimeError("Luxcavation failed!")
             gui.press("Enter")

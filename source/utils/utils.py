@@ -297,7 +297,30 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
         return image
 
     @staticmethod
-    def _load_template(template, comp=1, v_comp=None):
+    def _distort(image, w, h, shift):
+        src_pts = np.float32([
+            [0, 0],
+            [w - 1, 0],
+            [w - 1, h - 1],
+            [0, h - 1]
+        ])
+        dst_pts = np.float32([
+            [0 + shift, 0],
+            [w - 1 + shift, 0], 
+            [w - 1 - shift, h - 1],
+            [0 - shift, h - 1]
+        ])
+        M = cv2.getPerspectiveTransform(src_pts, dst_pts)
+        translation = np.array([
+            [1, 0, -shift//2],
+            [0, 1, 0],
+            [0, 0, 1]
+        ], dtype=np.float32)
+        M_combined = translation @ M
+        return cv2.warpPerspective(image, M_combined, (w + 1, h))
+
+    @staticmethod
+    def _load_template(template, comp=1, v_comp=None, distort=None):
         if isinstance(template, str):
             template = cv2.imread(template)
         elif not isinstance(template, np.ndarray):
@@ -311,6 +334,10 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
         elif v_comp:
             new_size = (int(template.shape[1]), int(template.shape[0] * v_comp))
             template = cv2.resize(template, new_size, interpolation=cv2.INTER_AREA)
+        if distort:
+            h, w = template.shape[:2]
+            shift = int(w * distort)
+            template = Locate._distort(template, w, h, shift)
         return template
     
     @classmethod
@@ -449,14 +476,26 @@ class LocateEdges(LocateGray):
         image_edges = cv2.Canny(image, th1, th2)
         template_edges = cv2.Canny(template, th1, th2)
         return template_edges, image_edges
-    
 
-def SIFT_matching(template, kp2, des2, search_region, min_matches=40, nfeatures=2000):
+
+def amplify(img, clip_limit=32.0, grid_size=(1, 1)):
+    lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(lab)
+    
+    clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=grid_size)
+    l_clahe = clahe.apply(l)
+    
+    lab_clahe = cv2.merge([l_clahe, a, b])
+    result = cv2.cvtColor(lab_clahe, cv2.COLOR_LAB2BGR)    
+    return result
+
+
+def SIFT_matching(template, kp2, des2, search_region, min_matches=40, **kwargs):
     comp = p.WINDOW[2] / 1920
     if comp != 1:
         template = cv2.resize(template, None, fx=comp, fy=comp, interpolation=cv2.INTER_LINEAR)
 
-    sift = cv2.SIFT_create(nfeatures=nfeatures, contrastThreshold=0)
+    sift = cv2.SIFT_create(**kwargs)
     kp1, des1 = sift.detectAndCompute(template, None)
 
     if des1 is None or des2 is None: return None
@@ -471,6 +510,9 @@ def SIFT_matching(template, kp2, des2, search_region, min_matches=40, nfeatures=
         M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, maxIters=200)
         if M is not None and mask is not None:
             matches_mask = mask.ravel().tolist()
+            # inlier_matches = [m for i, m in enumerate(good) if matches_mask[i]]
+            # img_matches = cv2.drawMatches(template, kp1, screenshot(region=search_region), kp2, inlier_matches, None, flags=2)
+            # cv2.imwrite(f"{time.time()}.png", img_matches)
             if sum(matches_mask) >= 0.25 * len(good):
                 h, w = template.shape
                 pts = np.float32([[0,0], [0,h], [w,h], [w,0]]).reshape(-1, 1, 2)
@@ -490,13 +532,14 @@ def SIFT_matching(template, kp2, des2, search_region, min_matches=40, nfeatures=
 
 
 class LocatePreset:
-    def __init__(self, cl=LocateGray, image=None, region=None, comp=1, v_comp=None, conf=0.9, wait=5, click=False, error=False, method=None):
+    def __init__(self, cl=LocateGray, image=None, region=None, comp=1, v_comp=None, distort=None, conf=0.9, wait=5, click=False, error=False, method=None):
         self.cl = cl
         self.params = {
             "image": image,
             "region": region,
             "comp": comp,
             "v_comp": v_comp,
+            "distort": distort,
             "conf": conf,
             "method": method,
             "wait": wait,
@@ -516,7 +559,7 @@ class LocatePreset:
         path = PTH[key.split('.')[0]]
         region = REG[region_key] if isinstance(region_key, str) else region_key
 
-        params = dict(list(self.params.items())[:6])
+        params = dict(list(self.params.items())[:7])
         params.update(overrides)
         params["region"] = region
         result = self.cl.try_locate(path, **params)

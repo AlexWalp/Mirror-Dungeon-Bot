@@ -145,10 +145,16 @@ def main_loop():
     dungeon_start()
     error = 0
     last_error = 0
+    ck = False
     level = 1
     while True:
         if now.button("ServerError"):
-            win_click(1100, 700)
+            for _ in range(3):
+                time.sleep(6)
+                win_click(1100, 700)
+                time.sleep(1)
+                if not now.button("ServerError"): break
+
             time.sleep(10)
             if now_click.button("ServerError"):
                 logging.error('Server error happened')
@@ -207,6 +213,7 @@ def main_loop():
             logging.error('We are stuck')
             if p.ALTF4:
                 close_limbus()
+            if p.APP: QMetaObject.invokeMethod(p.APP, "stop_execution", Qt.ConnectionType.QueuedConnection)
             raise StopExecution # change maybe
 
         time.sleep(0.2)

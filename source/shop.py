@@ -2,7 +2,7 @@ from source.utils.utils import *
 from itertools import combinations_with_replacement
 import source.utils.params as p
 
-loc_shop = loc_rgb(wait=False, method=cv2.TM_SQDIFF_NORMED, conf=0.8)
+loc_shop = loc_rgb(conf=0.83, wait=False, method=cv2.TM_SQDIFF_NORMED)
 shop_click = loc_shop(click=True, wait=5)
 
 item_points = {1: 3, 2: 6, 3: 10, 4: 15}
@@ -73,24 +73,17 @@ def inventory_check():
     have = {}
 
     fuse_shelf = screenshot(region=REG["fuse_shelf"]) # bgr
-    sift = cv2.SIFT_create(nfeatures=3000, contrastThreshold=0)
-    kp2, des2 = sift.detectAndCompute(fuse_shelf, None)
+    image = amplify(fuse_shelf)
 
     for gift in p.GIFTS["all"]:
-        template = cv2.imread(PTH[gift], cv2.IMREAD_GRAYSCALE)
-        res = SIFT_matching(template, kp2, des2, REG["fuse_shelf"], min_matches=10, nfeatures=3000)
-        if res:
-            print("got", gift)
-            res = gui.center(res)
+        try:
+            template = amplify(cv2.imread(PTH[gift]))
+            res = gui.center(LocateRGB.try_locate(template, image=image, region=REG["fuse_shelf"], conf=0.83))
+            print(f"got {gift}")
             have[gift] = res
             fuse_shelf = rectangle(fuse_shelf, (int(res[0] - 982), int(res[1] - 367)), (int(res[0] - 860), int(res[1] - 235)), (0, 0, 0), -1)
-        # try:
-        #     res = loc_shop.try_find(gift, "fuse_shelf")
-        #     print(f"got {gift}")
-        #     have[gift] = res
-        #     fuse_shelf = rectangle(fuse_shelf, (int(res[0] - 982), int(res[1] - 367)), (int(res[0] - 860), int(res[1] - 235)), (0, 0, 0), -1)
-        # except gui.ImageNotFoundException:
-        #     continue
+        except gui.ImageNotFoundException:
+            continue
     for i in range(4, 0, -1):
         found = [gui.center(box) for box in LocateRGB.locate_all(PTH[str(i)], region=REG["fuse_shelf"], image=fuse_shelf, threshold=50, method=cv2.TM_SQDIFF_NORMED)]
         for res in found:
@@ -215,6 +208,7 @@ def fuse_loop():
             missing = fuse()
             if missing:
                 Action("fuse", click=(750, 873), ver="shop").execute(click)
+                time.sleep(0.1)
                 result, skip = buy_loop(missing, skip)
                 if not result: return
                 else:
@@ -277,7 +271,7 @@ def filter_x_distance(points, x_tol=2, y_tol=25):
     return result
 
 def get_shop(shop_shelf):
-    tier1 = [gui.center(box) for box in LocateRGB.locate_all(PTH["buy1"], region=REG["buy_shelf"], image=shop_shelf, threshold=4, conf=0.92, method=cv2.TM_SQDIFF_NORMED)]
+    tier1 = [gui.center(box) for box in LocateRGB.locate_all(PTH["buy1"], region=REG["buy_shelf"], image=shop_shelf, threshold=3.5, conf=0.92, method=cv2.TM_SQDIFF_NORMED)]
     tier4 = [gui.center(box) for box in LocateRGB.locate_all(PTH["buy4"], region=REG["buy_shelf"], image=shop_shelf, threshold=10, conf=0.92, method=cv2.TM_SQDIFF_NORMED)]
     tier1 = filter_x_distance(tier1)
     have = {1: [], 2: [], 3: []}

@@ -1,8 +1,9 @@
 from source.utils.utils import *
 
-
-priority = ["Event", "Normal", "Miniboss", "Risky", "Focused"]
+# Weights are the average battle time in seconds
+priority = {"Event": 0, "Normal": 52, "Miniboss": 67, "Risky": 87, "Focused": 77}
 v_list = [0.8, 0.9, 1]
+d_list = [None, -0.1, -0.19]
 
 def find_danteh(): # looks for high resolution Dante
     for i in range(2):
@@ -36,10 +37,10 @@ def zoom(direction):
     return None
 
 
-def position(object):
+def position(object, shift=0):
     win_moveTo(object)
-    win_dragTo(429, 480, duration=0.4)
-    win_click(429, 710)
+    win_dragTo(429, 480 + shift*290, duration=0.4)
+    win_click(329, 710)
 
 
 def hook():
@@ -57,37 +58,27 @@ def is_boss(region, comp):
 def is_risky(_loc, comp, region):
     if _loc.button("risk0", region) or \
    any(_loc.button("risk1", region, comp=comp*(1 - 0.14*j)) for j in range(2)) or \
-   any(_loc.button("risk2", region, comp=comp*(1 - 0.14*j), v_comp=None) for j in range(2)):
+   any(_loc.button("risk2", region, comp=comp*(1 - 0.14*j), v_comp=None, distort=None) for j in range(2)):
         return True
     return False
 
 def is_focused(_loc, region):
     if any(_loc.button(f"focus{j}", region, conf=0.85) for j in range(2)) or \
-       any(_loc.button(f"focus{j+2}", region, conf=0.85, v_comp=None) for j in range(2)):
+       any(_loc.button(f"focus{j+2}", region, conf=0.85, v_comp=None, distort=None) for j in range(2)):
         return True
     return False
 
 def is_event(_loc, region):
     if any(_loc.button(f"event{j}", region, conf=0.85) for j in range(2)) or \
-           _loc.button("event2", region, conf=0.9, v_comp=None):
+           _loc.button("event2", region, conf=0.9, v_comp=None, distort=None):
         return True
     return False
 
 def is_shop(_loc, region):
     if _loc.button("shop0", region) or \
-       _loc.button("shop1", region, v_comp=None):
+       _loc.button("shop1", region, v_comp=None, distort=None):
         return True
     return False
-
-def see_future(_loc, choices):
-    if len(choices) == 1: return choices[0]
-    for i in choices:
-        region = (906, 101 + i * 275, 859, 275)
-        _loc = _loc(conf=0.9, v_comp=v_list[i])
-        if any(_loc.button(f"event_future{j}", region) for j in range(2)) or \
-               _loc.button("event2", region, v_comp=None):
-            return i
-    return random.choice(choices)
 
 
 def directions():
@@ -104,6 +95,83 @@ def directions():
                 regions[i] = (624, 101 + i * 275, 282, 275)
                 break
     return regions
+
+
+def get_connections():
+    image = screenshot(region=(850, 340, 610, 370))
+    h, w = image.shape[:2]
+    crop_h = int(0.216 * h)
+    crop_w = int(0.492 * w)
+
+    images = [
+        image[0:crop_h, 0:crop_w],
+        image[0:crop_h, w - crop_w:w],
+        image[h - crop_h:h, 0:crop_w],
+        image[h - crop_h:h, w - crop_w:w]
+    ]
+    connections = []
+    for i, image in enumerate(images):
+        for j, direction in enumerate(["up", "down"]):
+            if LocateGray.check(PTH[direction], image=image, method=cv2.TM_CCORR_NORMED, conf=0.7, wait=False):
+                connections.append(((i % 2, (i//2) + 1 - j), (i % 2 + 1, (i//2) + j)))
+                break
+    return connections
+
+def check_connections(connections):
+    levels = [y for pair in connections for (_, y) in pair]
+    
+    has_zero = 0 in levels
+    has_two = 2 in levels
+    
+    if (has_zero and has_two) or (not has_zero and not has_two): return 0
+    elif has_zero: return 1
+    else: return -1
+
+def next_step(nodes, extra_connections):
+    L = len(nodes)
+    adj = {}
+    for i in range(L):
+        for j in range(len(nodes[i])):
+            if nodes[i][j] is not None:
+                adj[(i,j)] = []
+    for i in range(L-1):
+        for j in range(len(nodes[i])):
+            if nodes[i][j] is not None and nodes[i+1][j] is not None:
+                adj[(i,j)].append((i+1, j))
+    for (a,b),(c,d) in extra_connections:
+        if 0 <= a < L and 0 <= b < len(nodes[a]) and 0 <= c < L and 0 <= d < len(nodes[c]):
+            if nodes[a][b] is None or nodes[c][d] is None:
+                continue
+            if a + 1 == c:
+                adj.setdefault((a,b), []).append((c,d))
+            elif c + 1 == a:
+                adj.setdefault((c,d), []).append((a,b))
+
+    def dfs(i, j):
+        base = priority[nodes[i][j]]
+        if i == L - 1:
+            return base
+        best = float('inf')
+        for (ni, nj) in adj.get((i,j), []):
+            if ni != i + 1:
+                continue
+            sub = dfs(ni, nj)
+            if sub < float('inf'):
+                best = min(best, base + sub)
+        return best
+
+    best_idx = None
+    best_cost = float('inf')
+    for j0 in range(len(nodes[0])):
+        if nodes[0][j0] is None:
+            continue
+        cost0 = dfs(0, j0)
+        if cost0 < best_cost:
+            best_cost = cost0
+            best_idx = j0
+    if best_idx is None:
+        return None, None
+    return best_idx, nodes[0][best_idx]
 
 
 def enter(wait=1):
@@ -147,56 +215,74 @@ def move():
         if Dante is None: return False
     
     position(Dante)
-
+    
     if now.button("victory"): return False
 
     regions = directions()
-    status = [None, None, None]
+    inter_connect = get_connections()
+    adjust = check_connections(inter_connect)
 
-    for i, region in regions.items():
-        _loc = LocatePreset(comp=comp, v_comp=v_list[i], conf=0.8, wait=False)
-        if i == 1 and is_boss(region, comp):
-            enter()
-            #loc.button("TOBATTLE", wait=3)
-            logging.info("Entering Boss fight")
-            return True
+    if adjust:
+        keys = [i + adjust for i in regions.keys() if 0 <= i + adjust <= 2]
+        regions = {key: (624, 101 + key * 275, 282, 275) for key in keys}
+        position((429, 480), shift=adjust)
 
-        elif now_rgb.button("coin", region, conf=0.9, comp=comp):
-            if now_rgb.button("gift", region, conf=0.9, comp=comp):
-                if is_risky(_loc, comp, region):
-                    status[i] = "Risky"
-                    continue
-                elif is_focused(_loc, region):
-                    status[i] = "Focused"
-                    continue
+    inter_connect = get_connections()
+    print(inter_connect)
+    nodes = [[None, None, None] for _ in range(3)]
+
+    for depth in range(3):
+        if depth == 0: srch_regions = regions.copy()
+        else: srch_regions = {i: (624 + 380 * depth, 101 + i * 275, 282, 275) for i in range(3)}
+
+        for level, region in srch_regions.items():
+            _loc = LocatePreset(comp=comp, v_comp=v_list[level], distort=d_list[depth], conf=0.8, wait=False)
+            # gui.screenshot(f"region{depth}{level}.png", region=region)
+
+            if depth == 0 and level == 1 and is_boss(region, comp):
+                enter()
+                logging.info("Entering Boss fight")
+                return True
+
+            elif now_rgb.button("coin", region, conf=0.9, comp=comp):
+                if now_rgb.button("gift", region, conf=0.9, comp=comp):
+                    if is_risky(_loc, comp, region):
+                        nodes[depth][level] = "Risky"
+                        continue
+                    elif is_focused(_loc, region):
+                        nodes[depth][level] = "Focused"
+                        continue
+                    else:
+                        nodes[depth][level] = "Miniboss"
+                        continue
                 else:
-                    status[i] = "Miniboss"
+                    nodes[depth][level] = "Normal"
                     continue
-            else:
-                status[i] = "Normal"
+
+            elif is_event(_loc, region):
+                nodes[depth][level] = "Event"
                 continue
 
-        elif is_event(_loc, region):
-            status[i] = "Event"
-            continue
-
-        elif is_shop(_loc, region):
-            win_click(gui.center(regions[i]))
-            enter()
-            logging.info("Entering Shop")
-            return True
-    if any(status):
-        for node in priority:
-            if node in status:
-                id = see_future(_loc, [i for i, x in enumerate(status) if x == node])
-                win_click(gui.center(regions[id]))
+            elif depth == 0 and is_shop(_loc, region):
+                win_click(gui.center(srch_regions[level]))
                 enter()
-                #if node != "Event": loc.button("TOBATTLE", wait=3)
-                logging.info(f"Entering {node} {'fight'*(node!='Event')}")
+                logging.info("Entering Shop")
                 return True
-    
+        if not any(nodes[depth]):
+            if depth != 0: nodes = nodes[:depth]
+            break
+    if any(nodes[0]):
+        print(nodes)
+        id, name = next_step(nodes, inter_connect)
+        print(id)
+        if not id is None:
+            win_click(gui.center(regions[id]))
+            enter()
+            logging.info(f"Entering {name} {'fight'*(name!='Event')}")
+            return True
+
     # if we fail
-    win_click(429, 480)
+    win_click(429, 480 + adjust*320)
     if enter(): return True
 
     # if we double fail:
