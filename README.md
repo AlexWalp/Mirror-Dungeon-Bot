@@ -1,4 +1,7 @@
 <p align="center">
+<a href="https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/download/v2.0.0/app.exe">
+  <img alt="Download" src="https://img.shields.io/badge/app.exe-Download-blue.svg">
+</a>
 <img alt="version" src="https://img.shields.io/github/v/release/AlexWalp/Mirror-Dungeon-Bot">
 <img alt="download" src="https://img.shields.io/github/downloads/AlexWalp/Mirror-Dungeon-Bot/total">
 <img alt="language" src="https://img.shields.io/badge/Language-Python-blue">
