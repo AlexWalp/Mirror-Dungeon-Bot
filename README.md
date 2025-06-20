@@ -27,7 +27,7 @@ And it takes **35–45 minutes** for one **Hard MD** run with a Rupture team
 # ChargeGrinder:
 - ## Starts from any moment of dungeon exploration
   - But it is still recommended to start on main game screen
-- ## Supports all team builds (Burn is recommended)
+- ## Supports all team builds
   - ***Pick the right team before starting the bot!***
   ### Normal MD:
   - Burn is the fastest team with average time of 22 minutes per run.
@@ -70,12 +70,13 @@ And it takes **35–45 minutes** for one **Hard MD** run with a Rupture team
   - Chains skills 1 and 2 for human encounters. 
   - Skill 3 animations take more time than necessary so it is best to avoid it.
   - Doesn't use any EGO, because it is a huge time waste.
+
   > ![skills.gif](ImageAssets/readme/skills.gif)
 
   ### Hard MD:
   - **All battles** are winrated.
   - If the clash is **Struggling** or **Hopeless**, the bot uses the leftmost available EGO:
-
+  
   > ![ego](ImageAssets/readme/ego.gif)
 
   - If the clash is **Struggling/Hopeless** and an EGO is selected, it will be replaced with a defense skill.
