@@ -19,7 +19,8 @@
 <p align="center"><img src="ImageAssets/readme/preview.png" /></p>
 
 ### ⚡ Speed
-Generally, each floor takes no more than 5 minutes, so a full MD5 run lasts between **20–25 minutes** for a Burn team.
+A **Normal MD5** run lasts between **20–25 minutes** for a Burn team. <br>
+And it takes **35–45 minutes** for one **Hard MD** run with a Rupture team
 
 ---
 
@@ -28,20 +29,28 @@ Generally, each floor takes no more than 5 minutes, so a full MD5 run lasts betw
   - But it is still recommended to start on main game screen
 - ## Supports all team builds (Burn is recommended)
   - ***Pick the right team before starting the bot!***
+  ### Normal MD:
   - Burn is the fastest team with average time of 22 minutes per run.
   - Recommended team:
+   
+  > ![team.png](ImageAssets/readme/team.png)
   
-> ![team.png](ImageAssets/readme/team.png)
+  ### Hard MD:
+  - Rupture is the best team with average time of 40 minutes per run.
+  - Recommended team:
+
+  > ![hard_team.png](ImageAssets/readme/hard_team.png)
 ---
 
 - ## Selects Floor Packs
   - ### By default:
     - Avoids packs with high mortality rate and long fights such as: <p>
-  **The Noon of Violet, Murder on the WARP Express, Full-Stopped by a Bullet, Timekilling Time, Nocturnal Sweeping, To Claim their Bones** and some other.
+  **The Noon of Violet, Murder on the WARP Express, Full-Stopped by a Bullet, Timekilling Time, Nocturnal Sweeping** and some other.
     - Prioritizes floors with unique ego gifts such as: <p>
   **The Outcast, Hell's Chicken** and some other.
   - ## You can set your own pack priority in config!
     - ***Important note: Prioritized packs are specific to each team type, but Avoided packs apply globally to all teams.***
+    - ***There are two different configs for Normal MD and Hard MD***
 
   <p align="center"><img src="ImageAssets/readme/config.png" /></p>
 
@@ -56,11 +65,20 @@ Generally, each floor takes no more than 5 minutes, so a full MD5 run lasts betw
 > ![nodes.png](ImageAssets/readme/nodes.png)
 
 - ## Handles battles
+  ### Normal MD:
   - Winrates focused encounters.
   - Chains skills 1 and 2 for human encounters. 
   - Skill 3 animations take more time than necessary so it is best to avoid it.
   - Doesn't use any EGO, because it is a huge time waste.
-> ![skills.gif](ImageAssets/readme/skills.gif)
+  > ![skills.gif](ImageAssets/readme/skills.gif)
+
+  ### Hard MD:
+  - **All battles** are winrated.
+  - If the clash is **Struggling** or **Hopeless**, the bot uses the leftmost available EGO:
+
+  > ![ego](ImageAssets/readme/ego.gif)
+
+  - If the clash is **Struggling/Hopeless** and an EGO is selected, it will be replaced with a defense skill.
 
 - ## Selects team-related important EGO gifts
   - EGO gift priority:
@@ -69,8 +87,19 @@ Generally, each floor takes no more than 5 minutes, so a full MD5 run lasts betw
     - Same gifts as team affinity
 
 - ## Makes a good team affinity build in shop
-  - Fuses gifts to get powerful Tier 4s
-  - Upties and buys affinity-related gifts
+  - Fuses gifts to get powerful Tier 4s.
+  - Upties and buys affinity-related gifts.
+  - If not all gifts are visible, it can **scroll through inventory** while fusing.
+
+  **If no tier 4 in inventory:**
+  - The bot aggressively fuses the **first Tier 4 gift**, even using same-affinity gifts if needed.
+
+  **Once the first build-related Tier 4 gift is obtained:**
+  - Same-affinity gifts will **no longer be used for fusing**.
+
+  **Once the affinity build is complete:**
+  - The bot will browse the shop for **same-affinity gifts** and buy them when found.
+    
 - ## Restarts if run fails
   - If 6 or more sinners are dead, the bot (with default settings) will restart the run.
 - ## Supports Luxcavation grind
@@ -78,10 +107,7 @@ Generally, each floor takes no more than 5 minutes, so a full MD5 run lasts betw
 <p align="center"><img src="ImageAssets/readme/lux.png" /></p>
 
 - ## Reclicks if action failed
-  - Sometimes timings mess up, so in order to address this issue most bot actions are double-verified.
-
-**Limitations:**  
-ChargeGrinder still needs additional features, testing, and bug fixes. However, it can successfully grind a few easy dungeons while you are asleep (that's how I do it at least).
+  - Sometimes timings mess up, so in order to address this issue most bot actions are verified.
 
 ---
 
@@ -96,7 +122,7 @@ ChargeGrinder still needs additional features, testing, and bug fixes. However, 
 # Installation
 ### 📦 Option 1: Run the Prebuilt Executable 
 [![Download](https://img.shields.io/badge/app.exe-Download-blue.svg)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/download/v2.0.0/app.exe) <p>
-- Launch **app.exe** from the `dist` folder—no additional files required.
+- Launch **app.exe** from the `dist` folder - no additional files required.
 - No OCR is used anymore, all detection is now done with open cv.
 
 ### 🐍 Option 2: Run with Python
@@ -228,7 +254,3 @@ Successful Runs | Avg Run Time | Failed Runs | Total Time Wasted
 ----------------------------------------------------------------
       18        |    22:44     |      0      |       0:00
 ```
----
-
-#  TODO List
-- Add support for **Hard MD** runs
