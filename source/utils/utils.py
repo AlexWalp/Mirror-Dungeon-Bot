@@ -199,6 +199,10 @@ def rectangle(image, point1, point2, color, type):
     x2, y2 = int(x2*comp), int(y2*comp)
     return cv2.rectangle(image, (x1, y1), (x2, y2), color, type)
 
+def win_get_position():
+    x, y = gui.get_position()
+    inv_comp = 1920 / p.WINDOW[2]
+    return int(x*inv_comp - p.WINDOW[0]), int(y*inv_comp - p.WINDOW[1])
 
 def win_click(*args, **kwargs):
     if len(args) == 1: x, y = args[0]
@@ -274,9 +278,13 @@ def wait_for_condition(condition, action=None, interval=0.5, timer=20):
 
 def generate_packs(priority):
     packs = {f"floor{i}": [] for i in range(1, 6)}
+
+    if p.HARD: floors = HARD_FLOORS
+    else: floors = FLOORS
+
     for i in range(1, 6):
         for pack in priority:
-            if pack in FLOORS[i]:
+            if pack in floors[i]:
                 packs[f"floor{i}"].append(pack)
     return packs
 
@@ -478,57 +486,132 @@ class LocateEdges(LocateGray):
         return template_edges, image_edges
 
 
-def amplify(img, clip_limit=32.0, grid_size=(1, 1)):
+def amplify(img, sigma_list=[15, 80, 250], alpha=0.1, beta=0.3, gamma=2.4):
+    """
+    Enhanced Multi-Scale Retinex with improved contrast control
+    Parameters:
+    - alpha: Blend factor (0.0 = original, 1.0 = full retinex)
+    - beta: Brightness control (0.0-1.0)
+    - gamma: Final gamma correction
+    """
     lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
+    l_float = l.astype(np.float32) / 255.0
+    msr = np.zeros_like(l_float)
     
-    clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=grid_size)
-    l_clahe = clahe.apply(l)
+    for sigma in sigma_list:
+        blurred = cv2.GaussianBlur(l_float, (0, 0), sigma)
+        msr += np.log(l_float + 1e-6) - np.log(blurred + 1e-6)
     
-    lab_clahe = cv2.merge([l_clahe, a, b])
-    result = cv2.cvtColor(lab_clahe, cv2.COLOR_LAB2BGR)    
-    return result
+    msr /= len(sigma_list)
+    
+    l_msr = beta * msr
+    l_result = alpha * l_msr + (1 - alpha) * l_float
+    l_result = np.clip(l_result, 0, 1)
+    l_result = l_result ** (1.0/gamma)
+    l_result = (l_result * 255).astype(np.uint8)
+    lab_result = cv2.merge([l_result, a, b])
+    return cv2.cvtColor(lab_result, cv2.COLOR_LAB2BGR)
+
+def create_mask(image, target_hsv, tolerance):
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    lower = np.array([max(0, target_hsv[0] - tolerance),
+                     max(0, target_hsv[1] - tolerance),
+                     max(0, target_hsv[2] - tolerance)])
+    upper = np.array([min(255, target_hsv[0] + tolerance),
+                        min(255, target_hsv[1] + tolerance),
+                        min(255, target_hsv[2] + tolerance)])
+    mask = cv2.inRange(hsv, lower, upper)
+    return mask
 
 
-def SIFT_matching(template, kp2, des2, search_region, min_matches=40, **kwargs):
-    comp = p.WINDOW[2] / 1920
-    if comp != 1:
-        template = cv2.resize(template, None, fx=comp, fy=comp, interpolation=cv2.INTER_LINEAR)
+class SIFTMatcher:
+    def __init__(self, image=None, region=(0, 0, 1920, 1080), **sift_params):
+        self.region = region
+        self.base_image = self._prepare_image(image, region)
+        self.sift = cv2.SIFT_create(**sift_params)
+        self.kp_base, self.des_base = self.sift.detectAndCompute(self.base_image, None)
+    
+    @staticmethod
+    def _prepare_image(image, region):
+        if isinstance(image, str):
+            img = cv2.imread(image)
+            if img is None:
+                raise FileNotFoundError(f"Image not found: {image}")
+            return img
+        elif image is None:
+            return screenshot(region=region)
+        elif isinstance(image, np.ndarray):
+            return image
+        else:
+            raise TypeError(f"Unsupported image type: {type(image)}")
+    
+    @staticmethod
+    def _load_template(template):
+        if isinstance(template, str):
+            tpl = cv2.imread(template, cv2.IMREAD_GRAYSCALE)
+            if tpl is None:
+                raise FileNotFoundError(f"Template not found: {template}")
+            return tpl
+        elif isinstance(template, np.ndarray):
+            return template
+        else:
+            raise TypeError(f"Unsupported template type: {type(template)}")
+    
+    def _match_template(self, template, min_matches=40, inlier_ratio=0.25):
+        comp = p.WINDOW[2] / 1920
+        template = SIFTMatcher._load_template(template)
+        if comp != 1:
+            template = cv2.resize(template, None, fx=comp, fy=comp, interpolation=cv2.INTER_LINEAR)
+        
+        kp1, des1 = self.sift.detectAndCompute(template, None)
 
-    sift = cv2.SIFT_create(**kwargs)
-    kp1, des1 = sift.detectAndCompute(template, None)
+        if des1 is None or self.des_base is None: return None
+        
+        bf = cv2.BFMatcher(cv2.NORM_L2)
+        good = bf.match(des1, self.des_base)
+        
+        if len(good) < min_matches: return None
 
-    if des1 is None or des2 is None: return None
-
-    bf = cv2.BFMatcher(cv2.NORM_L2)
-    good = bf.match(des1, des2)
-
-    if len(good) >= min_matches:
         src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
-        dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
-
+        dst_pts = np.float32([self.kp_base[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+        
         M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, maxIters=200)
-        if M is not None and mask is not None:
-            matches_mask = mask.ravel().tolist()
-            # inlier_matches = [m for i, m in enumerate(good) if matches_mask[i]]
-            # img_matches = cv2.drawMatches(template, kp1, screenshot(region=search_region), kp2, inlier_matches, None, flags=2)
-            # cv2.imwrite(f"{time.time()}.png", img_matches)
-            if sum(matches_mask) >= 0.25 * len(good):
-                h, w = template.shape
-                pts = np.float32([[0,0], [0,h], [w,h], [w,0]]).reshape(-1, 1, 2)
-                dst = cv2.perspectiveTransform(pts, M)
-
-                x_coords = dst[:,0,0]
-                y_coords = dst[:,0,1]
-                x_min, x_max = min(x_coords), max(x_coords)
-                y_min, y_max = min(y_coords), max(y_coords)
-
-                if (x_max - x_min < 2 * w) and (y_max - y_min < 2 * h):
-                    comp_inv = 1920 / p.WINDOW[2]
-                    x_fullhd = int(x_min*comp_inv) + search_region[0]
-                    y_fullhd = int(y_min*comp_inv) + search_region[1]
-                    return (x_fullhd, y_fullhd, int((x_max - x_min)*comp), int((y_max - y_min)*comp))
-    return None
+        if M is None or mask is None: return None
+        
+        matches_mask = mask.ravel().tolist()
+        # inlier_matches = [m for i, m in enumerate(good) if matches_mask[i]]
+        # img_matches = cv2.drawMatches(template, kp1, screenshot(region=search_region), kp2, inlier_matches, None, flags=2)
+        # cv2.imwrite(f"{time.time()}.png", img_matches)
+        
+        if sum(matches_mask) < inlier_ratio * len(good): return None
+        
+        h, w = template.shape
+        pts = np.float32([[0, 0], [0, h], [w, h], [w, 0]]).reshape(-1, 1, 2)
+        dst = cv2.perspectiveTransform(pts, M)
+        
+        x_coords = dst[:, 0, 0]
+        y_coords = dst[:, 0, 1]
+        x_min, x_max = min(x_coords), max(x_coords)
+        y_min, y_max = min(y_coords), max(y_coords)
+        
+        if (x_max - x_min < 2 * w) and (y_max - y_min < 2 * h):
+            comp_inv = 1920 / p.WINDOW[2]
+            x_full = int(x_min * comp_inv) + self.region[0]
+            y_full = int(y_min * comp_inv) + self.region[1]
+            width = int((x_max - x_min) * comp_inv)
+            height = int((y_max - y_min) * comp_inv)
+            
+            return (x_full, y_full, width, height)
+    
+    def locate(self, template, **kwargs):
+        return self._match_template(template, **kwargs)
+    
+    def try_locate(self, template, **kwargs):
+        match = self._match_template(template, **kwargs)
+        if match is None:
+            raise gui.ImageNotFoundException
+        return match
 
 
 class LocatePreset:

@@ -50,6 +50,7 @@ REG = {
     "EventEffect"    : ( 710,  215,  507,   81),
     "bonus"          : ( 881,  338,  204,   74),
     "bonus_off"      : ( 881,  338,  204,   74),
+    "hardbonus"      : (1077,  338,  204,   74),
     "ConfirmInvert.1": ( 987,  704,  318,  130),
     # regions not binded to an image
     "money!"         : (1718,   47,   57,   40),
@@ -81,6 +82,7 @@ REG = {
     "Owned"          : (   0,  216, 1725,   50),
     "Card"           : ( 219,  283, 1531,  242),
     "Confirm.1"      : (1118,  754,  189,   70),
+    "trials"         : (   0,  615, 1920,   55),
     # regions not binded to an image
     "rewardCount!"   : (1494,  181,   23,   42),
 
@@ -88,6 +90,7 @@ REG = {
     "Move"           : (1805,  107,   84,   86),
     "enter"          : (1537,  739,  310,  141),
     "alldead"        : ( 261, 1019, 1391,   41),
+    "suicide"        : ( 626,  157,  650,  142),
     "forfeit"        : ( 662,  547,  151,  208),
     "directions"     : ( 523,  303,  155,  473),
 
@@ -98,8 +101,10 @@ REG = {
 
     # shop.py
     "shop"           : ( 332,  158,  121,   55),
+    "supershop"      : ( 275,  158,  220,   55),
     "sell"           : ( 776,  118,  127,   70),
     "fuse_shelf"     : ( 920,  295,  790,  482),
+    "fuse_shelf_low" : ( 920,  591,  790,  150),
     "buy_shelf"      : ( 809,  300,  942,  402),
     "purchase"       : ( 972,  679,  288,   91),
     "power"          : ( 990,  832,  393,   91),
@@ -108,6 +113,8 @@ REG = {
     "keywordRef"     : ( 678,  162,  340,   53),
     "fuse"           : ( 754,  117,  161,   81),
     "fuseButton"     : (1107,  849,  161,   54),
+    "scroll"         : (1653,  321,   64,   81),
+    "scroll.0"       : (1653,  662,   64,   81),
     # regions not binded to an image
     "affinity!"      : ( 368,  327, 1160,  442),
     "revenue!"       : (1405,  126,  241,   56),
@@ -220,15 +227,22 @@ HARD_FLOORS = {
 
 HARD_BANNED = [
     "TheNoonofViolet", "MurderontheWARPExpress", "FullStoppedbyaBullet", "TimekillingTime", 
-    "NocturnalSweeping", 'Line4', 'Line3', 'toClaimTheirBonesBokGak'
+    "NocturnalSweeping", 'Line4', 'Line3', 'toClaimTheirBonesBokGak', 'TheEvilDefining', 
+    'SinkingDeluge', 'PoisedBreathing', 'InertSloth', 'EmotionalFlood', 'CrawlingAbyss', 
+    'TreadwheelSloth', 'VainPride', 'PitifulEnvy', 'TyrannicalPride', 'UnrelentingMight'
 ]
 
 
-FLOORS_UNIQUE = []
+def get_unique(pack_list):
+    unique = []
+    seen = set()
+    for floor in sorted(pack_list):
+        for item in pack_list[floor]:
+            if item not in seen:
+                seen.add(item)
+                unique.append(item)
+    return unique
 
-seen = set()
-for floor in sorted(FLOORS):
-    for item in FLOORS[floor]:
-        if item not in seen:
-            seen.add(item)
-            FLOORS_UNIQUE.append(item)
+
+FLOORS_UNIQUE = get_unique(FLOORS)
+HARD_UNIQUE = get_unique(HARD_FLOORS)

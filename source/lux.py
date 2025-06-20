@@ -1,8 +1,8 @@
 from source.utils.utils import *
 from source.battle import fight
 
-def is_full():
-    image = screenshot(region=(672, 1003, 5, 5))
+def is_full(shift):
+    image = screenshot(region=(530 - shift, 1003, 5, 5))
     y, x = image.shape[0] // 2, image.shape[1] // 2
     b, g, r = image[y, x]
     return (
@@ -11,13 +11,15 @@ def is_full():
         50 <= b <= 140
     )
 
-def check_enkephalin():
-    if not is_full(): return
+def check_enkephalin(shift=0): # 227
+    if not is_full(shift=shift): return
 
-    ClickAction((601, 1004), ver="ConfirmInvert.1").execute(click)
+    ClickAction((601 - shift, 1004), ver="ConfirmInvert.1").execute(click)
     win_click(1208, 496, duration=0.5)
     Action("ConfirmInvert.1", ver="connecting").execute(click)
-    win_click(1593, 833, duration=0.2)
+    connection()
+    time.sleep(0.5)
+    gui.press("esc")
     time.sleep(0.5)
 
 
@@ -44,6 +46,8 @@ def grind_lux(count_exp, count_thd):
 
         choices = LocateRGB.locate_all(PTH["EnterDoor"], region=REG["pick!"])
         if len(choices) != 0:
+            if p.NETZACH: check_enkephalin(shift=227)
+
             choices.sort(key=lambda box: box[0], reverse=True)
             print(choices)
             win_click(gui.center(choices[0]))
@@ -69,6 +73,8 @@ def grind_lux(count_exp, count_thd):
         if gui.getActiveWindowTitle() != 'LimbusCompany': pause()
 
         if now.button("Exp"):
+            if p.NETZACH: check_enkephalin(shift=227)
+
             win_click(225, 492)
             time.sleep(1)
             win_click(553, 721)
@@ -99,9 +105,4 @@ def grind_lux(count_exp, count_thd):
     wait_for_condition(lambda: not now.button("Exp"))
     time.sleep(1)
     gui.press("Esc")
-
-    if p.NETZACH:
-        time.sleep(1)
-        check_enkephalin()
     logging.info("Done with Luxcavation!")
-    

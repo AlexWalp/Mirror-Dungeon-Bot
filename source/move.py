@@ -76,7 +76,8 @@ def is_event(_loc, region):
 
 def is_shop(_loc, region):
     if _loc.button("shop0", region) or \
-       _loc.button("shop1", region, v_comp=None, distort=None):
+       _loc.button("shop1", region, v_comp=None, distort=None) or \
+       (p.HARD and (_loc.button("super0", region) or _loc.button("super1", region, v_comp=None, distort=None))):
         return True
     return False
 
@@ -112,7 +113,7 @@ def get_connections():
     connections = []
     for i, image in enumerate(images):
         for j, direction in enumerate(["up", "down"]):
-            if LocateGray.check(PTH[direction], image=image, method=cv2.TM_CCORR_NORMED, conf=0.7, wait=False):
+            if LocateGray.check(PTH[direction], image=image, conf=0.92, wait=False):
                 connections.append(((i % 2, (i//2) + 1 - j), (i % 2 + 1, (i//2) + j)))
                 break
     return connections
@@ -191,6 +192,10 @@ def move():
     if not now.button("Move") or \
            now.button("Confirm"): return False
     
+    if p.HARD: 
+        time.sleep(1.2) # node reveal animation
+        if now.button("suicide"): return False
+
     # run fail detection
     dead = [gui.center(box) for box in LocateRGB.locate_all(PTH["0"], region=REG["alldead"], conf=0.95, threshold=50)]
     if len(dead) >= 6:
@@ -236,7 +241,7 @@ def move():
         else: srch_regions = {i: (624 + 380 * depth, 101 + i * 275, 282, 275) for i in range(3)}
 
         for level, region in srch_regions.items():
-            _loc = LocatePreset(comp=comp, v_comp=v_list[level], distort=d_list[depth], conf=0.8, wait=False)
+            _loc = LocatePreset(image=screenshot(region=region), comp=comp, v_comp=v_list[level], distort=d_list[depth], conf=0.8, wait=False)
             # gui.screenshot(f"region{depth}{level}.png", region=region)
 
             if depth == 0 and level == 1 and is_boss(region, comp):

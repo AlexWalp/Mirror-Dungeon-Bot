@@ -15,6 +15,65 @@ sins = { # bgr values
     "envy"    : (222,   1, 150),
 }
 
+# HARD MD
+comps = [0.71, 0.77, 0.89, 1]
+low = {"struggle": (0, 199, 252), "hopeless": (2, 245, 214)}
+ego = ["zayin", "teth", "he", "waw"]
+best = ["best_ego"]
+
+def get_lowskill():
+    image = screenshot(region=(0, 820, 1920, 100))
+    boxes = []
+    for name in low.keys():
+        target_color = low[name]
+        mask = create_mask(image, target_color, 20)
+        for comp in comps:
+            boxes += LocateGray.locate_all(PTH[name], image=mask, region=(0, 820, 1920, 100), threshold=20, comp=comp, conf=0.8)
+    coords_x = []
+    for box in boxes:
+        x, _, _, _ = box
+        if any(abs(x - px) <= 20 for px in coords_x): continue
+        coords_x.append(x-10)
+    return coords_x
+
+def select_ego():
+    time.sleep(0.2)
+    coords_x = get_lowskill()
+    if not coords_x: return
+    for x in coords_x:
+        win_moveTo(x, 990)
+        gui.mouseDown()
+        time.sleep(1.5)
+        gui.mouseUp()
+
+        image_best = screenshot(region=(0, 495, 1920, 50))
+        image_all = screenshot(region=(0, 200, 1920, 50))
+        for i in best:
+            res = LocateRGB.locate(PTH[i], image=image_best, region=(0, 495, 1920, 50), method=1, conf=0.8)
+            if res:
+                res = gui.center(res)
+                win_click(res)
+                win_click(res)
+                break
+        else:
+            for i in ego:
+                res = LocateRGB.locate(PTH[i], image=image_all, region=(0, 200, 1920, 50), method=1, conf=0.8)
+                print(i, res)
+                if res:
+                    c0, c1 = gui.center(res)
+                    win_click(c0, int(c1 + 200))
+                    win_click(c0, int(c1 + 200))
+                    break
+            else:
+                win_click(1850, 1000)
+        time.sleep(0.2)
+    gui.press("p", 3, 0.1)
+    time.sleep(0.2)
+    coords_x = get_lowskill()
+    if coords_x:
+        for x in coords_x: win_click(x, 990)
+# end
+
 
 def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=100, sin="envy"):
     median_rgb = np.median(background, axis=(0, 1)).astype(int)
@@ -167,7 +226,7 @@ def fight(lux=False):
             time.sleep(0.1)
             ck = True
             try:
-                if lux: raise gui.ImageNotFoundException
+                if lux or p.HARD: raise gui.ImageNotFoundException
                 gear_start = gui.center(LocateEdges.try_locate(PTH["gear"], region=(0, 761, 900, 179), conf=0.7))
                 gear_end = gui.center(LocateEdges.try_locate(PTH["gear2"], region=(350, 730, 1570, 232), conf=0.7))
                 background = screenshot(region=(round(gear_start[0] + 100), 775, round(gear_end[0] - gear_start[0] - 200), 10))
@@ -178,9 +237,11 @@ def fight(lux=False):
                 if now.button("winrate"):
                     gui.press("p", 1, 0.1)
                     gui.press("enter", 1, 0.1)
+                    time.sleep(1)
             except gui.ImageNotFoundException:
                 win_click(1549, 750, duration=0.1)
                 gui.press("p", 1, 0.1)
+                if p.HARD: select_ego()
                 gui.press("enter", 1, 0.1)
 
         if now.button("eventskip"):

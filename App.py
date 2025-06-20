@@ -7,7 +7,10 @@ os.environ['QT_LOGGING_RULES'] = 'qt.qpa.*=false'
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QLabel, QGraphicsOpacityEffect, QMessageBox, QLayout, QHBoxLayout, QVBoxLayout, QScrollArea, QComboBox
 from PyQt6.QtGui import QIcon, QFont, QPixmap, QPainter, QIntValidator, QFontDatabase
 from PyQt6.QtCore import Qt, QTimer, QEvent, QPropertyAnimation, QObject, pyqtSignal, QThread, QSize, QRect, QPoint, pyqtSlot
+
 import webbrowser
+from urllib.request import urlopen
+
 
 class SettingsManager:
     def __init__(self):
@@ -15,6 +18,13 @@ class SettingsManager:
         self.user_hash = self.hash_username(self.username)
         self.path = self.get_settings_path()
         self.data = self.load_settings()
+        self.config = "CONFIG"
+
+    def update_name(self, mode):
+        if mode:
+            self.config = "HARD"
+        else:
+            self.config = "CONFIG"
 
     def get_username(self):
         return os.path.basename(os.path.expanduser("~"))
@@ -42,7 +52,7 @@ class SettingsManager:
         return teams.get(str(key), [])
     
     def get_config(self, key):
-        config = self.data.get("CONFIG", {})
+        config = self.data.get(self.config, {})
         return config.get(str(key), [])
 
     def save_settings(self):
@@ -57,19 +67,19 @@ class SettingsManager:
         self.save_settings()
 
     def save_config(self, key, value_list):
-        if "CONFIG" not in self.data:
-            self.data["CONFIG"] = {}
+        if self.config not in self.data:
+            self.data[self.config] = {}
 
-        self.data["CONFIG"][str(key)] = value_list
+        self.data[self.config][str(key)] = value_list
         self.save_settings()
 
     def delete_config(self):
-        if "CONFIG" in self.data:
-            del self.data["CONFIG"]
+        if self.config in self.data:
+            del self.data[self.config]
             self.save_settings()
 
     def config_exists(self, key):
-        return str(key) in self.data.get("CONFIG", {})
+        return str(key) in self.data.get(self.config, {})
 
 sm = SettingsManager()
 
@@ -232,13 +242,36 @@ class SelectizeWidget(QWidget):
             self.scroll_layout.addWidget(item_widget)
 
 
-# Handle second proccess
+class VersionChecker(QThread):
+    versionFetched = pyqtSignal(bool)  # Emits True if current version is up to date
+
+    def run(self):
+        url = 'https://api.github.com/repos/AlexWalp/Mirror-Dungeon-Bot/releases/latest'
+        try:
+            with urlopen(url, timeout=5) as response:
+                data = response.read()
+                release_info = json.loads(data)
+                latest_version = str(release_info["tag_name"][1:])
+        except Exception:
+            self.versionFetched.emit(True)
+            return
+
+        try:
+            v1 = list(map(int, latest_version.split('.')))
+            v2 = list(map(int, p.V.split('.')))
+            is_up_to_date = v1 <= v2
+        except Exception:
+            is_up_to_date = True
+
+        self.versionFetched.emit(is_up_to_date)
+
+# Handle bot proccess
 class BotWorker(QObject):
     finished = pyqtSignal()
     error = pyqtSignal(str)
     warning = pyqtSignal(str)
 
-    def __init__(self, is_lux, count, count_exp, count_thd, affinity, sinners, priority, avoid, log, bonus, restart, altf4, enkephalin, skip, app):
+    def __init__(self, is_lux, count, count_exp, count_thd, affinity, sinners, priority, avoid, log, bonus, restart, altf4, enkephalin, skip, hard, app):
         super().__init__()
         self.is_lux = is_lux
         self.count = count
@@ -254,6 +287,7 @@ class BotWorker(QObject):
         self.altf4 = altf4
         self.enkephalin = enkephalin
         self.skip = skip
+        self.hard = hard
         self.app = app
 
     def run(self):
@@ -273,6 +307,7 @@ class BotWorker(QObject):
                 self.altf4,
                 self.enkephalin,
                 self.skip,
+                self.hard,
                 self.app,
                 warning=self.warning.emit
             )
@@ -289,6 +324,10 @@ class CustomButton(QPushButton):
         self._glow_cache = {}
         self.glowImage = None
         self.animation = None
+
+        self.flickering = False
+        self.flicker_paused = False
+        self.event_filter = True
         self._setup_button()
 
     def _setup_button(self):
@@ -318,6 +357,9 @@ class CustomButton(QPushButton):
                 self._setup_glow_effect(self.config['glow_geometry'])
             else:
                 self._setup_glow_effect(self.config['geometry'])
+        
+        if 'filter' in self.config:
+            self.event_filter = bool(self.config['filter'])
 
     def _setup_glow_effect(self, geometry: tuple):
         self.glowImage = QLabel(self.parentWidget())
@@ -351,6 +393,9 @@ class CustomButton(QPushButton):
         self.installEventFilter(self)
 
     def eventFilter(self, obj, event):
+        if not self.event_filter:
+            return super().eventFilter(obj, event)
+    
         if obj == self and self.glowImage:
             if event.type() == QEvent.Type.Enter:
                 self._start_glow()
@@ -386,6 +431,30 @@ class CustomButton(QPushButton):
 
             QTimer.singleShot(self.animation.duration(), lambda: self._end_glow())
 
+    def start_flickering(self):
+        self.animation.setDuration(1000)
+        if not self.flickering:
+            self.flickering = True
+            self.flicker_paused = False
+            self._flicker_cycle()
+
+    def _flicker_cycle(self):
+        if not self.flickering or self.flicker_paused:
+            return
+        
+        self.trigger_glow_once()
+        QTimer.singleShot(1900, self._flicker_cycle)
+
+    def pause_flickering(self):
+        if self.flickering:
+            self.flicker_paused = True
+            self.animation.stop()
+
+    def resume_flickering(self):
+        if self.flickering and self.flicker_paused:
+            self.flicker_paused = False
+            self._flicker_cycle()
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         if self.glowImage and 'glow_geometry' not in self.config:
@@ -402,6 +471,7 @@ class MyApp(QWidget):
         self.bonus = False
         self.restart = True
         self.altf4 = False
+        self.hard = False
 
         self.enkephalin = False
         self.skip = True
@@ -409,19 +479,10 @@ class MyApp(QWidget):
         self.count_exp = 1
         self.count_thd = 3
         
-        if sm.config_exists(self.affinity):
-            self.priority = sm.get_config(self.affinity)
-        else: 
-            self.priority = self.get_priority(self.affinity)
-        
-        if sm.config_exists(7):
-            self.avoid = sm.get_config(7)
-        else:
-            self.avoid = Bot.BANNED
+        self.set_priority()
 
         self.sinner_selections = {i: sm.get_team(i) for i in range(10)}
         self.affinity_lux = self._day()
-        self.all = Bot.FLOORS_UNIQUE
 
         self._init_ui()
         self._create_buttons()
@@ -501,14 +562,26 @@ class MyApp(QWidget):
         self.warn_txt.setStyleSheet('color: #FF8080; background: transparent; border: none;')
 
         self.selected_button_order = []
+        self.config_widgets = []
 
         self.config = QLabel(self)
         self.config.setPixmap(QPixmap(Bot.APP_PTH["config"]))
         self.config.setGeometry(0, 93, 700, 692)
         self.config.hide()
+
+        self.priority_team = QLabel(self.config)
+        self.priority_team.setPixmap(QPixmap(Bot.APP_PTH[f'team{self.affinity}']))
+        self.priority_team.setGeometry(38, 121, 301, 247)
+        self.priority_team.show()
+
         self.combo_boxes = []
         self.selectize_widgets = []
         self.set_widgets()
+
+        self.hard_conf = QLabel(self.config)
+        self.hard_conf.setPixmap(QPixmap(Bot.APP_PTH["hard_conf"]))
+        self.hard_conf.setGeometry(228, 421, 169, 26)
+        self.hard_conf.hide()
 
         self.lux = QLabel(self)
         self.lux.setPixmap(QPixmap(Bot.APP_PTH["Lux"]))
@@ -533,10 +606,29 @@ class MyApp(QWidget):
 
         # self.test = QPushButton(self)
         # self.test.setText("Test")
-        # self.test.setGeometry(481, 394, 125, 43)
+        # self.test.setGeometry(228, 514, 169, 26)
         # self.test.show()
 
+    def set_priority(self):
+        if sm.config_exists(self.affinity):
+            self.priority = sm.get_config(self.affinity)
+        else: 
+            self.priority = self.get_priority(self.affinity)
+        
+        if sm.config_exists(7):
+            self.avoid = sm.get_config(7)
+        else:
+            self.avoid = self.get_avoid()
+
+        self.all = self.get_all()
+
     def set_widgets(self):
+        for widget in self.config_widgets:
+            widget.deleteLater()
+        self.config_widgets.clear()
+        self.combo_boxes.clear()
+        self.selectize_widgets.clear()
+
         items_to_remove = set(self.priority) | set(self.avoid)
         self.available_items = [item for item in self.all if item not in items_to_remove]
         self.all = self.available_items.copy()
@@ -603,6 +695,7 @@ class MyApp(QWidget):
 
             self.combo_boxes.append(combo)
             self.selectize_widgets.append(selectize)
+            self.config_widgets.append(widget)
 
     def handle_item_added(self, item):
         if item in self.available_items:
@@ -627,8 +720,6 @@ class MyApp(QWidget):
         if item in self.avoid:
             self.avoid.remove(item)  # ACTUALLY remove from avoid
         
-        # Rest of your existing logic
-        # Fucking schizo
         if item not in self.available_items:
             orig_index = next((i for i, x in enumerate(self.all) if x == item), -1)
             if orig_index >= 0:
@@ -647,14 +738,17 @@ class MyApp(QWidget):
         # Reset the data lists to defaults
         if default:
             self.priority = self.get_priority(team)
-            self.avoid = Bot.BANNED
-            self.set_buttons_active([False, True, False, False, True])
+            self.avoid = self.get_avoid()
+            if self.hard:
+                self.set_buttons_active([False, True, False, False, False])
+            else:
+                self.set_buttons_active([False, True, False, False, True])
             sm.delete_config()
         elif sm.config_exists(team):
             self.priority = sm.get_config(team)
         else:
             self.priority = self.get_priority(team)
-        self.all = Bot.FLOORS_UNIQUE
+        self.all = self.get_all()
         
         # Clear all selectize widgets
         for widget in self.selectize_widgets:
@@ -687,7 +781,10 @@ class MyApp(QWidget):
         return (day_number > 1) + (day_number > 3) - (day_number == 6)
     
     def get_priority(self, affinity):
-        team_data = Bot.TEAMS[list(Bot.TEAMS.keys())[affinity]]
+        if self.hard:
+            team_data = Bot.TEAMS[list(Bot.TEAMS.keys())[affinity]]
+        else:
+            team_data = Bot.HARD[list(Bot.HARD.keys())[affinity]]
         seen = set()
         unique_floors = []
 
@@ -697,6 +794,18 @@ class MyApp(QWidget):
                     seen.add(floor)
                     unique_floors.append(floor)
         return unique_floors
+    
+    def get_all(self):
+        if self.hard:
+            return Bot.HARD_UNIQUE
+        else:
+            return Bot.FLOORS_UNIQUE
+
+    def get_avoid(self):
+        if self.hard:
+            return Bot.HARD_BANNED
+        else:
+            return Bot.BANNED
 
     def _get_button_damage(self):
         return [
@@ -753,6 +862,16 @@ class MyApp(QWidget):
     def _create_buttons(self):
         """Create and configure all buttons using the CustomButton class"""
         self.buttons = {
+            'update': CustomButton(self, {
+                'geometry': (202, 24, 298, 53),
+                'click_handler': lambda: webbrowser.open('https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/latest'),
+                'checkable': True,
+                'checked': True,
+                'icon': Bot.APP_PTH['update'],
+                'glow': Bot.APP_PTH['glow_update'],
+                'filter': False
+            }),
+
             'lux': CustomButton(self, {
                 'geometry': (475, 95, 196, 57),
                 'click_handler': self.set_lux,
@@ -794,7 +913,14 @@ class MyApp(QWidget):
                 'click_handler': lambda: self.reset_to_defaults(self.affinity),
                 'glow': Bot.APP_PTH['del']
             }),
-            
+
+            'hard': CustomButton(self, {
+                'geometry': (24, 161, 178, 59),
+                'checkable': True,
+                'checked': False,
+                'click_handler': self.set_hardmode,
+                'icon': Bot.APP_PTH['hard']
+            }),
 
             'log': CustomButton(self, {
                 'geometry': (563, 29, 43, 40),
@@ -835,6 +961,9 @@ class MyApp(QWidget):
         for name, settings in self._get_button_damage():
             self.buttons[name] = CustomButton(self.lux, settings)
 
+        self.buttons['update'].hide()
+        self.check_version()
+
         self.set_selected_buttons(self.sinner_selections[0])
         self.set_buttons_active(sm.get_config(8))
         self.overlay.raise_()
@@ -842,6 +971,21 @@ class MyApp(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.drawPixmap(self.rect(), self.background)
+
+    def set_hardmode(self):
+        self.update_button_icons()
+
+        self.hard = self.buttons['hard'].isChecked()
+        sm.update_name(self.hard)
+        self.set_priority()
+        self.set_widgets()
+        if self.hard:
+            self.set_buttons_active([False, True, False, False, False])
+            self.hard_conf.show()
+        else:
+            self.set_buttons_active([False, True, False, False, True])
+            self.hard_conf.hide()
+        self.set_buttons_active(sm.get_config(8))
 
     def set_lux(self):
         self.lux.show()
@@ -933,6 +1077,7 @@ class MyApp(QWidget):
         if self.is_lux:
             self.set_selected_buttons(self.sinner_selections[self.affinity_lux + 7])
         else:
+            self.priority_team.setPixmap(QPixmap(Bot.APP_PTH[f'team{self.affinity}']))
             self.reset_to_defaults(self.affinity, default=False)
             self.set_selected_buttons(self.sinner_selections[self.affinity])
 
@@ -999,6 +1144,16 @@ class MyApp(QWidget):
         self.guide.raise_()
         self.guide.show()
 
+    def check_version(self):
+        self.version_thread = VersionChecker()
+        self.version_thread.versionFetched.connect(self.on_version_checked)
+        self.version_thread.start()
+
+    def on_version_checked(self, up_to_date):
+        if not up_to_date:
+            self.buttons['update'].show()
+            self.buttons['update'].start_flickering()
+
     def check_inputs(self):
         if len(self.selected_button_order) < 6: return False
         if not self.is_lux and self.count == 0: return False
@@ -1035,6 +1190,8 @@ class MyApp(QWidget):
         if not self.check_inputs():
             self.buttons['guide_icon'].trigger_glow_once()
             return
+        if self.buttons['update'].isVisible(): self.buttons['update'].pause_flickering()
+
         self.progress.raise_()
         self.progress.show()
         self.run.show()
@@ -1058,6 +1215,7 @@ class MyApp(QWidget):
             self.altf4,
             self.enkephalin,
             self.skip,
+            self.hard,
             self
         )
 
@@ -1100,6 +1258,8 @@ class MyApp(QWidget):
         self.pause.hide()
         self.progress.hide()
         self.warn.hide()
+
+        if self.buttons['update'].isVisible(): self.buttons['update'].resume_flickering()
         
     def handle_bot_error(self, message):
         self.run.hide()

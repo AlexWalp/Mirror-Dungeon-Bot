@@ -6,7 +6,7 @@ from source.move import move
 from source.grab import grab_card, grab_EGO, confirm
 from source.shop import shop
 from source.lux import grind_lux, check_enkephalin
-from source.teams import TEAMS
+from source.teams import TEAMS, HARD
 import source.utils.params as p
 
 
@@ -85,15 +85,22 @@ def collect_rewards():
     )
 
 def click_bonus():
-    if now_rgb.button("bonus", click=True):
-        time.sleep(0.2)
-        if not now_rgb.button("bonus"):
-            return True
+    if p.HARD:
+        if now_rgb.button("bonus", "hardbonus", click=True):
+            time.sleep(0.2)
+            if not now_rgb.button("bonus", "hardbonus"):
+                return True
+    else:
+        if now_rgb.button("bonus", click=True):
+            time.sleep(0.2)
+            if not now_rgb.button("bonus"):
+                return True
     return False
 
 def handle_bonus():
     time.sleep(0.2)
     if p.BONUS or now_rgb.button("bonus_off"): return
+    if p.HARD and now_rgb.button("bonus_off", "hardbonus"): return
     time.sleep(0.2)
     if not wait_for_condition(lambda: not click_bonus()):
         raise RuntimeError
@@ -143,6 +150,7 @@ def dungeon_fail():
 # MAIN LOOP
 def main_loop():
     dungeon_start()
+    p.AGRESSIVE_FUSING = True
     error = 0
     last_error = 0
     ck = False
@@ -166,6 +174,10 @@ def main_loop():
 
         if gui.getActiveWindowTitle() != 'LimbusCompany':
             pause()
+
+        if p.HARD and now.button("suicide"):
+            win_click(824, 721)
+            connection()
         
         if now.button("victory"):
             logging.info('Run Completed')
@@ -262,9 +274,15 @@ if __name__ == "__main__":
 
 
 # when App is run:
-def execute_me(is_lux, count, count_exp, count_thd, affinity, sinners, priority, avoid, log, bonus, restart, altf4, enkephalin, skip, app, warning):
-    p.TEAM = list(TEAMS.keys())[affinity]
-    p.GIFTS = TEAMS[p.TEAM]
+def execute_me(is_lux, count, count_exp, count_thd, affinity, sinners, priority, avoid, log, bonus, restart, altf4, enkephalin, skip, hard, app, warning):
+    p.HARD = hard
+    if hard:
+        p.TEAM = list(HARD.keys())[affinity]
+        p.GIFTS = HARD[p.TEAM]
+    else:
+        p.TEAM = list(TEAMS.keys())[affinity]
+        p.GIFTS = TEAMS[p.TEAM]
+
     p.SELECTED = [list(SINNERS.keys())[i] for i in sinners]
     p.LOG = log
     p.BONUS = bonus
@@ -282,7 +300,7 @@ def execute_me(is_lux, count, count_exp, count_thd, affinity, sinners, priority,
         setup_logging(enable_logging=False)
 
 
-    if not is_lux:    
+    if not is_lux:
         p.PICK = generate_packs(priority)
         p.IGNORE = generate_packs(avoid)
         print(p.PICK)
@@ -302,12 +320,11 @@ def execute_me(is_lux, count, count_exp, count_thd, affinity, sinners, priority,
             return
 
         for i in range(count):
-            if p.NETZACH: check_enkephalin()
-
             logging.info(f'Iteration {i}')
             completed = False
             while not completed:
                 completed = main_loop()
+            if p.NETZACH: check_enkephalin()
 
         if p.ALTF4:
             close_limbus()

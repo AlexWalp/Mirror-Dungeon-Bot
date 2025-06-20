@@ -6,10 +6,10 @@ def far_from_owned(coord, owned_x):
     return all(abs(coord[0] - ox) >= 200 for ox in owned_x)
 
 
-def find_ego_affinity(owned_x):
+def find_ego_affinity(owned_x, image):
     affinity = list(filter(
         lambda coord: far_from_owned(coord, owned_x),
-        [gui.center(box) for box in LocateRGB.locate_all(PTH[p.GIFTS["checks"][0]], region=REG["EGO"])]
+        [gui.center(box) for box in LocateRGB.locate_all(PTH[p.GIFTS["checks"][0]], image=image, region=REG["EGO"])]
     ))
     return next((
         (lvl, aff)
@@ -17,40 +17,52 @@ def find_ego_affinity(owned_x):
         for aff in affinity
         if LocateRGB.check(
             PTH[f"tier{lvl}"],
+            image=image,
             region=(int(aff[0] - 106), int(aff[1] - 101), 66, 59),
             wait=False
     )), None)
 
 
-def get_gift(coord):
-    chain_actions(click, [
-        lambda: win_click(coord),
-        ClickAction((1687, 870), ver="Confirm")
-    ])
+def get_gift(image, owned_x):
+    for gift in p.GIFTS["buy"]:
+        if (coord := LocateRGB.locate(PTH[str(gift)], image=image, region=REG["EGO"], conf=0.85, comp=0.94)) \
+           and far_from_owned(gui.center(coord), owned_x):
+            point = gui.center(coord)
+            win_click(point)
+            return rectangle(image, (int(point[0]-100), 0), (int(point[0]+100), 110), (0, 0, 0), -1)
 
+    ego_aff = find_ego_affinity(owned_x, image) # (lvl, coord)
+
+    for lvl in range(4, 0, -1):
+        if ego_aff and lvl == ego_aff[0]:
+            point = ego_aff[1]
+            win_click(point)
+            return rectangle(image, (int(point[0]-100), 0), (int(point[0]+100), 110), (0, 0, 0), -1)
+        elif coord := LocateRGB.locate(PTH[f"tier{lvl}"], image=image, region=REG["EGO"], method=cv2.TM_SQDIFF_NORMED):
+            point = gui.center(coord)
+            win_click(point)
+            return rectangle(image, (int(point[0]-100), 0), (int(point[0]+100), 110), (0, 0, 0), -1)
 
 def grab_EGO():
     if not now.button("EGObin"): return False
     time.sleep(0.4)
 
     owned_x = [p[0] + p[2] for p in LocateRGB.locate_all(PTH["Owned"], region=REG["Owned"])]
+    image = screenshot(region=REG["EGO"])
 
-    for gift in p.GIFTS["buy"]:
-        if (coord := LocateRGB.locate(PTH[str(gift)], region=REG["EGO"], conf=0.85, comp=0.94)) \
-           and far_from_owned(gui.center(coord), owned_x):
-            get_gift(gui.center(coord))
-            return True
+    cycle = 1
+    if p.HARD and now.button("trials"): cycle = 2
 
-    ego_aff = find_ego_affinity(owned_x) # (lvl, coord)
+    for _ in range(cycle):
+        image = get_gift(image, owned_x)
+        time.sleep(0.1)
 
-    for lvl in range(4, 0, -1):
-        if ego_aff and lvl == ego_aff[0]:
-            get_gift(ego_aff[1])
-            return True
-        elif coord := LocateRGB.locate(PTH[f"tier{lvl}"], region=REG["EGO"], method=cv2.TM_SQDIFF_NORMED):
-            get_gift(gui.center(coord))
-            return True
-    return False
+    try:
+        ClickAction((1687, 870), ver="Confirm").execute(click)
+    except RuntimeError:
+        gui.press("enter", 2, 1)
+        time.sleep(1)
+    return True
 
 
 def get_card(card):
@@ -82,5 +94,6 @@ def grab_card():
 def confirm():
     if not now_click.button("Confirm"): return False
     win_moveTo(965, 878)
+    time.sleep(0.3)
     now_click.button("Confirm")
     return True

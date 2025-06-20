@@ -22,19 +22,24 @@ def pack_eval(level, regions, skip):
     print(banned)
     logging.info(f"Ignore: {banned}")
 
+    if p.HARD:
+        pack_list = HARD_FLOORS[level]
+    else:
+        pack_list = FLOORS[level]
+
     packs = dict()
 
-    image = screenshot(region=(161, 630, 1632, 100))
-    sift = cv2.SIFT_create(nfeatures=2000, contrastThreshold=0)
-    kp2, des2 = sift.detectAndCompute(image, None)
-    for pack in FLOORS[level]:
-        if len(packs.keys()) >= 5: break
-        template = cv2.imread(PTH[pack], cv2.IMREAD_GRAYSCALE)
-        coords = SIFT_matching(template, kp2, des2, (161, 630, 1632, 100), nfeatures=2000, contrastThreshold=0)
-        if coords:
-            x, _ = gui.center(coords)
-            if all(abs(x - existing) > 100 for existing in list(packs.values())):
-                packs[pack] = x
+    attempts = 2
+    while len(packs.keys()) < len(regions) and attempts > 0:
+        sift = SIFTMatcher(region=(161, 630, 1632, 100), nfeatures=2000, contrastThreshold=0)
+        for pack in pack_list:
+            if len(packs.keys()) >= len(regions): break
+            box = sift.locate(PTH[pack])
+            if box:
+                x, _ = gui.center(box)
+                if all(abs(x - existing) > 100 for existing in list(packs.values())):
+                    packs[pack] = x
+        attempts -= 1
     
     packs = {
         pack: region_id 
@@ -91,7 +96,11 @@ def pack(level):
     if not now.button("PackChoice"):
         return (False, level)
     
-    now.button("hardDifficulty", click=(1349, 64))
+    if not p.HARD:
+        now.button("hardDifficulty", click=(1349, 64))
+    else:
+        if not now.button("hardDifficulty"):
+            win_click(1349, 64)
 
     for i in range(1, 6):
         if now.button(f"lvl{i}", "lvl"):
