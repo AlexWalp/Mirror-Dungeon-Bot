@@ -271,6 +271,7 @@ def fight(lux=False):
                 time.sleep(1)
                 if now.button("winrate"):
                     gui.press("p", 1, 0.1)
+                    time.sleep(0.5)
                     gui.press("enter", 1, 0.1)
                     time.sleep(1)
             except gui.ImageNotFoundException:
@@ -289,6 +290,10 @@ def fight(lux=False):
                 print("Battle is over")
                 logging.info("Battle is over")
                 return True
+            
+        for i in range(3):
+            if now_rgb.button(f"end_{i}", "skip_yap"):
+                gui.press("space", 1, 0.1)
         
         if gui.getActiveWindowTitle() != 'LimbusCompany':
             ck = True

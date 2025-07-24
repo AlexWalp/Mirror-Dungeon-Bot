@@ -1067,7 +1067,11 @@ class MyApp(QWidget):
 
     def lux_hide(self):
         self.is_lux = False
-        self.update_sinners()
+        self.update_sinners() 
+        print(self.sinners)
+        print(self.sinner_selections)
+        print(self.affinity_lux)
+        print(self.affinity)
         self.sinner_selections[self.affinity_lux + 7] = self.sinners
         self.set_selected_buttons(self.sinner_selections[self.affinity])
         self.lux.hide()
@@ -1304,10 +1308,10 @@ class MyApp(QWidget):
         # selected teams
         self.teams = dict()
         self.update_sinners()
-        self.sinner_selections[self.affinity] = self.sinners
         if self.is_lux:
             self.teams[self.affinity_lux] = {"sinners": self.sinners}
         else:
+            self.sinner_selections[self.affinity] = self.sinners
             for index in range(7):
                 i = (self.affinity + index) % 7
                 if self.buttons[f"affinity{i}"].isChecked():

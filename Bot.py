@@ -26,7 +26,7 @@ start_locations = {
     "enterBonus": 10, 
     "Confirm.0": 16, 
     "refuse": 17, 
-    "Confirm": 22
+    "Confirm": 23
 }
 
 def dungeon_start():
@@ -51,6 +51,7 @@ def dungeon_start():
         lambda: now_click.button("starlight"),
         Action("Confirm.0", ver="refuse"),
 
+        lambda: now_click.button("giftSearch"),
         Action(p.GIFTS["checks"][2], "StartEGO", ver="gifts!"),
         ClickAction((1239, 395), ver="selected!"),
         ClickAction((1239, 549), ver="selected!"),

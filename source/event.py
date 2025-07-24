@@ -2,6 +2,7 @@ from source.utils.utils import *
 
 PROBS = ["VeryHigh", "High", "Normal", "Low", "VeryLow"]
 
+favorites = ["chicken"]
 
 def event():
     if not now.button("eventskip"): return False
@@ -16,22 +17,40 @@ def event():
         
         if now.button("choices"):
             time.sleep(0.1)
+            if now_click.button("textNew", "textEGO"): continue
+            if now_click.button("textLvl", "textEGO"): continue
+            if any(now_click.button(f"choice_{favorite}", "textEGO") for favorite in favorites): continue
+
             egos = LocateGray.locate_all(PTH["textEGO"], region=REG["textEGO"], conf=0.85)
-            print(egos)
+
             if not egos:
-                choice = random.choice([316, 520])
+                choice = random.choice([316, 520, 730])
                 win_click(1348, choice, delay=0)
                 continue
-            try:
-                win = LocateGray.try_locate(PTH["textWIN"], region=REG["textEGO"], conf=0.85)
-                for box in egos:
-                    if abs(box[1] - win[1]) > 80:
-                        win_click(gui.center(box), delay=0)
-                        break
-                else:
-                    win_click(1356, 498, delay=0)
-            except gui.ImageNotFoundException:
-                win_click(gui.center(egos[0]), delay=0)
+
+            affinity = LocateGray.locate_all(PTH[f"{p.TEAM.lower()}_choice"], region=REG["textEGO"], conf=0.85)
+            win = LocateGray.locate(PTH["textWIN"], region=REG["textEGO"], conf=0.85)
+
+            filtered = []
+            priority = []
+            for box in egos:
+                if not win or abs(box[1] - win[1]) > 80:
+                    filtered.append(box)
+
+                    for aff in affinity:
+                        if abs(box[1] - aff[1]) < 80:
+                            priority.append(box)
+            
+            if priority:
+                sorted(priority, key=lambda x: x[1])            
+                win_click(gui.center(priority[0]), delay=0)
+                continue
+            
+            if filtered:
+                sorted(priority, key=lambda x: x[1])            
+                win_click(gui.center(filtered[0]), delay=0)
+            else:
+                win_click(1356, 498, delay=0)
 
         now_click.button("Proceed")
         now_click.button("CommenceBattle")

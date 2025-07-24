@@ -23,6 +23,8 @@ a = Analysis(
         ('ImageAssets\\UI\\end\\*.png', 'ImageAssets\\UI\\end'),
         ('ImageAssets\\UI\\event\\*.png', 'ImageAssets\\UI\\event'),
         ('ImageAssets\\UI\\event\\sinprob\\*.png', 'ImageAssets\\UI\\event\\sinprob'),
+        ('ImageAssets\\UI\\event\\favorite\\*.png', 'ImageAssets\\UI\\event\\favorite'),
+        ('ImageAssets\\UI\\event\\teams\\*.png', 'ImageAssets\\UI\\event\\teams'),
         ('ImageAssets\\UI\\grab\\*.png', 'ImageAssets\\UI\\grab'),
         ('ImageAssets\\UI\\grab\\card\\*.png', 'ImageAssets\\UI\\grab\\card'),
         ('ImageAssets\\UI\\grab\\levels\\*.png', 'ImageAssets\\UI\\grab\\levels'),
