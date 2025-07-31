@@ -42,22 +42,22 @@ def dungeon_start():
         lambda: wait_for_condition(lambda: not now.button("enterBonus")),
         lambda: time.sleep(0.2),
 
-        ClickAction((401, 381), ver="money!"),
-        ClickAction((686, 381), ver="money!"),
-        ClickAction((966, 381), ver="money!"),
-        ClickAction((1241, 381), ver="money!"),
+        lambda: ClickAction(( 401, 381), ver="money!").execute(try_click) if p.BUFF[0] else None,
+        lambda: ClickAction(( 686, 381), ver="money!").execute(try_click) if p.BUFF[1] else None,
+        lambda: ClickAction(( 966, 381), ver="money!").execute(try_click) if p.BUFF[2] else None,
+        lambda: ClickAction((1241, 381), ver="money!").execute(try_click) if p.BUFF[3] else None,
 
         Action("enterBonus", ver="Confirm.0"),
         lambda: now_click.button("starlight"),
         Action("Confirm.0", ver="refuse"),
 
         lambda: now_click.button("giftSearch"),
-        Action(p.GIFTS["checks"][2], "StartEGO", ver="gifts!"),
+        ClickAction(p.GIFTS["checks"][2], ver="gifts!"),
         ClickAction((1239, 395), ver="selected!"),
-        ClickAction((1239, 549), ver="selected!"),
+        lambda: ClickAction((1239, 549), ver="selected!").execute(try_click) if p.BUFF[3] else None,
         ClickAction((1624, 882)),
 
-        Action("Confirm"),
+        lambda: Action("Confirm", ver="Confirm").execute(try_click) if p.BUFF[3] else None,
         Action("Confirm", ver="loading"),
         loading_halt
     ]
@@ -237,46 +237,46 @@ def main_loop():
         time.sleep(0.2)
 
 # when cmd is run:
-def replay_loop():
-    setup()
-    number = input("How many mirrors will you grind? ")
-    number = int(''.join(filter(str.isdigit, number)) or '0')
+# def replay_loop():
+#     setup()
+#     number = input("How many mirrors will you grind? ")
+#     number = int(''.join(filter(str.isdigit, number)) or '0')
 
-    if number < 1:
-        print("I respect that")
-        return
+#     if number < 1:
+#         print("I respect that")
+#         return
     
-    # count_exp = 1
-    # count_thd = 1
-    # grind_lux(count_exp, count_thd)
+#     # count_exp = 1
+#     # count_thd = 1
+#     # grind_lux(count_exp, count_thd)
 
 
-    print(f"Grinding {number} mirrors...")
-    print("Switch to Limbus Window")
-    countdown(10)
+#     print(f"Grinding {number} mirrors...")
+#     print("Switch to Limbus Window")
+#     countdown(10)
     
-    p.GIFTS = TEAMS[p.TEAM]
-    setup_logging(enable_logging=p.LOG)
+#     p.GIFTS = TEAMS[p.TEAM]
+#     setup_logging(enable_logging=p.LOG)
     
-    logging.info('Script started')
-    set_window()
+#     logging.info('Script started')
+#     set_window()
 
-    for i in range(number):
-        if p.NETZACH: check_enkephalin()
+#     for i in range(number):
+#         if p.NETZACH: check_enkephalin()
 
-        logging.info(f'Iteration {i}')
-        completed = False
-        while not completed:
-            completed = main_loop()
+#         logging.info(f'Iteration {i}')
+#         completed = False
+#         while not completed:
+#             completed = main_loop()
 
 
-if __name__ == "__main__":
-    try:
-        replay_loop()
-        if p.ALTF4:
-            close_limbus()
-    except StopExecution:
-        sys.exit()
+# if __name__ == "__main__":
+#     try:
+#         replay_loop()
+#         if p.ALTF4:
+#             close_limbus()
+#     except StopExecution:
+#         sys.exit()
 
 
 # when App is run:
@@ -297,20 +297,23 @@ def set_team(affinity, teams):
 
     p.SELECTED = [list(SINNERS.keys())[i] for i in list(teams[affinity]["sinners"])]
     p.PICK = generate_packs(teams[affinity]["priority"])
+    print(p.PICK)
     logging.info(f'Team: {p.TEAM}')
     
     difficulty = "HARD" if p.HARD else "NORMAL"
     logging.info(f'Difficulty: {difficulty}')
 
 
-def execute_me(is_lux, count, count_exp, count_thd, teams, avoid, log, bonus, restart, altf4, enkephalin, skip, hard, app, warning):
+def execute_me(is_lux, count, count_exp, count_thd, teams, avoid, settings, hard, app, warning):
     p.HARD = hard
-    p.LOG = log
-    p.BONUS = bonus
-    p.RESTART = restart
-    p.ALTF4 = altf4
-    p.NETZACH = enkephalin
-    p.SKIP = skip
+    p.LOG = settings['log']
+    p.BONUS = settings['bonus']
+    p.RESTART = settings['restart']
+    p.ALTF4 = settings['altf4']
+    p.NETZACH = settings['enkephalin']
+    p.SKIP = settings['skip']
+    p.BUFF = settings['buff']
+    p.CARD = settings['card']
     p.APP = app
     p.WARNING = warning
 

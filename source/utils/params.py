@@ -1,6 +1,6 @@
 import threading
 
-V = "2.1.3"
+V = "2.1.4"
 
 SELECTED = ["YISANG", "DONQUIXOTE" , "ISHMAEL", "RODION", "SINCLAIR", "GREGOR"]
 GIFTS = dict()
@@ -11,6 +11,8 @@ RESTART = True
 ALTF4 = False
 NETZACH = False
 SKIP = True
+BUFF = [True, True, True, True]
+CARD = [1, 0, 2, 3, 4]
 HARD = False
 APP = None
 

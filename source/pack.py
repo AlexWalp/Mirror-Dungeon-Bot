@@ -113,7 +113,7 @@ def pack(level):
     win_moveTo(1721, 999)
     time.sleep(0.4)
 
-    skips = 3
+    skips = 1 + p.BUFF[2]*2
     box = LocateGray.locate(PTH["PackCard"], region=REG["PackCard"])
     if box is None:
         card_count = 5

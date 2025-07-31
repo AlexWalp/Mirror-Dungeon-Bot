@@ -136,7 +136,7 @@ def inventory_check(reg, h):
         except gui.ImageNotFoundException:
             continue
 
-    if not p.AGRESSIVE_FUSING: # ignore same affinity gifts
+    if not p.AGRESSIVE_FUSING or not p.GIFTS["sin"]: # ignore same affinity gifts if not aggressive or slash/pierce/blunt team
         found = [gui.center(box) for box in LocateRGB.locate_all(PTH[p.GIFTS["checks"][4]], region=reg, image=fuse_shelf, threshold=50, method=cv2.TM_SQDIFF_NORMED)]
         for res in found:
             fuse_shelf = rectangle(fuse_shelf, (int(res[0] - 103 - reg[0]), int(res[1] - 105 - reg[1])), (int(res[0] + 19 - reg[0]), int(res[1] + 17 - reg[1])), (0, 0, 0), -1)
@@ -182,30 +182,42 @@ def get_inventory():
         time.sleep(0.4)
     return coords, have
 
+
+def buy_known(shop_shelf):
+    output = False
+    for gift in p.GIFTS["buy"]:
+        try:
+            res = loc_shop.try_find(gift, "buy_shelf", image=shop_shelf, comp=0.75, conf=0.7)
+            print(f"got {gift}")
+            win_click(res)
+            conf_gift()
+            time.sleep(0.1)
+            shop_shelf = update_shelf()
+            output = True
+        except gui.ImageNotFoundException:
+            continue
+    return shop_shelf, output
+
+def buy_affinity():
+    box = True
+    while box:
+        shop_shelf = update_shelf()
+        box = LocateRGB.locate(PTH[p.GIFTS["checks"][0]], region=REG["buy_shelf"], image=shop_shelf, method=cv2.TM_SQDIFF_NORMED, comp=0.9)
+        if box: 
+            res = gui.center(box)
+            win_click(res)
+            conf_gift()
+            time.sleep(0.1)
+    return shop_shelf, False
+
 def buy_some(rerolls=1, priority=False):
     time.sleep(0.2)
     iterations = rerolls + 1
     for i in range(iterations):
         if not priority: # just by same affinity
-            box = True
-            while box:
-                shop_shelf = update_shelf()
-                box = LocateRGB.locate(PTH[p.GIFTS["checks"][0]], region=REG["buy_shelf"], image=shop_shelf, method=cv2.TM_SQDIFF_NORMED, comp=0.9)
-                if box: 
-                    res = gui.center(box)
-                    win_click(res)
-                    conf_gift()
+            buy_affinity()
         else: # buy only necessary stuff
-            shop_shelf = update_shelf()
-            for gift in p.GIFTS["buy"]:
-                try:
-                    res = loc_shop.try_find(gift, "buy_shelf", image=shop_shelf, comp=0.75, conf=0.7)
-                    print(f"got {gift}")
-                    win_click(res)
-                    conf_gift()
-                    shop_shelf = update_shelf()
-                except gui.ImageNotFoundException:
-                    continue
+            buy_known(update_shelf())
 
         if rerolls and balance(200):
             rerolls -= 1
@@ -284,12 +296,6 @@ def fuse():
     is_special = False
     fuse_type = 0
 
-    # try: # getting rid of useless stone ego gift I hate
-    #     res = loc_shop.try_find(p.GIFTS["useless"], "fuse_shelf")
-    #     coords[4].append(res)
-    # except:
-    #     print("no usless ego gift")
-
     # get powerful ego gift
     if not p.GIFTS["uptie2"] in have.keys():
         p.AGRESSIVE_FUSING = True
@@ -300,6 +306,7 @@ def fuse():
             is_special = True
     else:
         if p.AGRESSIVE_FUSING: p.AGRESSIVE_FUSING = False
+        if not p.GIFTS["sin"]: raise NotImplementedError
 
         # get fused ego gifts
         if not p.GIFTS["goal"][0] in have.keys():
@@ -325,7 +332,7 @@ def fuse():
             to_click.append(have[name])
         perform_clicks(to_click)
 
-    if is_special: enhance_special()
+    if is_special and p.GIFTS["sin"]: enhance_special()
     return None
 
 
@@ -435,18 +442,11 @@ def get_shop(shop_shelf):
     return have
 
 def buy(missing):
-    shop_shelf = update_shelf()
-    output = False
-    for gift in p.GIFTS["buy"]:
-        try:
-            res = loc_shop.try_find(gift, "buy_shelf", image=shop_shelf, comp=0.75, conf=0.7)
-            print(f"got {gift}")
-            win_click(res)
-            conf_gift()
-            output = True
-            shop_shelf = update_shelf()
-        except gui.ImageNotFoundException:
-            continue
+    if p.GIFTS["sin"]:
+        shop_shelf, output = buy_known(update_shelf())
+    else:
+        shop_shelf, output = buy_affinity()
+
     if output: return True, missing # got build
 
     gained = {1: 0, 2: 0, 3: 0}

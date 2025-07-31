@@ -81,8 +81,7 @@ def grab_card():
     win_moveTo(1000, 900)
     now_click.button("Cancel") # if was misclicked
     time.sleep(1)
-
-    for i in range(1, 6):
+    for i in p.CARD:
         if now.button(f"card{i}", "Card"):
             get_card(f"card{i}")
             wait_for_condition(

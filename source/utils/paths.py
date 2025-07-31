@@ -220,7 +220,8 @@ HARD_FLOORS = {
         'DevouredGluttony', 'DegradedGloom', 'VainPride', 'InsignificantEnvy', 'ThunderandLightning', 
         'PoisedBreathing', 'SinkingDeluge', 'UnrelentingMight', 'AbnormalSeismicZone', 
         'MountainofCorpsesSeaofBlood', 'SeasonoftheFlame', 'toClaimTheirBonesBokGak',
-        'MiracleinDistrict20BokGak', 'Line2', 'Line1', 'TheEvilDefining', 'TheUnchanging'
+        'MiracleinDistrict20BokGak', 'Line2', 'Line1', 'TheEvilDefining', 'TheUnchanging',
+        'TimekillingTimeBokGak'
     ],
     5: [
         'TimekillingTime', 'MurderontheWARPExpress', 'LCBRegularCheckup', 'NocturnalSweeping', 
@@ -229,7 +230,8 @@ HARD_FLOORS = {
         'TyrannicalPride', 'SunkGloom', 'ExcessiveGluttony', 'InertSloth', 'TanglingLust', 
         'UnboundWrath', 'toClaimTheirBonesBokGak', 'MiracleinDistrict20BokGak', 'Line4', 'Line3',
         'TheInfiniteProcession', 'TheHeartbreaking', 'LaManchalandReopening', 'TheEvilDefining',
-        'TheUnchanging', 'FourHousesandGreed', 'Line5', 'TheSurrenderedWitnessing', 'TheDreamEnding'
+        'TheUnchanging', 'FourHousesandGreed', 'Line5', 'TheSurrenderedWitnessing', 'TheDreamEnding',
+        'TimekillingTimeBokGak'
     ]
 }
 
@@ -238,7 +240,7 @@ HARD_BANNED = [
     "NocturnalSweeping", 'Line4', 'Line3', 'toClaimTheirBonesBokGak', 'TheEvilDefining', 
     'SinkingDeluge', 'PoisedBreathing', 'InertSloth', 'EmotionalFlood', 'CrawlingAbyss', 
     'TreadwheelSloth', 'VainPride', 'PitifulEnvy', 'TyrannicalPride', 'UnrelentingMight', 
-    'Line5', 'TheSurrenderedWitnessing', 'TheDreamEnding', 'HatredandDespair'
+    'Line5', 'TheSurrenderedWitnessing', 'TheDreamEnding', 'HatredandDespair', 'TimekillingTimeBokGak'
 ]
 
 
