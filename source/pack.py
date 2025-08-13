@@ -10,7 +10,7 @@ def within_region(x, regions):
         return None
 
 
-def pack_eval(level, regions, skip):
+def pack_eval(level, regions, skip, skips):
     
     # best packs
     priority = p.PICK[f"floor{level}"]
@@ -55,20 +55,20 @@ def pack_eval(level, regions, skip):
                 print(f"Entering {pr}")
                 logging.info(f"Pack: {pr}")
                 return packs[pr]
-    if level < 3 and skip != 3 and priority:
+    if skip != skips and priority:
         return None
     
     # removing S.H.I.T. packs
     filtered = {pack: i for pack, i in packs.items() if pack not in banned}
 
-    if not filtered and skip != 3: # if all packs are S.H.I.T.
+    if not filtered and skip != skips: # if all packs are S.H.I.T.
         return None
     elif not filtered:
         print("May Ayin save us all!") # we have to pick S.H.I.T. 
         return 0
 
     # locating relevant ego gifts in floor rewards
-    ego_coords = [gui.center(box) for box in LocateRGB.locate_all(PTH[p.GIFTS["checks"][1]])]
+    ego_coords = [gui.center(box) for box in LocateRGB.locate_all(PTH[p.GIFTS[0]["checks"][1]])]
     owned_x = [x + w for x, _, w, _ in LocateRGB.locate_all(PTH["OwnedSmall"])]
 
     # excluding owned ego gifts from evaluation
@@ -143,7 +143,7 @@ def pack(level):
 
     for skip in range(skips + 1):
         time.sleep(0.2)
-        id = pack_eval(level, regions, skip)
+        id = pack_eval(level, regions, skip, skips)
         # cv2.imwrite(f"choices/pack{int(time.time())}.png", screenshot()) # debugging
         if not id is None:
             region = regions[id]
@@ -151,7 +151,7 @@ def pack(level):
             win_moveTo(x, y)
             win_dragTo(x, y + 300, duration=0.5, button="left")
             break
-        if skip != 3:
+        if skip != skips:
             win_click(1617, 62)
             win_moveTo(1721, 999)
             time.sleep(2)

@@ -1,7 +1,7 @@
 # Burn
 TEAMS = {
     "BURN": {
-        "checks" : ["Burn", "smallBurn", (315, 370), "reBurn", "bigBurn"],
+        "checks" : ["Burn", "smallBurn", (315, 370), "reBurn", "bigBurn", 0],
         "floors" : ["TheOutcast", "HellsChicken", "LCBRegularCheckup"],
         "uptie1" : ["hellterfly", "fiery"],
         "uptie2" : "glimpse",
@@ -15,7 +15,7 @@ TEAMS = {
 
     # Bleed
     "BLEED": {
-        "checks" : ["Bleed", "smallBleed", (535, 370), "reBleed", "bigBleed"],
+        "checks" : ["Bleed", "smallBleed", (535, 370), "reBleed", "bigBleed", 0],
         "floors" : ["FaithErosion", "TheOutcast", "HellsChicken"],
         "uptie1" : ["clerid"], # wolf
         "uptie2" : "redstained",
@@ -29,7 +29,7 @@ TEAMS = {
 
     # Tremor
     "TREMOR": {
-        "checks" : ["Tremor", "smallTremor", (755, 370), "reTremor", "bigTremor"],
+        "checks" : ["Tremor", "smallTremor", (755, 370), "reTremor", "bigTremor", 0],
         "floors" : ["SEA", "ACertainWorld"],
         "uptie1" : ["bracelet", "reverberation"],
         "uptie2" : "downpour",
@@ -43,7 +43,7 @@ TEAMS = {
 
     # Rupture
     "RUPTURE": {
-        "checks" : ["Rupture", "smallRupture", (975, 370), "reRupture", "bigRupture"],
+        "checks" : ["Rupture", "smallRupture", (975, 370), "reRupture", "bigRupture", 1],
         "floors" : ["TheOutcast", "HellsChicken", "LCBRegularCheckup"],
         "uptie1" : ["lamp"], # "thunderbranch" "lasso"
         "uptie2" : "thrill",
@@ -57,7 +57,7 @@ TEAMS = {
 
     # Sinking
     "SINKING": {
-        "checks" : ["Sinking", "smallSinking", (315, 665), "reSinking", "bigSinking"],
+        "checks" : ["Sinking", "smallSinking", (315, 665), "reSinking", "bigSinking", 0],
         "floors" : ["DregsoftheManor", "ACertainWorld"],
         "uptie1" : ["redorder"],
         "uptie2" : "artisticsense",
@@ -71,7 +71,7 @@ TEAMS = {
 
     # Poise
     "POISE": {
-        "checks" : ["Poise", "smallPoise", (535, 665), "rePoise", "bigPoise"],
+        "checks" : ["Poise", "smallPoise", (535, 665), "rePoise", "bigPoise", 1],
         "floors" : [],
         "uptie1" : ["stonetomb"], # holder
         "uptie2" : "clearmirror",
@@ -85,7 +85,7 @@ TEAMS = {
 
     # Charge
     "CHARGE": {
-        "checks" : ["Charge", "smallCharge", (755, 665), "reCharge", "bigCharge"],
+        "checks" : ["Charge", "smallCharge", (755, 665), "reCharge", "bigCharge", 0],
         "floors" : ["HellsChicken"],
         "uptie1" : ["employeecard", "batterysocket"],
         "uptie2" : "gloves",
@@ -98,7 +98,7 @@ TEAMS = {
     },
 
     "SLASH": {
-        "checks" : ["Slash", "smallSlash", (975, 665), "reSlash", "bigSlash"],
+        "checks" : ["Slash", "smallSlash", (975, 665), "reSlash", "bigSlash", 1],
         "floors" : [],
         "uptie1" : ["shortcane"],
         "uptie2" : "slashmemory",
@@ -111,7 +111,7 @@ TEAMS = {
     },
 
     "PIERCE": {
-        "checks" : ["Pierce", "smallPierce", (315, 840), "rePierce", "bigPierce"],
+        "checks" : ["Pierce", "smallPierce", (315, 840), "rePierce", "bigPierce", 1],
         "floors" : [],
         "uptie1" : ["plumeproof"],
         "uptie2" : "piercememory",
@@ -124,7 +124,7 @@ TEAMS = {
     },
 
     "BLUNT": {
-        "checks" : ["Blunt", "smallBlunt", (535, 840), "reBlunt", "bigBlunt"],
+        "checks" : ["Blunt", "smallBlunt", (535, 840), "reBlunt", "bigBlunt", 0],
         "floors" : [],
         "uptie1" : [],
         "uptie2" : "bluntmemory",
@@ -140,7 +140,7 @@ TEAMS = {
 # HARDMODE
 HARD = {
     "BURN": {
-        "checks" : ["Burn", "smallBurn", (315, 370), "reBurn", "bigBurn"],
+        "checks" : ["Burn", "smallBurn", (315, 370), "reBurn", "bigBurn", 0],
         "floors" : ["TheOutcast", "HellsChicken", "LCBRegularCheckup"],
         "uptie1" : ["hellterfly", "fiery"],
         "uptie2" : "glimpse",
@@ -159,7 +159,7 @@ HARD = {
 
     # Bleed
     "BLEED": {
-        "checks" : ["Bleed", "smallBleed", (535, 370), "reBleed", "bigBleed"],
+        "checks" : ["Bleed", "smallBleed", (535, 370), "reBleed", "bigBleed", 0],
         "floors" : ["FaithErosion", "TheOutcast", "HellsChicken"],
         "uptie1" : ["clerid"], # wolf
         "uptie2" : "redstained",
@@ -178,7 +178,7 @@ HARD = {
 
     # Tremor
     "TREMOR": {
-        "checks" : ["Tremor", "smallTremor", (755, 370), "reTremor", "bigTremor"],
+        "checks" : ["Tremor", "smallTremor", (755, 370), "reTremor", "bigTremor", 0],
         "floors" : ["SEA", "ACertainWorld"],
         "uptie1" : ["bracelet", "reverberation"],
         "uptie2" : "downpour",
@@ -197,7 +197,7 @@ HARD = {
 
     # Rupture
     "RUPTURE": {
-        "checks" : ["Rupture", "smallRupture", (975, 370), "reRupture", "bigRupture"],
+        "checks" : ["Rupture", "smallRupture", (975, 370), "reRupture", "bigRupture", 1],
         "floors" : ["TheOutcast", "HellsChicken", "LCBRegularCheckup"],
         "uptie1" : ["lamp"], # "thunderbranch" "lasso"
         "uptie2" : "thrill",
@@ -216,7 +216,7 @@ HARD = {
 
     # Sinking
     "SINKING": {
-        "checks" : ["Sinking", "smallSinking", (315, 665), "reSinking", "bigSinking"],
+        "checks" : ["Sinking", "smallSinking", (315, 665), "reSinking", "bigSinking", 0],
         "floors" : ["DregsoftheManor", "ACertainWorld"],
         "uptie1" : ["redorder"],
         "uptie2" : "artisticsense",
@@ -235,7 +235,7 @@ HARD = {
 
     # Poise
     "POISE": {
-        "checks" : ["Poise", "smallPoise", (535, 665), "rePoise", "bigPoise"],
+        "checks" : ["Poise", "smallPoise", (535, 665), "rePoise", "bigPoise", 1],
         "floors" : [],
         "uptie1" : ["stonetomb"], # holder
         "uptie2" : "clearmirror",
@@ -254,7 +254,7 @@ HARD = {
 
     # Charge
     "CHARGE": {
-        "checks" : ["Charge", "smallCharge", (755, 665), "reCharge", "bigCharge"],
+        "checks" : ["Charge", "smallCharge", (755, 665), "reCharge", "bigCharge", 0],
         "floors" : ["HellsChicken"],
         "uptie1" : ["employeecard", "batterysocket"],
         "uptie2" : "gloves",
@@ -272,7 +272,7 @@ HARD = {
     },
 
     "SLASH": {
-        "checks" : ["Slash", "smallSlash", (975, 665), "reSlash", "bigSlash"],
+        "checks" : ["Slash", "smallSlash", (975, 665), "reSlash", "bigSlash", 1],
         "floors" : [],
         "uptie1" : ["shortcane"],
         "uptie2" : "slashmemory",
@@ -287,7 +287,7 @@ HARD = {
     },
 
     "PIERCE": {
-        "checks" : ["Pierce", "smallPierce", (315, 840), "rePierce", "bigPierce"],
+        "checks" : ["Pierce", "smallPierce", (315, 840), "rePierce", "bigPierce", 1],
         "floors" : [],
         "uptie1" : ["plumeproof"],
         "uptie2" : "piercememory",
@@ -302,7 +302,7 @@ HARD = {
     },
 
     "BLUNT": {
-        "checks" : ["Blunt", "smallBlunt", (535, 840), "reBlunt", "bigBlunt"],
+        "checks" : ["Blunt", "smallBlunt", (535, 840), "reBlunt", "bigBlunt", 0],
         "floors" : [],
         "uptie1" : [],
         "uptie2" : "bluntmemory",

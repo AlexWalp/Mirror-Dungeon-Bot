@@ -52,24 +52,47 @@
 
 - ## Auto-selects the team
   ### *This means that you need to set up the correct team names in advance.*
-  - Supported team keywords: <br>
-  **SLASH, PIERCE, BLUNT, BURN, BLEED, TREMOR, RUPTURE, SINKING, POISE, CHARGE**
-  - Any two-word combination of these keywords (without #number) is also supported
-  - For single-word team names, #number is supported
-  - The bot scrolls through teams until it finds the uppermost matching team
-  - Uses default team if it fails to find the right team
+  ### Team Name Detection Rules
+
+  - The bot determines the team to select based on the **keyword icon** assigned to that team.
+
+  - #### 1. Supported Keywords
+      - **Single word:**
+  
+        **SLASH, PIERCE, BLUNT,<br> BURN, BLEED, TREMOR, RUPTURE, SINKING, POISE, CHARGE,<br> WRATH, LUST, SLOTH, GLUT. , GLOOM, PRIDE, ENVY**
+
+    - **Two-word combinations:**
+      - Any combination of two of the above keywords (without `#number`) is also supported.
+
+  - #### 2. Special Rules
+    - **Single-word team names** can include `#number` (e.g., `SINKING#2`).
+    - The bot scrolls through teams until it finds the **uppermost matching team**.
+    - If multiple teams share the same keyword icon (e.g., in MD runs), the bot selects the **n-th occurrence** of that keyword in your team list.
+        - **Example:** If searching for `"SINKING"` and it’s the second `"SINKING"` team in your setup, the bot will choose the **second occurrence**.  
+
+          <img src="ImageAssets/readme/duplicates.png" width="100%">
+
+  - #### 3. Fallback
+    - If no matching keyword is found, the bot defaults to the **default team**.
+
   ### Supported name examples:
 
   <img src="ImageAssets/readme/team_names.png" width="100%">
 
 - ## Rotates teams
-  - *Orange* - currently displayed team
-  - *Blue* - other teams included in the rotation
-  - The rotation starts from the curretly displayed team and moves from left to right<br><br>
-
   <img src="ImageAssets/readme/rotation.png" width="100%">
 
-- ## Supports all team builds
+  ### Upper row:
+  - *Orange* - currently displayed team
+  - *Blue* - other teams included in the rotation
+  - The rotation starts from the curretly displayed team and moves from left to right
+  ### Lower row:
+  - Affinities of the selected team
+  - Affects EGO gift team build
+  - Order matters, at least one is always selected
+
+
+- ## Recommended Team
   - **Normal MD:** Rupture is the fastest team with average time of 24 minutes per run.  
   - **Hard MD:** Rupture is the best team with average time of 38 minutes per run. <br><br>
 
@@ -86,7 +109,7 @@
     <br>
 
     ### You can set your own pack priority in config!
-    - ***Important note: Prioritized packs are specific to each team type, but Avoided packs apply globally to all teams.***
+    - ***Important note: Prioritized and Avoided packs are specific to each team.***
     - ***There are two different configs for Normal MD and Hard MD***
 
   <br clear="left" />
@@ -129,11 +152,11 @@
     - If not all gifts are visible, it can **scroll through inventory** while fusing.
     <br><br>
 
-    **If no tier 4 in inventory:**
+    **If lacking tier 4 for keyword(s):**
     - The bot aggressively fuses the **first Tier 4 gift**, even using same-affinity gifts if needed.
     <br><br>
 
-    **Once the first build-related Tier 4 gift is obtained:**
+    **Once a tier 4 for each selected affinity is obtained:**
     - Same-affinity gifts will **no longer be used for fusing**.
     <br><br>
 

@@ -142,8 +142,9 @@ def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=1
 def select_team():
     time.sleep(1)
 
-    affinity = p.TEAM.lower()
-    if LocateGray.check(PTH[f"{affinity}_current"], region=REG["current_team"], conf=0.92, method=cv2.TM_SQDIFF_NORMED, wait=False):
+    affinity = p.TEAM[0].lower()
+    idx = p.NAME_ORDER
+    if not p.DUPLICATES and LocateGray.check(PTH[f"{affinity}_current"], region=REG["current_team"], conf=0.92, method=cv2.TM_SQDIFF_NORMED, wait=False):
         return
     
     if now_rgb.button("arrow", conf=0.7):
@@ -152,14 +153,16 @@ def select_team():
         time.sleep(1)
 
     for i in range(4):
-        coords = [gui.center(box) for box in LocateGray.locate_all(PTH[f"{affinity}_team"], region=REG["teams"], threshold=7, conf=0.83)]
+        coords = [gui.center(box) for box in LocateGray.locate_all(PTH[f"{affinity}_team"], region=REG["teams"], threshold=15, conf=0.83)]
+        print(coords)
         sorted(coords, key=lambda coord: coord[1])
 
-        if coords:
+        if len(coords) > idx:
             if i != 0 and i != 3: gui.mouseUp()
-            win_click(coords[0])
+            win_click(coords[idx])
             break
         elif i != 3:
+            idx -= len(coords)
             if i != 0: gui.mouseUp()
             win_moveTo(196, 670)
             gui.mouseDown()
@@ -169,7 +172,7 @@ def select_team():
     else:
         logging.info("Team selecton failed!")
         return
-    logging.info(f"Selected {p.TEAM}")
+    logging.info(f"Selected {p.TEAM[0]}")
     time.sleep(1)
 
 def select(sinners):
@@ -239,6 +242,7 @@ def chain(gear_start, gear_end, background):
         else:
             win_moveTo(x + 68, y + 70)
         x += 115
+        time.sleep(0.01)
     
     gui.press("enter", 1, 0.1)
     gui.mouseUp()

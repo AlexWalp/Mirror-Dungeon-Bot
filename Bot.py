@@ -1,4 +1,6 @@
 from source.utils.utils import *
+from itertools import cycle
+
 from source.battle import fight, select_team
 from source.event import event
 from source.pack import pack
@@ -25,8 +27,8 @@ start_locations = {
     "ConfirmTeam": 5, 
     "enterBonus": 10, 
     "Confirm.0": 16, 
-    "refuse": 17, 
-    "Confirm": 23
+    "refuse": 18, 
+    "Confirm": 24
 }
 
 def dungeon_start():
@@ -51,10 +53,11 @@ def dungeon_start():
         lambda: now_click.button("starlight"),
         Action("Confirm.0", ver="refuse"),
 
+        lambda: time.sleep(0.2),
         lambda: now_click.button("giftSearch"),
-        ClickAction(p.GIFTS["checks"][2], ver="gifts!"),
-        ClickAction((1239, 395), ver="selected!"),
-        lambda: ClickAction((1239, 549), ver="selected!").execute(try_click) if p.BUFF[3] else None,
+        ClickAction(p.GIFTS[0]["checks"][2], ver="gifts!"),
+        lambda: ClickAction((1239, 395), ver="selected!").execute(try_click) if (p.BUFF[3] or p.GIFTS[0]['checks'][5] == 0) else None,
+        lambda: ClickAction((1239, 549), ver="selected!").execute(try_click) if (p.BUFF[3] or p.GIFTS[0]['checks'][5] == 1) else None,
         ClickAction((1624, 882)),
 
         lambda: Action("Confirm", ver="Confirm").execute(try_click) if p.BUFF[3] else None,
@@ -156,7 +159,8 @@ def dungeon_fail():
 # MAIN LOOP
 def main_loop():
     dungeon_start()
-    p.AGRESSIVE_FUSING = True
+    p.AGGRESSIVE_FUSING = True
+    p.DONE_FUSING = False
     error = 0
     last_error = 0
     ck = False
@@ -182,7 +186,7 @@ def main_loop():
             pause()
 
         if p.HARD and now.button("suicide"):
-            win_click(824, 721)
+            win_click(815, 681)
             connection()
         
         if now.button("victory"):
@@ -280,31 +284,28 @@ def main_loop():
 
 
 # when App is run:
-def rotate(lst):
-    index = 0
-    while True:
-        yield lst[index]
-        index = (index + 1) % len(lst)
+def set_team(team, teams):
+    if p.HARD: team_list = HARD
+    else: team_list = TEAMS
 
+    p.TEAM = [list(team_list.keys())[aff] for aff in list(teams[team]["affinity"])]
+    p.NAME_ORDER = teams[team]["affinity_idx"]
+    p.DUPLICATES = teams[team]["duplicates"]
+    p.GIFTS = [team_list[keyword] for keyword in p.TEAM]
 
-def set_team(affinity, teams):
-    if p.HARD:
-        p.TEAM = list(HARD.keys())[affinity]
-        p.GIFTS = HARD[p.TEAM]
-    else:
-        p.TEAM = list(TEAMS.keys())[affinity]
-        p.GIFTS = TEAMS[p.TEAM]
+    if not p.BUFF[3]: p.GIFTS[0]['uptie1'] = p.GIFTS[0]['uptie1'][:1]
 
-    p.SELECTED = [list(SINNERS.keys())[i] for i in list(teams[affinity]["sinners"])]
-    p.PICK = generate_packs(teams[affinity]["priority"])
-    print(p.PICK)
-    logging.info(f'Team: {p.TEAM}')
+    p.SELECTED = [list(SINNERS.keys())[i] for i in list(teams[team]["sinners"])]
+    p.PICK = generate_packs(teams[team]["priority"])
+    p.IGNORE = generate_packs(teams[team]["avoid"])
+
+    logging.info(f'Team: {p.TEAM[0]}')
     
     difficulty = "HARD" if p.HARD else "NORMAL"
     logging.info(f'Difficulty: {difficulty}')
 
 
-def execute_me(is_lux, count, count_exp, count_thd, teams, avoid, settings, hard, app, warning):
+def execute_me(is_lux, count, count_exp, count_thd, teams, settings, hard, app, warning):
     p.HARD = hard
     p.LOG = settings['log']
     p.BONUS = settings['bonus']
@@ -325,35 +326,27 @@ def execute_me(is_lux, count, count_exp, count_thd, teams, avoid, settings, hard
 
 
     if not is_lux:
-        rotator = rotate(list(teams.keys()))
-        p.IGNORE = generate_packs(avoid)
+        rotator = cycle(list(teams.keys()))
         
         print(f"Grinding {count} mirrors...")
         print("Switch to Limbus Window")
         countdown(10)
         logging.info('Script started')
-    else:
-        lux_list = ["SLASH", "PIERCE", "BLUNT"]
-        team_idx = list(teams.keys())[0]
-        p.TEAM = lux_list[team_idx]
-        p.SELECTED = [list(SINNERS.keys())[i] for i in list(teams[team_idx]["sinners"])]
 
     try:
         set_window()
         if is_lux:
-            grind_lux(count_exp, count_thd)
-            QMetaObject.invokeMethod(p.APP, "stop_execution", Qt.ConnectionType.QueuedConnection)
-            return
+            grind_lux(count_exp, count_thd, teams)
+        else:
+            for i in range(count):
+                team = next(rotator)
+                set_team(team, teams)
 
-        for i in range(count):
-            team = next(rotator)
-            set_team(team, teams)
-
-            logging.info(f'Iteration {i}')
-            completed = False
-            while not completed:
-                completed = main_loop()
-            if p.NETZACH: check_enkephalin()
+                logging.info(f'Iteration {i}')
+                completed = False
+                while not completed:
+                    completed = main_loop()
+                if p.NETZACH: check_enkephalin()
 
         if p.ALTF4:
             close_limbus()

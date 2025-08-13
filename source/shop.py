@@ -1,5 +1,5 @@
 from source.utils.utils import *
-from itertools import combinations_with_replacement
+from itertools import combinations_with_replacement, cycle
 import source.utils.params as p
 
 loc_shop = loc_rgb(conf=0.83, wait=False, method=cv2.TM_SQDIFF_NORMED)
@@ -126,7 +126,7 @@ def inventory_check(reg, h):
     fuse_shelf = screenshot(region=reg)
     image = amplify(fuse_shelf)
 
-    for gift in p.GIFTS["all"]:
+    for gift in [all for aff in p.GIFTS for all in aff["all"]]:
         try:
             template = amplify(cv2.imread(PTH[gift]))
             x, y = gui.center(LocateRGB.try_locate(template, image=image, region=reg, conf=0.88))
@@ -135,11 +135,12 @@ def inventory_check(reg, h):
             fuse_shelf = rectangle(fuse_shelf, (int(x - 62 - reg[0]), int(y - 72 - reg[1])), (int(x + 60 - reg[0]), int(y + 60 - reg[1])), (0, 0, 0), -1)
         except gui.ImageNotFoundException:
             continue
-
-    if not p.AGRESSIVE_FUSING or not p.GIFTS["sin"]: # ignore same affinity gifts if not aggressive or slash/pierce/blunt team
-        found = [gui.center(box) for box in LocateRGB.locate_all(PTH[p.GIFTS["checks"][4]], region=reg, image=fuse_shelf, threshold=50, method=cv2.TM_SQDIFF_NORMED)]
-        for res in found:
-            fuse_shelf = rectangle(fuse_shelf, (int(res[0] - 103 - reg[0]), int(res[1] - 105 - reg[1])), (int(res[0] + 19 - reg[0]), int(res[1] + 17 - reg[1])), (0, 0, 0), -1)
+    
+    for aff in p.GIFTS:
+        if not p.AGGRESSIVE_FUSING or not aff["sin"]: # ignore same affinity gifts if not aggressive or slash/pierce/blunt team
+            found = [gui.center(box) for box in LocateRGB.locate_all(PTH[aff["checks"][4]], region=reg, image=fuse_shelf, threshold=50, method=cv2.TM_SQDIFF_NORMED)]
+            for res in found:
+                fuse_shelf = rectangle(fuse_shelf, (int(res[0] - 103 - reg[0]), int(res[1] - 105 - reg[1])), (int(res[0] + 19 - reg[0]), int(res[1] + 17 - reg[1])), (0, 0, 0), -1)
         
     for i in range(4, 0, -1):
         found = [gui.center(box) for box in LocateRGB.locate_all(PTH[str(i)], region=reg, image=fuse_shelf, threshold=50, method=cv2.TM_SQDIFF_NORMED)]
@@ -183,9 +184,10 @@ def get_inventory():
     return coords, have
 
 
-def buy_known(shop_shelf):
+def buy_known(aff):
+    shop_shelf = update_shelf()
     output = False
-    for gift in p.GIFTS["buy"]:
+    for gift in aff["buy"]:
         try:
             res = loc_shop.try_find(gift, "buy_shelf", image=shop_shelf, comp=0.75, conf=0.7)
             print(f"got {gift}")
@@ -198,11 +200,11 @@ def buy_known(shop_shelf):
             continue
     return shop_shelf, output
 
-def buy_affinity():
+def buy_affinity(aff):
     box = True
     while box:
         shop_shelf = update_shelf()
-        box = LocateRGB.locate(PTH[p.GIFTS["checks"][0]], region=REG["buy_shelf"], image=shop_shelf, method=cv2.TM_SQDIFF_NORMED, comp=0.9)
+        box = LocateRGB.locate(PTH[aff["checks"][0]], region=REG["buy_shelf"], image=shop_shelf, method=cv2.TM_SQDIFF_NORMED, comp=0.88, conf=0.8)
         if box: 
             res = gui.center(box)
             win_click(res)
@@ -214,10 +216,12 @@ def buy_some(rerolls=1, priority=False):
     time.sleep(0.2)
     iterations = rerolls + 1
     for i in range(iterations):
-        if not priority: # just by same affinity
-            buy_affinity()
-        else: # buy only necessary stuff
-            buy_known(update_shelf())
+        for aff in p.GIFTS:
+            if not priority or not aff["sin"]: # just by same affinity
+                print('bruh')
+                buy_affinity(aff)
+            else: # buy only necessary stuff
+                buy_known(aff)
 
         if rerolls and balance(200):
             rerolls -= 1
@@ -251,7 +255,7 @@ def enhance_special():
     while True:
         if balance(300):
             Action(p.SUPER, click=(250, 581), ver="power").execute(click)
-            enhance(p.GIFTS["uptie2"]) # enhance special
+            enhance(p.GIFTS[p.IDX]["uptie2"]) # enhance special
             Action("power", click=(750, 873), ver=p.SUPER).execute(click)
             break
         elif not sell(): break
@@ -289,40 +293,89 @@ def perform_clicks(to_click):
     to_click.clear()
 
 
+def set_affinity(i):
+    if p.IDX == i: return
+    p.IDX = i
+    ClickAction((469, 602), ver="keywordSel").execute(shop_click)
+    confirm_affinity()
+    time.sleep(0.2)
+
+def search_have(have, fuse_type, idx):
+    missing = 0
+    iterations = 0
+    names = []
+    if name := next((key for key, value in p.GIFTS[idx][f"fuse{fuse_type + 1}"].items() if value is None), None):
+        if name in have:
+            iterations += 2
+        else:
+            names += list(p.GIFTS[idx][f"fuse{fuse_type}"].keys())
+
+    names += [key for key, value in p.GIFTS[idx][f"fuse{fuse_type + 1}"].items() if value is not None]
+    for name in names:
+        if name not in have.keys():
+                missing += 1
+        iterations += 1
+    return missing/iterations
+
+def fuse_search(have):
+    advanced_fusing = []
+    for i in range(len(p.GIFTS)):
+        if p.GIFTS[i]["sin"] and not p.GIFTS[i]["goal"][0] in have.keys():
+            advanced_fusing.append((i, search_have(have, 1, i), 1))
+        if p.HARD and p.GIFTS[i]["sin"] and not p.GIFTS[i]["goal"][1] in have.keys():
+            advanced_fusing.append((i, search_have(have, 3, i), 3))
+    advanced_fusing.sort(key=lambda item: (item[1], item[0]))
+    return advanced_fusing
+
 def fuse():
     time.sleep(0.2)
     coords, have = get_inventory()
     to_click = []
-    is_special = False
     fuse_type = 0
+    advanced = False
 
     # get powerful ego gift
-    if not p.GIFTS["uptie2"] in have.keys():
-        p.AGRESSIVE_FUSING = True
-        missing = actual_fuse(4, coords)
-        if missing: return missing
-        if loc_shop.button(p.GIFTS["uptie2"], "fuse_shelf", wait=0.2):
-            p.AGRESSIVE_FUSING = False
-            is_special = True
+    for i in range(len(p.GIFTS)):
+        if not p.GIFTS[i]["uptie2"] in have.keys():
+            p.AGGRESSIVE_FUSING = True
+            _, missing = decide_fusion(4, coords)
+            if missing: 
+                if i == 0 or p.DONE_FUSING:
+                    return missing
+                else:
+                    advanced = True
+                    break
+            else:
+                set_affinity(i)
+                actual_fuse(4, coords)
+                if loc_shop.button(p.GIFTS[p.IDX]["uptie2"], "fuse_shelf", wait=0.2):
+                    if p.IDX == 0:
+                        enhance_special()
+                return None
     else:
-        if p.AGRESSIVE_FUSING: p.AGRESSIVE_FUSING = False
-        if not p.GIFTS["sin"]: raise NotImplementedError
+        p.AGGRESSIVE_FUSING = False
 
-        # get fused ego gifts
-        if not p.GIFTS["goal"][0] in have.keys():
-            fuse_type = 1
-        elif p.HARD and not p.GIFTS["goal"][1] in have.keys():
-            fuse_type = 3
-        else: raise NotImplementedError
+    # get recipe ego gifts
+    if advanced or not p.AGGRESSIVE_FUSING: 
+        advanced_fusing = fuse_search(have)
+        if advanced_fusing:
+            i, _, fuse_type = advanced_fusing[0]
+            set_affinity(i)
+        else:
+            p.DONE_FUSING = True
+            if not p.AGGRESSIVE_FUSING:
+                raise NotImplementedError
+            else:
+                return None
 
     if fuse_type:
-        for name, tier in p.GIFTS[f"fuse{fuse_type+1}"].items():
+        for name, tier in p.GIFTS[p.IDX][f"fuse{fuse_type+1}"].items():
             if not name in have.keys():
                 if tier != None:
                     missing = actual_fuse(tier, coords)
                     return missing
                 else: # need to fuse
-                    for name, tier in p.GIFTS[f"fuse{fuse_type}"].items():
+                    for name, tier in p.GIFTS[p.IDX][f"fuse{fuse_type}"].items():
                         if not name in have.keys():
                             missing = actual_fuse(tier, coords)
                             return missing
@@ -332,12 +385,11 @@ def fuse():
             to_click.append(have[name])
         perform_clicks(to_click)
 
-    if is_special and p.GIFTS["sin"]: enhance_special()
     return None
 
 
 def confirm_affinity():
-    click_rgb.button(p.GIFTS["checks"][3], "affinity!")
+    click_rgb.button(p.GIFTS[p.IDX]["checks"][3], "affinity!")
     win_click(1194, 841)
 
 def init_fuse():
@@ -346,8 +398,7 @@ def init_fuse():
         lambda: time.sleep(0.1),
         ClickAction((469, 602), ver="keywordSel")
     ])
-    click_rgb.button(p.GIFTS["checks"][3], "affinity!")
-    win_click(1194, 841)
+    confirm_affinity()
 
 def fuse_loop():
     skip = 0
@@ -358,7 +409,7 @@ def fuse_loop():
             if missing:
                 Action("fuse", click=(750, 873), ver=p.SUPER).execute(click)
                 time.sleep(0.1)
-                result, skip = buy_loop(missing, skip)
+                result = buy_loop(missing)
                 if not result: return
                 else:
                     init_fuse() # open fusing
@@ -442,10 +493,13 @@ def get_shop(shop_shelf):
     return have
 
 def buy(missing):
-    if p.GIFTS["sin"]:
-        shop_shelf, output = buy_known(update_shelf())
-    else:
-        shop_shelf, output = buy_affinity()
+    output = False
+    for aff in p.GIFTS:
+        if aff["sin"]:
+            shop_shelf, out = buy_known(aff)
+        else:
+            shop_shelf, out = buy_affinity(aff)
+        if out: output = True
 
     if output: return True, missing # got build
 
@@ -463,32 +517,30 @@ def buy(missing):
                 return output, {key: missing[key] - gained[key] for key in missing} # got something
     return True, {} # got everything
 
-def buy_loop(missing, skip, uptie=True):
+def buy_loop(missing, floor1=False):
     print("need", missing)
     result, missing = buy(missing)
-    if not result or not uptie:
+    if not result or floor1:
         try: 
-            if skip < 1 and balance(200):
+            if balance(200):
                 Action(p.SUPER, click=(1715, 176), ver="keywordRef").execute(shop_click)
                 wait_for_condition(
                     condition=lambda: now.button("keywordRef") and not now.button("connecting"), 
                     action=confirm_affinity
                 )
                 connection()
-                skip += 1
 
                 result, missing = buy(missing)
+
+            if (not result or floor1) and balance(200):
+                win_click(1489, 177)
+                connection()
+
+                new_result, _ = buy(missing)
+                result = result or new_result
         except RuntimeError:
             print("no cash, sorry")
-
-        if skip < 2 and balance(200):
-            win_click(1489, 177) # free reroll
-            connection()
-
-            skip += 1
-            new_result, _ = buy(missing)
-            result = result or new_result
-    return result, skip
+    return result
 
 
 def enhance(template):
@@ -519,11 +571,11 @@ def shop(level):
         if not loc_shop.button("+", "fuse_shelf", conf=0.95):
             # we really are on the first floor
             try:
-                for gift in p.GIFTS["uptie1"]:
+                for gift in p.GIFTS[0]["uptie1"]:
                     enhance(gift)
                 Action("power", click=(750, 873), ver=p.SUPER).execute(click)
                 time.sleep(0.3)
-                buy_loop({3: 2}, skip=0, uptie=False)
+                buy_loop({3: 2}, floor1=True)
             except RuntimeError:
                 handle_fuckup()
         else:

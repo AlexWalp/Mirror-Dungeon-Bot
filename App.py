@@ -12,7 +12,7 @@ class MyApp(QWidget):
         super().__init__()
         # params
         self.count = 0
-        self.affinity = 0
+        self.team = 0
         self.sinners = []
         self.hard = False
 
@@ -20,8 +20,10 @@ class MyApp(QWidget):
         self.count_exp = 1
         self.count_thd = 3
 
-        self.sinner_selections = {i: sm.get_team(i) for i in range(10)}
-        self.affinity_lux = self._day()
+        self.sinner_selections = {i: sm.get_team(i) for i in range(17)}
+        self.selected_affinity = {i: [i] for i in range(7)}
+        self.team_lux = self._day()
+        self.team_lux_buttons = [self.team_lux, 3 + self._day(sin=True)]
 
         self._init_ui()
         self._create_buttons()
@@ -31,14 +33,14 @@ class MyApp(QWidget):
     #     self.debug_timer.start(2000)  # 2000 ms = 2 sec
 
     # def print_state(self):
-    #     print(f"Current state - Affinity: {self.affinity}, Priority: {self.priority}")
-          
+    #     print(f"Current state - Affinity: {self.team}, Priority: {self.priority}")
+
     def _init_ui(self):
         """Initialize main window settings"""
-        self.setWindowTitle("app")
+        self.setWindowTitle(f"ChargeGrinder v{p.V}")
         self.setWindowIcon(QIcon(Bot.ICON))
         self.setFixedSize(700, 785)
-        self.background = QPixmap(Bot.APP_PTH["UI_old"])
+        self.background = QPixmap(Bot.APP_PTH["UI"])
         
         self.inputField = QLineEdit(self)
         font_id = QFontDatabase.addApplicationFont(Bot.APP_PTH["ExcelsiorSans"])
@@ -110,7 +112,7 @@ class MyApp(QWidget):
         self.config.hide()
 
         self.priority_team = QLabel(self.config)
-        self.priority_team.setPixmap(QPixmap(Bot.APP_PTH[f'team{self.affinity}']))
+        self.priority_team.setPixmap(QPixmap(Bot.APP_PTH[f'team{self.selected_affinity[self.team][0]}']))
         self.priority_team.setGeometry(38, 121, 301, 247)
         self.priority_team.show()
 
@@ -141,7 +143,7 @@ class MyApp(QWidget):
 
         self.thd = QLineEdit(self.lux)
         self.thd.setFont(QFont(self.family, 30))
-        self.thd.setGeometry(108, 72, 90, 50)
+        self.thd.setGeometry(108, 78, 90, 50)
         self.thd.setValidator(QIntValidator(0, 1000))
         self.thd.setText(str(self.count_thd))
         self.thd.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -152,18 +154,29 @@ class MyApp(QWidget):
         # self.test.setGeometry(228, 514, 169, 26)
         # self.test.show()
 
-    def set_priority(self):
-        if sm.config_exists(self.affinity):
-            self.priority = sm.get_config(self.affinity)
-        else: 
-            self.priority = self.get_priority(self.affinity)
-        
-        if sm.config_exists(7):
-            self.avoid = sm.get_config(7)
-        else:
-            self.avoid = self.get_avoid()
+    def set_priority(self, team=None):
+        if team is None:
+            team = self.team
 
+        self.priority, self.avoid = self.get_packs(team)
         self.all = self.get_all()
+    
+    def get_packs(self, team):
+        if sm.config_exists(team):
+            data = sm.get_config(team)
+            if len(data) == 2 and all(isinstance(x, list) for x in data):
+                priority = data[0]
+                avoid = data[1]
+            else: # old format
+                priority = data
+                if sm.config_exists(7):
+                    avoid = sm.get_config(7)
+                else:
+                    avoid = self.get_avoid()
+        else: 
+            priority = self.get_priority(team)
+            avoid = self.get_avoid()
+        return priority, avoid
 
     def set_widgets(self):
         for widget in self.config_widgets:
@@ -171,7 +184,6 @@ class MyApp(QWidget):
         self.config_widgets.clear()
         self.combo_boxes.clear()
         self.selectize_widgets.clear()
-
         items_to_remove = set(self.priority) | set(self.avoid)
         self.available_items = [item for item in self.all if item not in items_to_remove]
         self.all = self.available_items.copy()
@@ -291,11 +303,8 @@ class MyApp(QWidget):
                 on = [False, True, False, False, True]
                 self.set_buttons_active(on + buff)
             sm.delete_config()
-        elif sm.config_exists(team):
-            self.priority = sm.get_config(team)
         else:
-            self.priority = self.get_priority(team)
-        self.all = self.get_all()
+            self.set_priority(team)
         
         # Clear all selectize widgets
         for widget in self.selectize_widgets:
@@ -323,11 +332,18 @@ class MyApp(QWidget):
             if current_text in self.available_items:
                 combo.setCurrentText(current_text)
 
-    def _day(self):
-        day_number = datetime.datetime.today().weekday()
-        return (day_number > 1) + (day_number > 3) - (day_number == 6)
+    def _day(self, sin=False):
+        # perfect timezone that refreshes dailies at 12 AM
+        gmt_plus_3 = timezone(timedelta(hours=3))
+        now_gmt3 = datetime.now(gmt_plus_3)
+        day_number = now_gmt3.weekday()
+        if sin:
+            return (day_number + 1) % 7
+        else:
+            return (day_number > 1) + (day_number > 3) - (day_number == 6)
     
-    def get_priority(self, affinity):
+    def get_priority(self, team):
+        affinity = self.selected_affinity[team][0]
         if self.hard:
             team_data = Bot.TEAMS[list(Bot.TEAMS.keys())[affinity]]
         else:
@@ -346,26 +362,54 @@ class MyApp(QWidget):
         else:
             return Bot.BANNED
 
-    def _get_button_damage(self):
+    def _get_button_lux(self):
         return [
-            (f'affinity_lux{i-2}', {
-                'geometry': (45 + 89*i, 188, 74, 88),
+            (f'team_lux{i}', {
+                'geometry': (30 + 63*i + i//2, 221, 64, 68),
                 'checkable': True,
-                'checked': i == self._day() + 2,
-                'click_handler': self.activate_permanent_button,
-                'icon': Bot.APP_PTH['affinity_old']
-            }) for i in range(2, 5)
+                'checked': i == self._day(),
+                'click_handler': self.activate_lux_teams,
+                'icon': Bot.APP_PTH['affinity']
+            }) for i in range(3)
+        ] + [
+            (f'team_lux{i + 3}', {
+                'geometry': (30 + 63*(i + 3) + (i + 3)//2, 221, 64, 68),
+                'checkable': True,
+                'checked': i == self._day(sin=True),
+                'click_handler': self.activate_lux_teams,
+                'icon': Bot.APP_PTH['affinity_support']
+            }) for i in range(7)
+        ]
+    
+    def _get_button_keyword(self):
+        return [
+            (f'keyword{i}', {
+                'geometry': (30 + 63*i + i//2 + 191 - (i > 6)*(191 + 444), 313, 64, 68),
+                'checkable': True,
+                'checked': i == 0,
+                'id': i,
+                'click_handler': self.activate_keyword_button,
+                'icon': Bot.APP_PTH['affinity'],
+            }) for i in range(10)
+        ]
+    
+    def _get_keyword_icon(self):
+        return [
+            (f'icon{i}', {
+                'geometry': (221 + 63*i + (i)//2 - i//4, 242, 64, 68),
+                'id': i,
+                'icon': Bot.APP_PTH[f't{i}'],
+            }) for i in range(7)
         ]
 
     def _get_button_affinity(self):
         return [
-            (f'affinity{i}', {
-                'geometry': (45 + 89*i, 280, 74, 88),
-                #'geometry': (221 + 63*i + (i > 1) + (i > 3), 241, 64, 68),
+            (f'team{i}', {
+                'geometry': (220 + 63*i + (i + 1)//2, 241, 64, 68),
                 'checkable': True,
                 'checked': i == 0,
                 'click_handler': self.activate_permanent_button,
-                'icon': Bot.APP_PTH['affinity_old'],
+                'icon': Bot.APP_PTH['affinity'],
             }) for i in range(7)
         ]
     
@@ -380,12 +424,12 @@ class MyApp(QWidget):
             }) for i in range(5)
         ] + [
             (f'on{i+5}', {
-                'geometry': (30 + 496*i, 235, 144, 45),
+                'geometry': (223 + 148*i, 155, 144, 56),
                 'checkable': True,
-                'checked': i == 1,
+                'checked': i % 2 == 0,
                 'click_handler': self.update_button_icons,
-                'icon': Bot.APP_PTH['On_old']
-            }) for i in range(2)
+                'icon': Bot.APP_PTH['sel_lux']
+            }) for i in range(3)
         ]
     
     def _get_buff(self):
@@ -459,8 +503,7 @@ class MyApp(QWidget):
             }),
 
             'config': CustomButton(self, {
-                # 'geometry': (209, 164, 217, 55),
-                'geometry': (209, 160, 217, 55),
+                'geometry': (209, 164, 217, 55),
                 'click_handler': lambda: (self.config.show(), self.config.raise_()),
                 'glow': Bot.APP_PTH['settings']
             }),
@@ -473,13 +516,12 @@ class MyApp(QWidget):
 
             'del_config': CustomButton(self.config, {
                 'geometry': (530, 13, 150, 63),
-                'click_handler': lambda: self.reset_to_defaults(self.affinity),
+                'click_handler': lambda: self.reset_to_defaults(self.team),
                 'glow': Bot.APP_PTH['del']
             }),
 
             'hard': CustomButton(self, {
-                # 'geometry': (24, 166, 178, 58),
-                'geometry': (24, 161, 178, 58),
+                'geometry': (24, 166, 178, 58),
                 'checkable': True,
                 'checked': False,
                 'click_handler': self.set_hardmode,
@@ -518,7 +560,7 @@ class MyApp(QWidget):
                 'click_handler': lambda: webbrowser.open('https://github.com/AlexWalp/Mirror-Dungeon-Bot')
             })
         }
-        all_buttons = self._get_button_affinity() + self._get_button_selected()
+        all_buttons = self._get_keyword_icon() + self._get_button_affinity() + self._get_button_selected() + self._get_button_keyword()
         for name, settings in all_buttons:
             self.buttons[name] = CustomButton(self, settings)
 
@@ -527,42 +569,51 @@ class MyApp(QWidget):
         for name, settings in self._get_button_on()[5:]:
             self.buttons[name] = CustomButton(self.lux, settings)
 
-        for name, settings in self._get_button_damage():
+        for name, settings in self._get_button_lux():
             self.buttons[name] = CustomButton(self.lux, settings)
 
         self.buttons['update'].hide()
         self.check_version()
 
-        self.set_affinity()
-        self.priority_team.setPixmap(QPixmap(Bot.APP_PTH[f'team{self.affinity}']))
+        self.set_team()
+        self.priority_team.setPixmap(QPixmap(Bot.APP_PTH[f'team{self.selected_affinity[self.team][0]}']))
         self.set_priority()
+
         self.set_widgets()
-        self.set_selected_buttons(self.sinner_selections[self.affinity])
+        self.set_selected_buttons(self.sinner_selections[self.team])
+        self.set_affinity_buttons(self.selected_affinity[self.team])
         self.set_buttons_active(sm.get_config(8))
         self.set_card_buttons(sm.get_config(9))
         self.overlay.raise_()
 
-    def set_affinity(self):
-        # first 7 values - whether button is activated, last - aff index
+    def set_team(self):
+        # first 7 values - whether button is activated, last - team index
         state = sm.get_aff()
         if state:
-            self.affinity = state["7"]
+            self.team = state["7"]
             for i in range(7):
-                if state[str(i)]:
-                    self.buttons[f"affinity{i}"].setChecked(True)
-                    if i == self.affinity:
-                        self.buttons[f"affinity{i}"].setIcon(QIcon(Bot.APP_PTH["affinity_old"]))
+                data = state[str(i)]
+                if isinstance(data, list) and len(data) == 2:
+                    self.selected_affinity[i] = data[1]
+                    self.buttons[f"icon{i}"].setIcon(QIcon(Bot.APP_PTH[f"t{self.selected_affinity[i][0]}"]))
+                    is_selected = data[0]
+                else: # old version
+                    is_selected = data
+                if is_selected:
+                    self.buttons[f"team{i}"].setChecked(True)
+                    if i == self.team:
+                        self.buttons[f"team{i}"].setIcon(QIcon(Bot.APP_PTH["affinity"]))
                     else:
-                        self.buttons[f"affinity{i}"].setIcon(QIcon(Bot.APP_PTH["affinity_support_old"]))
+                        self.buttons[f"team{i}"].setIcon(QIcon(Bot.APP_PTH["affinity_support"]))
                 else:
-                    self.buttons[f"affinity{i}"].setChecked(False)
-                    self.buttons[f"affinity{i}"].setIcon(QIcon())
+                    self.buttons[f"team{i}"].setChecked(False)
+                    self.buttons[f"team{i}"].setIcon(QIcon())
     
     def save_affinity(self):
         state = dict()
         for i in range(7):
-            state[str(i)] = self.buttons[f"affinity{i}"].isChecked()
-        state[str(7)] = self.affinity
+            state[str(i)] = (self.buttons[f"team{i}"].isChecked(), self.selected_affinity[i])
+        state[str(7)] = self.team
         sm.save_aff(state)
 
     def paintEvent(self, event):
@@ -598,21 +649,21 @@ class MyApp(QWidget):
         self.is_lux = True
         self.buttons['start'].raise_()
         self.update_sinners()
-        self.sinner_selections[self.affinity] = self.sinners
-        self.set_selected_buttons(self.sinner_selections[self.affinity_lux + 7])
+        self.sinner_selections[self.team] = self.sinners
+        self.set_selected_buttons(self.sinner_selections[self.team_lux + 7])
 
     def lux_hide(self):
         self.is_lux = False
         self.update_sinners() 
-        self.sinner_selections[self.affinity_lux + 7] = self.sinners
-        self.set_selected_buttons(self.sinner_selections[self.affinity])
+        self.sinner_selections[self.team_lux + 7] = self.sinners
+        self.set_selected_buttons(self.sinner_selections[self.team])
         self.lux.hide()
 
     def save(self):
         if self.is_lux:
-            team = self.affinity_lux + 7
+            team = self.team_lux + 7
         else:
-            team = self.affinity
+            team = self.team
         self.update_sinners()
         sm.save_team(team, self.sinners)
     
@@ -624,22 +675,21 @@ class MyApp(QWidget):
                 button.setIcon(QIcon())
 
         if self.is_lux:
-            self.sinner_selections[self.affinity_lux + 7]
+            self.sinner_selections[self.team_lux + 7]
         else:
-            self.sinner_selections[self.affinity]
+            self.sinner_selections[self.team]
 
     def save_config(self):
         if len(self.selected_card_order) < 5:
             frame = (10, 10, 43, 41)
             errors = list(filter(lambda i: not self.buttons[f'card{i}'].isChecked(), [i for i in range(1, 6)]))
-            print(errors)
             for i in errors:
                 self.buttons[f'card{i}'].set_glow_image(Bot.APP_PTH["warn_support"], frame)
             CustomButton.glow_multiple([self.buttons[f'card{i}'] for i in errors])
             return
         
-        sm.save_config(self.affinity, self.priority)
-        sm.save_config(7, self.avoid)
+        sm.save_config(self.team, (self.priority, self.avoid))
+        # sm.save_config(7, self.avoid)
         sm.save_config(8, self.get_config_buttons())
         sm.save_config(9, self.get_cards())
         self.config.hide()
@@ -709,6 +759,58 @@ class MyApp(QWidget):
                 button.setIcon(QIcon())
             button.setIconSize(button.size())
 
+    def activate_lux_teams(self):
+        sender = self.sender()
+        if not sender or not isinstance(sender, QPushButton):
+            return
+        
+        id = None
+        for i in range(10):
+            if self.buttons[f"team_lux{i}"] == sender:
+                id = i
+                break
+        else: return
+        button_group = int(id > 2) # 0 for damage, 1 for sin
+        ranges = [range(3), range(3, 10)]
+
+        # print('before')
+        # print(self.team_lux)
+        # print(self.team_lux_buttons)
+        # print([self.buttons[f"team_lux{i}"].isChecked() for i in range(10)])
+        self.update_sinners()
+        self.sinner_selections[self.team_lux + 7] = self.sinners
+        if id == self.team_lux: # same item is clicked
+            if all(item is not None for item in self.team_lux_buttons):
+                self.buttons[f"team_lux{id}"].setIcon(QIcon())
+                self.team_lux_buttons[button_group] = None
+
+                self.team_lux = self.team_lux_buttons[1 - button_group]
+                self.buttons[f"team_lux{self.team_lux}"].setIcon(QIcon(Bot.APP_PTH['affinity']))
+            else:
+                self.buttons[f"team_lux{id}"].setChecked(True)
+        elif self.team_lux not in ranges[button_group]: # different group is clicked
+            self.buttons[f"team_lux{self.team_lux}"].setIcon(QIcon(Bot.APP_PTH['affinity_support']))
+            self.team_lux = id
+            self.buttons[f"team_lux{id}"].setIcon(QIcon(Bot.APP_PTH['affinity']))
+            if self.team_lux_buttons[button_group] is not None:
+                if self.team_lux_buttons[button_group] == id:
+                    self.buttons[f"team_lux{id}"].setChecked(True)
+                else:
+                    self.buttons[f"team_lux{self.team_lux_buttons[button_group]}"].setIcon(QIcon())
+                    self.buttons[f"team_lux{self.team_lux_buttons[button_group]}"].setChecked(False)
+            self.team_lux_buttons[button_group] = id
+        else: # same group is clicked but different item
+            self.buttons[f"team_lux{self.team_lux}"].setIcon(QIcon())
+            self.buttons[f"team_lux{self.team_lux}"].setChecked(False)
+
+            self.team_lux = id
+            self.team_lux_buttons[button_group] = id
+            self.buttons[f"team_lux{id}"].setIcon(QIcon(Bot.APP_PTH['affinity']))
+        # print("after")
+        # print(self.team_lux)
+        # print(self.team_lux_buttons)
+        # print([self.buttons[f"team_lux{i}"].isChecked() for i in range(10)])
+        self.set_selected_buttons(self.sinner_selections[self.team_lux + 7])
 
     def activate_permanent_button(self):
         sender = self.sender()
@@ -716,40 +818,70 @@ class MyApp(QWidget):
             return
 
         self.update_sinners()
-        if self.is_lux:
-            self.sinner_selections[self.affinity_lux + 7] = self.sinners
-            if sender != self.buttons[f"affinity{self.affinity_lux}"]:
-                self.buttons[f"affinity_lux{self.affinity_lux}"].setChecked(False)
-                self.buttons[f"affinity_lux{self.affinity_lux}"].setIcon(QIcon())
-                sender.setIcon(QIcon(Bot.APP_PTH['affinity_old']))
-            else:
-                sender.setChecked(True)
-            for i in range(3):
-                if self.buttons[f"affinity_lux{i}"] == sender:
-                    self.affinity_lux = i
+        self.sinner_selections[self.team] = self.sinners
+        null_visual_state = sender.icon().isNull()
+
+        if null_visual_state:
+            sender.setIcon(QIcon(Bot.APP_PTH['affinity']))
+            self.buttons[f"team{self.team}"].setIcon(QIcon(Bot.APP_PTH['affinity_support']))
+            for i in range(7):
+                if self.buttons[f"team{i}"] == sender:
+                    self.team = i
                     break
         else:
-            self.sinner_selections[self.affinity] = self.sinners
-            null_visual_state = sender.icon().isNull()
-
-            if null_visual_state:
-                sender.setIcon(QIcon(Bot.APP_PTH['affinity_old']))
-                self.buttons[f"affinity{self.affinity}"].setIcon(QIcon(Bot.APP_PTH['affinity_support_old']))
-                for i in range(7):
-                    if self.buttons[f"affinity{i}"] == sender:
-                        self.affinity = i
-                        break
+            if sender != self.buttons[f"team{self.team}"]:
+                sender.setIcon(QIcon())
             else:
-                if sender != self.buttons[f"affinity{self.affinity}"]:
-                    sender.setIcon(QIcon())
-                else:
-                    sender.setChecked(True)
-        if self.is_lux:
-            self.set_selected_buttons(self.sinner_selections[self.affinity_lux + 7])
+                sender.setChecked(True)
+
+        self.priority_team.setPixmap(QPixmap(Bot.APP_PTH[f'team{self.selected_affinity[self.team][0]}']))
+        self.reset_to_defaults(self.team, default=False)
+        self.set_selected_buttons(self.sinner_selections[self.team])
+        self.set_affinity_buttons(self.selected_affinity[self.team])
+    
+    def activate_keyword_button(self):
+        sender = self.sender()
+        if not sender or not isinstance(sender, QPushButton):
+            return
+
+        button_key = next((k for k, v in self.buttons.items() if v == sender), None)
+        if not button_key:
+            return
+        
+        selected_affinity_buttons = [self.buttons[f'keyword{id}'] for id in self.selected_affinity[self.team]]
+
+        main = selected_affinity_buttons[0]
+        change_icon = False
+
+        if sender.isChecked():
+            if sender not in selected_affinity_buttons:
+                selected_affinity_buttons.append(sender)
         else:
-            self.priority_team.setPixmap(QPixmap(Bot.APP_PTH[f'team{self.affinity}']))
-            self.reset_to_defaults(self.affinity, default=False)
-            self.set_selected_buttons(self.sinner_selections[self.affinity])
+            if sender in selected_affinity_buttons and len(selected_affinity_buttons) > 1:
+                selected_affinity_buttons.remove(sender)
+                if sender is main:
+                    change_icon = True
+
+        if change_icon:
+            self.change_icon(selected_affinity_buttons[0].config.get('id'))
+
+        for index, button in enumerate(selected_affinity_buttons):
+            if index == 0:
+                icon_path = Bot.APP_PTH[f'affinity']
+            else:
+                icon_path = Bot.APP_PTH[f'aff{index}']
+            button.setIcon(QIcon(icon_path))
+            button.setIconSize(button.size())
+
+        for key, button in self.buttons.items():
+            if key.startswith("keyword") and button not in selected_affinity_buttons:
+                button.setIcon(QIcon())
+
+        self.selected_affinity[self.team] = [button.config.get('id') for button in selected_affinity_buttons]
+
+    def change_icon(self, id):
+        self.buttons[f'icon{self.team}'].setIcon(QIcon(Bot.APP_PTH[f"t{id}"]))
+        self.priority_team.setPixmap(QPixmap(Bot.APP_PTH[f'team{id}']))
 
     def update_button_icons(self):
         sender = self.sender()
@@ -830,6 +962,24 @@ class MyApp(QWidget):
             button.setIcon(QIcon(icon_path))
             button.setIconSize(button.size())
 
+    def set_affinity_buttons(self, button_keys: list):
+        selected_affinity_buttons = [self.buttons[f'keyword{id}'] for id in button_keys]
+
+        # First uncheck all selectable buttons
+        for key, button in self.buttons.items():
+            if key.startswith("keyword"):
+                button.setChecked(False)
+                button.setIcon(QIcon())
+
+        for index, button in enumerate(selected_affinity_buttons):
+            if index == 0:
+                icon_path = Bot.APP_PTH[f'affinity']
+            else:
+                icon_path = Bot.APP_PTH[f'aff{index}']
+            button.setChecked(True)
+            button.setIcon(QIcon(icon_path))
+            button.setIconSize(button.size())
+
     def set_card_buttons(self, button_keys: list):
         self.selected_card_order.clear()
         if not button_keys: button_keys = [1, 0, 2, 3, 4]
@@ -877,20 +1027,20 @@ class MyApp(QWidget):
         if not errors: return True
 
         suffix = ''
-        if self.is_lux: suffix = '_lux'
+        frame = (10, 10, 43, 41)
+        if self.is_lux: 
+            suffix = '_lux'
 
         # set up glows
-        frame = (9, 7, 55, 52)
-        # frame = (10, 10, 43, 41)
         for i in errors:
-            if not self.is_lux and i == self.affinity or self.is_lux and i == self.affinity_lux:
-                self.buttons[f'affinity{suffix}{i}'].set_glow_image(Bot.APP_PTH["warn_old"], frame)
+            if not self.is_lux and i == self.team or self.is_lux and i == self.team_lux:
+                self.buttons[f'team{suffix}{i}'].set_glow_image(Bot.APP_PTH[f"warn"], frame)
             else:
-                self.buttons[f'affinity{suffix}{i}'].set_glow_image(Bot.APP_PTH["warn_support_old"], frame)
+                self.buttons[f'team{suffix}{i}'].set_glow_image(Bot.APP_PTH[f"warn_support"], frame)
 
         # play it
         CustomButton.glow_multiple(
-            [self.buttons[f'affinity{suffix}{i}'] for i in errors]
+            [self.buttons[f'team{suffix}{i}'] for i in errors]
         )
         return False
     
@@ -910,25 +1060,38 @@ class MyApp(QWidget):
 
         # selected teams
         self.teams = dict()
+        affinity_values = [self.selected_affinity[i][0] for i in range(7)]
+        counts = [affinity_values[:i].count(x) for i, x in enumerate(affinity_values)]
+        duplicates = {v for v in affinity_values if affinity_values.count(v) > 1}
+
         self.update_sinners()
         if self.is_lux:
-            self.teams[self.affinity_lux] = {"sinners": self.sinners}
+            self.sinner_selections[self.team_lux + 7] = self.sinners
+            for i in self.team_lux_buttons:
+                if i is not None:
+                    self.teams[i] = {"sinners": self.sinner_selections[i + 7]}
         else:
-            self.sinner_selections[self.affinity] = self.sinners
+            self.sinner_selections[self.team] = self.sinners
             for index in range(7):
-                i = (self.affinity + index) % 7
-                if self.buttons[f"affinity{i}"].isChecked():
+                i = (self.team + index) % 7
+                affinity = self.selected_affinity[i][0]
+                if self.buttons[f"team{i}"].isChecked():
+                    priority, avoid = self.get_packs(i)
                     self.teams[i] = {
+                        "duplicates": affinity in duplicates,
+                        "affinity_idx": counts[i],
+                        "affinity": self.selected_affinity[i],
                         "sinners": self.sinner_selections[i], 
-                        "priority": sm.get_config(str(i))
+                        "priority": priority,
+                        "avoid": avoid
                     }
 
         self.settings = {
             'log'       : self.buttons['log'].isChecked(),
             'bonus'     : self.buttons['on0'].isChecked(),
-            'restart'   : self.buttons['on1'].isChecked() if not self.is_lux else self.buttons['on6'].isChecked(),
-            'altf4'     : self.buttons['on2'].isChecked(),
-            'enkephalin': self.buttons['on3'].isChecked() if not self.is_lux else self.buttons['on5'].isChecked(),
+            'restart'   : self.buttons['on1'].isChecked() if not self.is_lux else self.buttons['on5'].isChecked(),
+            'altf4'     : self.buttons['on2'].isChecked() if not self.is_lux else self.buttons['on6'].isChecked(),
+            'enkephalin': self.buttons['on3'].isChecked() if not self.is_lux else self.buttons['on7'].isChecked(),
             'skip'      : self.buttons['on4'].isChecked(),
             'buff'      : [self.buttons[f'buff{i}'].isChecked() for i in range(4)],
             'card'      : self.get_cards()
@@ -957,7 +1120,6 @@ class MyApp(QWidget):
             self.count_exp,
             self.count_thd,
             self.teams,
-            self.avoid,
             self.settings,
             self.hard,
             self

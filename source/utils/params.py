@@ -1,12 +1,15 @@
 import threading
 
-V = "2.1.4"
+V = "2.2.0"
 
 SELECTED = ["YISANG", "DONQUIXOTE" , "ISHMAEL", "RODION", "SINCLAIR", "GREGOR"]
-GIFTS = dict()
+GIFTS = []
+TEAM = ["BURN"]
+NAME_ORDER = 0
+DUPLICATES = False
+
 LOG = True
 BONUS = False
-TEAM = "BURN"
 RESTART = True
 ALTF4 = False
 NETZACH = False
@@ -39,4 +42,6 @@ pause_event = threading.Event()
 stop_event = threading.Event()
 
 SUPER = "shop" # for Hard MD
-AGRESSIVE_FUSING = True
+IDX = 0
+AGGRESSIVE_FUSING = True
+DONE_FUSING = False

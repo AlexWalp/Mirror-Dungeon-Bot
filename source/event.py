@@ -17,18 +17,24 @@ def event():
         
         if now.button("choices"):
             time.sleep(0.1)
-            if now_click.button("textNew", "textEGO"): continue
-            if now_click.button("textLvl", "textEGO"): continue
+            if now_click.button("textNew", "textEGO"): 
+                if wait_for_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
+            if now_click.button("textLvl", "textEGO"): 
+                if wait_for_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
             if any(now_click.button(f"choice_{favorite}", "textEGO") for favorite in favorites): continue
 
             egos = LocateGray.locate_all(PTH["textEGO"], region=REG["textEGO"], conf=0.85)
 
             if not egos:
-                choice = random.choice([316, 520, 730])
-                win_click(1348, choice, delay=0)
-                continue
-
-            affinity = LocateGray.locate_all(PTH[f"{p.TEAM.lower()}_choice"], region=REG["textEGO"], conf=0.85)
+                for choice in [316, 520, 730]:
+                    win_click(1348, choice, delay=0)
+                    if wait_for_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
+                else:
+                    continue
+            
+            affinity = []
+            for aff in p.TEAM:
+                affinity += LocateGray.locate_all(PTH[f"{aff.lower()}_choice"], region=REG["textEGO"], conf=0.85)
             win = LocateGray.locate(PTH["textWIN"], region=REG["textEGO"], conf=0.85)
 
             filtered = []

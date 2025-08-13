@@ -32,7 +32,7 @@ class CustomButton(QPushButton):
             self.setIcon(QIcon(self.config['icon']))
             self.setIconSize(self.size())
         
-        if not self.isChecked():
+        if self.isCheckable() and not self.isChecked():
             self.setIcon(QIcon())
 
         if 'glow' in self.config:

@@ -33,7 +33,16 @@ def start_lux():
         print("Lux init failed")
 
 
-def grind_lux(count_exp, count_thd):
+def team_setup(teams, index):
+    lux_list = ["SLASH", "PIERCE", "BLUNT", "WRATH", "LUST", "SLOTH", "GLUTTONY", "GLOOM", "PRIDE", "ENVY"]
+    team_idx = list(teams.keys())
+    if index < len(team_idx):
+        p.TEAM = [lux_list[team_idx[index]]]
+        p.SELECTED = [list(SINNERS.keys())[i] for i in list(teams[team_idx[index]]["sinners"])]
+
+
+def grind_lux(count_exp, count_thd, teams):
+    team_setup(teams, index=0)
     countdown(10)
     setup_logging(enable_logging=p.LOG)
     logging.info('Script started')
@@ -67,6 +76,7 @@ def grind_lux(count_exp, count_thd):
                 raise RuntimeError("Luxcavation failed!")
             gui.press("Enter")
 
+    team_setup(teams, index=1)
     p.SELECTED = p.SELECTED[:6]
     while count_thd:
         if not now.button("winrate") and not now.button("Exp"): start_lux()

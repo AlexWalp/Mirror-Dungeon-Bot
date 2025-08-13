@@ -30,14 +30,13 @@ class BotWorker(QObject):
     error = pyqtSignal(str)
     warning = pyqtSignal(str)
 
-    def __init__(self, is_lux, count, count_exp, count_thd, teams, avoid, settings, hard, app):
+    def __init__(self, is_lux, count, count_exp, count_thd, teams, settings, hard, app):
         super().__init__()
         self.is_lux = is_lux
         self.count = count
         self.count_exp = count_exp
         self.count_thd = count_thd
         self.teams = teams
-        self.avoid = avoid
         self.settings = settings
         self.hard = hard
         self.app = app
@@ -50,7 +49,6 @@ class BotWorker(QObject):
                 self.count_exp,
                 self.count_thd,
                 self.teams,
-                self.avoid,
                 self.settings,
                 self.hard,
                 self.app,
