@@ -10,8 +10,14 @@ def within_region(x, regions):
         return None
 
 
+def remove_pack(level, name):
+    for l in range(level, 6):
+        if name in p.PICK[f"floor{l}"]:
+            p.PICK[f"floor{l}"].remove(name)
+
+
 def pack_eval(level, regions, skip, skips):
-    
+    level = min(level, 5)
     # best packs
     priority = p.PICK[f"floor{level}"]
     print(priority)
@@ -48,12 +54,13 @@ def pack_eval(level, regions, skip, skips):
     }
     logging.info(packs)
     print(packs)
-        
+    
     if priority: # picking best pack
         for pr in priority:
             if pr in packs.keys():
                 print(f"Entering {pr}")
                 logging.info(f"Pack: {pr}")
+                remove_pack(level, pr)
                 return packs[pr]
     if skip != skips and priority:
         return None
@@ -65,6 +72,8 @@ def pack_eval(level, regions, skip, skips):
         return None
     elif not filtered:
         print("May Ayin save us all!") # we have to pick S.H.I.T. 
+        if packs:
+            remove_pack(level, list(packs.keys())[0])
         return 0
 
     # locating relevant ego gifts in floor rewards
@@ -87,6 +96,8 @@ def pack_eval(level, regions, skip, skips):
 
     id = max(weight, key=weight.get)
     name = next((pack for pack, i in filtered.items() if i == id), None)
+
+    remove_pack(level, name)
     print(f"Entering {name}")
     logging.info(f"Pack: {name}")
     return id
@@ -96,16 +107,20 @@ def pack(level):
     if not now.button("PackChoice"):
         return (False, level)
     
-    if not p.HARD:
-        now.button("hardDifficulty", click=(1349, 64))
-    else:
-        if not now.button("hardDifficulty"):
-            win_click(1349, 64)
+    max_floor = 5
+    if p.INFINITE: max_floor = 10
 
-    for i in range(1, 6):
-        if now.button(f"lvl{i}", "lvl"):
+    for i in range(max_floor, 0, -1):
+        if now.button(f"lvl{i}", "lvl", conf=0.95):
             level = i
             break
+
+    if level <= 5:
+        if not p.HARD:
+            now.button("hardDifficulty", click=(1349, 64))
+        else:
+            if not now.button("hardDifficulty"):
+                win_click(1349, 64)
 
     print(f"Entering Floor {level}")
     logging.info(f"Floor {level}")

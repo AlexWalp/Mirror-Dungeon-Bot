@@ -54,6 +54,7 @@ REG = {
     "bonus_off"      : ( 890,  357,  163,   63),
     "hardbonus"      : (1054,  357,  163,   63),
     "ConfirmInvert.1": ( 987,  704,  318,  130),
+    "infinite_off"   : (1690,  500,   45,   30),
     # regions not binded to an image
     "money!"         : (1718,   47,   57,   40),
     "gifts!"         : (1173,  324,  129,  125),
@@ -68,6 +69,8 @@ REG = {
     "current_team"   : ( 330,  165,  200,   50),
     "arrow"          : ( 189,  443,   16,   15),
     "skip_yap"       : ( 740,  450,  470,  200),
+    "ego_warning"    : (1250,  880,  670,  200),
+    "ego_usage"      : (1850, 1020,   70,   60),
 
     # event.py
     "textEGO"        : (1031,  254,  713,  516),
@@ -90,6 +93,7 @@ REG = {
     "Card"           : ( 219,  283, 1531,  242),
     "Confirm.1"      : (1118,  754,  189,   70),
     "trials"         : (   0,  615, 1920,   55),
+    "buffs"          : (   0,  664, 1920,   52),
     # regions not binded to an image
     "rewardCount!"   : (1494,  181,   23,   42),
 
@@ -121,8 +125,15 @@ REG = {
     "keywordRef"     : ( 678,  162,  340,   53),
     "fuse"           : ( 754,  117,  161,   81),
     "fuseButton"     : (1107,  849,  161,   54),
-    "scroll"         : (1653,  321,   64,   81),
-    "scroll.0"       : (1653,  662,   64,   81),
+    "scroll"         : (1647,  321,   64,   81),
+    "scroll.0"       : (1647,  662,   64,   81),
+    "wishmaking"     : ( 384,  731,   49,   53),
+    "buy_s3"         : ( 893,  494,  120,   38),
+    "replace"        : ( 640,  140,  625,   75),
+    "purchased"      : ( 860,  317,  150,   50),
+    "no_hp"          : (  70,  985, 1400,   50),
+    "return"         : (1569,  920,  260,  100),
+    "select"         : (1569,  920,  260,  100),
     # regions not binded to an image
     "affinity!"      : ( 368,  327, 1160,  442),
     "revenue!"       : (1405,  126,  241,   56),
@@ -155,6 +166,33 @@ SINNERS = {
     "GREGOR"    : (1331, 492, 196, 285)
 }
 
+WORDLESS = {
+    0:  {"name": "ancienteffigy",       "state": 2, "tier": 4},
+    1:  {"name": "faith",               "state": 2, "tier": 4},
+    2:  {"name": "falsehalo",           "state": 3, "tier": 4},
+    3:  {"name": "kimjihoon",           "state": 2, "tier": 4},
+    4:  {"name": "pieceofrelationship", "state": 3, "tier": 4},
+    5:  {"name": "grandwelcome",        "state": 2, "tier": 3},
+    6:  {"name": "illusoryhunt",        "state": 2, "tier": 3},
+    7:  {"name": "prestigecard",        "state": 2, "tier": 3},
+    8:  {"name": "rustycoin",           "state": 2, "tier": 3},
+    9:  {"name": "specialcontract",     "state": 2, "tier": 3},
+    10: {"name": "blessing",            "state": 2, "tier": 3},
+    11: {"name": "carmilla",            "state": 3, "tier": 2},
+    12: {"name": "childwithinflask",    "state": 2, "tier": 2},
+    13: {"name": "coffeecranes",        "state": 2, "tier": 2},
+    14: {"name": "motheclipse",         "state": 2, "tier": 2},
+    15: {"name": "goldenurn",           "state": 2, "tier": 2},
+    16: {"name": "homeward",            "state": 2, "tier": 2},
+    17: {"name": "oracle",              "state": 2, "tier": 2},
+    18: {"name": "painkiller",          "state": 2, "tier": 2},
+    19: {"name": "hammer",              "state": 2, "tier": 2},
+    20: {"name": "investigatorbadge",   "state": 3, "tier": 2},
+    21: {"name": "lithograph",          "state": 2, "tier": 1},
+    22: {"name": "phlebotomypack",      "state": 2, "tier": 1},
+}
+
+WORDLESS_MAP = {v["name"]: v["tier"] for v in WORDLESS.values()}
 
 # Easy dungeon floors
 FLOORS = {
@@ -183,7 +221,7 @@ FLOORS = {
         'TimekillingTime', 'MurderontheWARPExpress', 'RepressedWrath', 'AddictingLust',
         'TreadwheelSloth', 'DevouredGluttony', 'DegradedGloom', 'VainPride', 'InsignificantEnvy',
         'LCBRegularCheckup', 'NocturnalSweeping', 'SlicersDicers', 'PiercersPenetrators',
-        'CrushersBreakers'
+        'CrushersBreakers', 'SpringCultivation'
     ]
 }
 
@@ -210,9 +248,8 @@ HARD_FLOORS = {
         'TheUnconfronting', 'MiracleinDistrict20', 'TheNoonofViolet', 'FullStoppedbyaBullet', 
         'TearfulThings', 'CrawlingAbyss', 'ACertainWorld', 'toClaimTheirBones', 'RepressedWrath', 
         'AddictingLust', 'TreadwheelSloth', 'DevouredGluttony', 'DegradedGloom', 'VainPride', 
-        'InsignificantEnvy', 'SlicersDicers', 'PiercersPenetrators', 'CrushersBreakers',
-        'RisingPowerSupply', 'DeepSigh', 'SinkingPang', 'CrushingExternalForce', 'DizzyingWaves',
-        'TrickledSanguineBlood', 'BurningHaze', 'HatredandDespair'
+        'InsignificantEnvy', 'RisingPowerSupply', 'DeepSigh', 'SinkingPang', 'CrushingExternalForce', 
+        'DizzyingWaves', 'TrickledSanguineBlood', 'BurningHaze', 'HatredandDespair'
     ],
     4: [
         'TearfulThings', 'CrawlingAbyss', 'ACertainWorld', 'toClaimTheirBones', 'TimekillingTime', 
@@ -221,17 +258,17 @@ HARD_FLOORS = {
         'PoisedBreathing', 'SinkingDeluge', 'UnrelentingMight', 'AbnormalSeismicZone', 
         'MountainofCorpsesSeaofBlood', 'SeasonoftheFlame', 'toClaimTheirBonesBokGak',
         'MiracleinDistrict20BokGak', 'Line2', 'Line1', 'TheEvilDefining', 'TheUnchanging',
-        'TimekillingTimeBokGak'
+        'TimekillingTimeBokGak', 'SlicersDicers', 'PiercersPenetrators', 'CrushersBreakers'
     ],
     5: [
         'TimekillingTime', 'MurderontheWARPExpress', 'LCBRegularCheckup', 'NocturnalSweeping', 
         'ThunderandLightning', 'PoisedBreathing', 'SinkingDeluge', 'UnrelentingMight',
         'AbnormalSeismicZone', 'MountainofCorpsesSeaofBlood', 'SeasonoftheFlame', 'PitifulEnvy', 
         'TyrannicalPride', 'SunkGloom', 'ExcessiveGluttony', 'InertSloth', 'TanglingLust', 
-        'UnboundWrath', 'toClaimTheirBonesBokGak', 'MiracleinDistrict20BokGak', 'Line4', 'Line3',
+        'UnboundWrath', 'toClaimTheirBonesBokGak', 'MiracleinDistrict20BokGak', 'Line1', 'Line4', 'Line3',
         'TheInfiniteProcession', 'TheHeartbreaking', 'LaManchalandReopening', 'TheEvilDefining',
         'TheUnchanging', 'FourHousesandGreed', 'Line5', 'TheSurrenderedWitnessing', 'TheDreamEnding',
-        'TimekillingTimeBokGak'
+        'TimekillingTimeBokGak', 'SpringCultivation'
     ]
 }
 

@@ -31,13 +31,17 @@ def get_lowskill():
             boxes += LocateGray.locate_all(PTH[name], image=mask, region=(0, 820, 1920, 100), threshold=20, comp=comp, conf=0.8)
     coords_x = []
     for box in boxes:
-        x, _, _, _ = box
+        x, y = gui.center(box)
+        if y > 870: # lower skill
+            x += int(0.061*x - 93)
+        else: # upper skill
+            x += int(0.206*x - 224)
         if any(abs(x - px) <= 20 for px in coords_x): continue
-        coords_x.append(x-10)
+        coords_x.append(int(x))
     return coords_x
 
 def select_ego():
-    time.sleep(0.2)
+    time.sleep(0.4)
     coords_x = get_lowskill()
     if not coords_x: return
     for x in coords_x:
@@ -52,8 +56,8 @@ def select_ego():
             res = LocateRGB.locate(PTH[i], image=image_best, region=(0, 495, 1920, 50), method=1, conf=0.8)
             if res:
                 res = gui.center(res)
-                win_click(res)
-                win_click(res)
+                win_click(res, duration=0.1)
+                win_click(res, duration=0.1)
                 break
         else:
             for i in ego:
@@ -61,18 +65,30 @@ def select_ego():
                 print(i, res)
                 if res:
                     c0, c1 = gui.center(res)
-                    win_click(c0, int(c1 + 200))
-                    win_click(c0, int(c1 + 200))
+                    win_click(c0, int(c1 + 200), duration=0.1)
+                    win_click(c0, int(c1 + 200), duration=0.1)
                     break
             else:
                 win_click(1850, 1000)
         time.sleep(0.2)
-    gui.press("p", 3, 0.1)
-    time.sleep(0.2)
+    gui.press("p", 3, 0.3)
+    time.sleep(0.8)
     coords_x = get_lowskill()
     if coords_x:
-        for x in coords_x: win_click(x, 990)
+        for x in coords_x: win_click(x, 990, duration=0.1)
 # end
+
+def is_ego():
+    threshold=60
+    background = screenshot(region=REG["ego_usage"])
+    for color in sins.values():
+        color = np.array(color).astype(int)
+        lower_bound = np.clip(color - threshold, 0, 255)
+        upper_bound = np.clip(color + threshold, 0, 255)
+        mask = cv2.inRange(background, lower_bound, upper_bound)
+        if now.button("ego_usage", image=mask, conf=0.8):
+            return background
+    return None
 
 
 def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=100, sin="envy"):
@@ -265,7 +281,7 @@ def fight(lux=False):
             time.sleep(0.1)
             ck = True
             try:
-                if lux or p.HARD: raise gui.ImageNotFoundException
+                if lux or p.WINRATE: raise gui.ImageNotFoundException
                 gear_start = gui.center(LocateEdges.try_locate(PTH["gear"], region=(0, 761, 900, 179), conf=0.7))
                 gear_end = gui.center(LocateEdges.try_locate(PTH["gear2"], region=(350, 730, 1570, 232), conf=0.7))
                 background = screenshot(region=(round(gear_start[0] + 100), 775, round(gear_end[0] - gear_start[0] - 200), 10))
@@ -281,12 +297,24 @@ def fight(lux=False):
             except gui.ImageNotFoundException:
                 win_click(1549, 750, duration=0.1)
                 gui.press("p", 1, 0.1)
-                if p.HARD: select_ego()
+                if not lux and p.HARD: select_ego()
                 gui.press("enter", 1, 0.1)
 
         if now.button("eventskip"):
             ck = True
             event()
+
+        if now.button("ego_warning"): # skip corrosion
+            ck = True
+            gui.mouseDown()
+            wait_for_condition(lambda: loc.button("ego_warning", wait=1), interval=0)
+            gui.mouseUp()
+
+        if (ego_image := is_ego()) is not None: # skip EGO animation
+            ck = True
+            gui.mouseDown()
+            wait_for_condition(lambda: LocateRGB.check(ego_image, region=REG["ego_usage"], wait=1), interval=0)
+            gui.mouseUp()
 
         for i in exit_if:
             if now.button(i):
@@ -312,8 +340,8 @@ def fight(lux=False):
         # stuck check
         if ck == False:
             if last_error != 0:
-                if time.time() - last_error > 30:
-                    raise RuntimeError
+                if time.time() - last_error > 50:
+                    raise RuntimeError('Stuck in battle')
             else:
                 last_error = time.time()
         else:

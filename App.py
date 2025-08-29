@@ -24,6 +24,7 @@ class MyApp(QWidget):
         self.selected_affinity = {i: [i] for i in range(7)}
         self.team_lux = self._day()
         self.team_lux_buttons = [self.team_lux, 3 + self._day(sin=True)]
+        self.keywordless = {}
 
         self._init_ui()
         self._create_buttons()
@@ -108,7 +109,7 @@ class MyApp(QWidget):
 
         self.config = QLabel(self)
         self.config.setPixmap(QPixmap(Bot.APP_PTH["config"]))
-        self.config.setGeometry(0, 93, 700, 693)
+        self.config.setGeometry(0, 92, 700, 693)
         self.config.hide()
 
         self.priority_team = QLabel(self.config)
@@ -121,12 +122,21 @@ class MyApp(QWidget):
 
         self.hard_conf = QLabel(self.config)
         self.hard_conf.setPixmap(QPixmap(Bot.APP_PTH["OffHard"]))
-        self.hard_conf.setGeometry(28 + 29, 591 + 8, 70, 24)
+        self.hard_conf.setGeometry(43, 565, 43, 31)
         self.hard_conf.hide()
         self.hard_conf2 = QLabel(self.config)
         self.hard_conf2.setPixmap(QPixmap(Bot.APP_PTH["hard_conf2"]))
         self.hard_conf2.setGeometry(87, 31, 149, 27)
         self.hard_conf2.hide()
+        self.hard_conf3 = QLabel(self.config)
+        self.hard_conf3.setPixmap(QPixmap(Bot.APP_PTH["infinity"]))
+        self.hard_conf3.setGeometry(366, 623, 128, 26)
+        self.hard_conf3.hide()
+
+        self.ego_panel = QLabel(self.config)
+        self.ego_panel.setPixmap(QPixmap(Bot.APP_PTH["config_panel"]))
+        self.ego_panel.setGeometry(0, 87, 700, 605)
+        self.ego_panel.hide()
 
         self.lux = QLabel(self)
         self.lux.setPixmap(QPixmap(Bot.APP_PTH["Lux"]))
@@ -295,12 +305,13 @@ class MyApp(QWidget):
             self.priority = self.get_priority(team)
             self.avoid = self.get_avoid()
             self.set_card_buttons([])
+            self.activate_ego_gifts({})
             buff = [True, True, True, True]
             if self.hard:
-                on = [False, True, False, False, False]
+                on = [False, True, False, False, False, False, False]
                 self.set_buttons_active(on + buff)
             else:
-                on = [False, True, False, False, True]
+                on = [False, True, False, False, True, False, False]
                 self.set_buttons_active(on + buff)
             sm.delete_config()
         else:
@@ -416,14 +427,15 @@ class MyApp(QWidget):
     def _get_button_on(self):
         return [
             (f'on{i}', {
-                'geometry': (28 + 128*i + (i > 1), 591, 128, 41),
+                'geometry': (30 + 162*i - (162*4 - 2)*(i > 3) - i//2, 557 + 55*(i > 3), 154, 49),
                 'checkable': True,
                 'checked': i == 1 or i == 4,
                 'click_handler': self.update_button_icons,
-                'icon': Bot.APP_PTH['On']
-            }) for i in range(5)
+                'icon': Bot.APP_PTH[f'sel{"1"*(i == 0)}_extra'],
+                'glow': Bot.APP_PTH['sel_extra'],
+            }) for i in range(7)
         ] + [
-            (f'on{i+5}', {
+            (f'on{i+7}', {
                 'geometry': (223 + 148*i, 155, 144, 56),
                 'checkable': True,
                 'checked': i % 2 == 0,
@@ -463,6 +475,19 @@ class MyApp(QWidget):
                 'id': i,
                 'click_handler': self.update_card_buttons,
             }) for i in range(5)
+        ]
+    
+    def _get_ego_buttons(self):
+        return [
+            (f'ego{i}', {
+                'geometry': (41 + 105*i - (105*6)*(i//6), 99 + 103*(i//6), 88, 87),
+                'checkable': True,
+                'checked': False,
+                'id': i,
+                'state': 0,
+                'click_handler': self.update_ego_icons,
+                'icon': Bot.APP_PTH['select_gift1']
+            }) for i in range(23)
         ]
 
     def _create_buttons(self):
@@ -520,6 +545,18 @@ class MyApp(QWidget):
                 'glow': Bot.APP_PTH['del']
             }),
 
+            'ego_panel_open': CustomButton(self.config, {
+                'geometry': (515, 611, 154, 49),
+                'click_handler': self.toggle_ego_panel,
+                'glow': Bot.APP_PTH['sel_extra']
+            }),
+
+            'ego_panel_close': CustomButton(self.ego_panel, {
+                'geometry': (515, 524, 154, 49),
+                'click_handler': self.toggle_ego_panel,
+                'glow': Bot.APP_PTH['sel_extra']
+            }),
+
             'hard': CustomButton(self, {
                 'geometry': (24, 166, 178, 58),
                 'checkable': True,
@@ -564,13 +601,16 @@ class MyApp(QWidget):
         for name, settings in all_buttons:
             self.buttons[name] = CustomButton(self, settings)
 
-        for name, settings in self._get_button_on()[:5] + self._get_card_order() + self._get_buff():
+        for name, settings in self._get_button_on()[:7] + self._get_card_order() + self._get_buff():
             self.buttons[name] = CustomButton(self.config, settings)
-        for name, settings in self._get_button_on()[5:]:
+        for name, settings in self._get_button_on()[7:]:
             self.buttons[name] = CustomButton(self.lux, settings)
 
         for name, settings in self._get_button_lux():
             self.buttons[name] = CustomButton(self.lux, settings)
+
+        for name, settings in self._get_ego_buttons():
+            self.buttons[name] = CustomButton(self.ego_panel, settings)
 
         self.buttons['update'].hide()
         self.check_version()
@@ -582,6 +622,7 @@ class MyApp(QWidget):
         self.set_widgets()
         self.set_selected_buttons(self.sinner_selections[self.team])
         self.set_affinity_buttons(self.selected_affinity[self.team])
+        self.activate_ego_gifts(sm.get_config(7))
         self.set_buttons_active(sm.get_config(8))
         self.set_card_buttons(sm.get_config(9))
         self.overlay.raise_()
@@ -629,17 +670,20 @@ class MyApp(QWidget):
         self.set_widgets()
         buff = [True, True, True, True]
         if self.hard:
-            on = [False, True, False, False, False]
+            on = [False, True, False, False, False, False, False]
             self.set_buttons_active(on + buff)
-            self.buttons['on0'].config['icon'] = Bot.APP_PTH['OnHard']
+            self.buttons['on0'].config['icon'] = Bot.APP_PTH['sel1_hard']
             self.hard_conf.show()
             self.hard_conf2.show()
+            self.hard_conf3.show()
         else:
-            on = [False, True, False, False, True]
+            on = [False, True, False, False, True, False, False]
             self.set_buttons_active(on + buff)
-            self.buttons['on0'].config['icon'] = Bot.APP_PTH['On']
+            self.buttons['on0'].config['icon'] = Bot.APP_PTH['sel1_extra']
             self.hard_conf.hide()
             self.hard_conf2.hide()
+            self.hard_conf3.hide()
+        self.activate_ego_gifts(sm.get_config(7))
         self.set_buttons_active(sm.get_config(8))
         self.set_card_buttons(sm.get_config(9))
 
@@ -658,6 +702,13 @@ class MyApp(QWidget):
         self.sinner_selections[self.team_lux + 7] = self.sinners
         self.set_selected_buttons(self.sinner_selections[self.team])
         self.lux.hide()
+
+    def toggle_ego_panel(self):
+        if self.ego_panel.isVisible():
+            self.ego_panel.hide()
+        else:
+            self.ego_panel.raise_()
+            self.ego_panel.show()
 
     def save(self):
         if self.is_lux:
@@ -689,9 +740,10 @@ class MyApp(QWidget):
             return
         
         sm.save_config(self.team, (self.priority, self.avoid))
-        # sm.save_config(7, self.avoid)
+        sm.save_config(7, {str(id): state for id, state in self.keywordless.items()})
         sm.save_config(8, self.get_config_buttons())
         sm.save_config(9, self.get_cards())
+        self.ego_panel.hide()
         self.config.hide()
 
     def update_sinners(self):
@@ -702,7 +754,7 @@ class MyApp(QWidget):
 
     def get_config_buttons(self):
         activated = []
-        for i in range(5):
+        for i in range(7):
             activated.append(self.buttons[f'on{i}'].isChecked())
         for i in range(4):
             activated.append(self.buttons[f'buff{i}'].isChecked())
@@ -737,17 +789,17 @@ class MyApp(QWidget):
 
     
     def set_buttons_active(self, states):
-        on_buttons = [self.buttons[f'on{i}'] for i in range(5)]
+        on_buttons = [self.buttons[f'on{i}'] for i in range(7)]
         buff_buttons = [self.buttons[f'buff{i}'] for i in range(4)]
         
         if len(states) == 5: # old version
-            states += [True]*4
-            buttons = on_buttons + buff_buttons
-        elif len(states) == 0: # new user
-            states = [True]*4
-            buttons = buff_buttons
-        else: # default
-            buttons = on_buttons + buff_buttons
+            states += [False]*2 + [True]*4
+        elif len(states) == 9: # less old version
+            states = states[:5] + [False]*2 + states[-4:]
+        elif len(states) != 11: # not default
+            return
+
+        buttons = on_buttons + buff_buttons
 
         for button, state in zip(buttons, states):
             button.setChecked(state)
@@ -758,6 +810,25 @@ class MyApp(QWidget):
             else:
                 button.setIcon(QIcon())
             button.setIconSize(button.size())
+
+
+    def activate_ego_gifts(self, data):
+        if isinstance(data, list): # old format
+            data = {}
+        self.keywordless = {}
+        print(data)
+        for id in range(23):
+            if str(id) in data.keys():
+                state = data[str(id)]
+                self.buttons[f'ego{id}'].config["state"] = state
+                self.buttons[f'ego{id}'].setChecked(True)
+                self.buttons[f'ego{id}'].setIcon(QIcon(Bot.APP_PTH[f'select_gift{state}']))
+                self.keywordless[id] = state
+            else:
+                if self.buttons[f'ego{id}'].isChecked():
+                    self.buttons[f'ego{id}'].config["state"] = 0
+                    self.buttons[f'ego{id}'].setChecked(False)
+                    self.buttons[f'ego{id}'].setIcon(QIcon())
 
     def activate_lux_teams(self):
         sender = self.sender()
@@ -896,6 +967,30 @@ class MyApp(QWidget):
             sender.setIcon(QIcon())
         sender.setIconSize(sender.size())
 
+    def update_ego_icons(self):
+        sender = self.sender()
+        if not sender or not isinstance(sender, QPushButton):
+            return
+        
+        id = getattr(sender, 'config', {}).get('id', None)
+        state = getattr(sender, 'config', {}).get('state', None)
+        if id is None or state is None: 
+            return
+        
+        states = [j for j in range(Bot.WORDLESS[id]['state'] + 1)]
+        i = states.index(state)
+        next_state = states[(i + 1) % len(states)]
+
+        if next_state == 0:
+            self.keywordless.pop(id, None)
+            sender.setIcon(QIcon())
+        else:
+            self.keywordless[id] = next_state
+            sender.setIcon(QIcon(Bot.APP_PTH[f'select_gift{next_state}']))
+            if next_state != 1:
+                sender.setChecked(True)
+        sender.config["state"] = next_state
+
     def update_card_buttons(self):
         sender = self.sender()
         if not sender or not isinstance(sender, QPushButton):
@@ -1021,7 +1116,7 @@ class MyApp(QWidget):
         errors = []
         # print(self.teams)
         for team in self.teams.keys():
-            if len(self.teams[team]["sinners"]) < 6:
+            if len(self.teams[team]["sinners"]) < 1:
                 errors.append(team)
         
         if not errors: return True
@@ -1087,14 +1182,18 @@ class MyApp(QWidget):
                     }
 
         self.settings = {
-            'log'       : self.buttons['log'].isChecked(),
-            'bonus'     : self.buttons['on0'].isChecked(),
-            'restart'   : self.buttons['on1'].isChecked() if not self.is_lux else self.buttons['on5'].isChecked(),
-            'altf4'     : self.buttons['on2'].isChecked() if not self.is_lux else self.buttons['on6'].isChecked(),
-            'enkephalin': self.buttons['on3'].isChecked() if not self.is_lux else self.buttons['on7'].isChecked(),
-            'skip'      : self.buttons['on4'].isChecked(),
-            'buff'      : [self.buttons[f'buff{i}'].isChecked() for i in range(4)],
-            'card'      : self.get_cards()
+            'log'        : self.buttons['log'].isChecked(),
+            'bonus'      : self.buttons['on0'].isChecked(),
+            'restart'    : self.buttons['on1'].isChecked() if not self.is_lux else self.buttons['on7'].isChecked(),
+            'altf4'      : self.buttons['on2'].isChecked() if not self.is_lux else self.buttons['on8'].isChecked(),
+            'enkephalin' : self.buttons['on3'].isChecked() if not self.is_lux else self.buttons['on9'].isChecked(),
+            'skip'       : self.buttons['on4'].isChecked(),
+            'wishmaking' : self.buttons['on5'].isChecked(),
+            'winrate'    : self.hard or self.buttons['on6'].isChecked(),
+            'infinity'   : self.hard and self.buttons['on6'].isChecked(),
+            'buff'       : [self.buttons[f'buff{i}'].isChecked() for i in range(4)],
+            'card'       : self.get_cards(),
+            'keywordless': {Bot.WORDLESS[id]['name']: state for id, state in self.keywordless.items()}
         }
 
     def start(self):

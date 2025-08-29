@@ -194,13 +194,14 @@ def move():
     if not now.button("Move") or \
            now.button("Confirm"): return False
     
-    if p.HARD: 
+    if p.HARD:
         time.sleep(1.2) # node reveal animation
         if now.button("suicide"): return False
 
     # run fail detection
-    dead = [gui.center(box) for box in LocateRGB.locate_all(PTH["0"], region=REG["alldead"], conf=0.95, threshold=50)]
-    if len(dead) >= 6:
+    p.DEAD = len([gui.center(box) for box in LocateRGB.locate_all(PTH["0"], region=REG["alldead"], conf=0.9, threshold=40)])
+    print(f"{p.DEAD} dead sinners")
+    if p.DEAD >= len(p.SELECTED):
         gui.press("Esc")
         time.sleep(0.5)
         chain_actions(click, [

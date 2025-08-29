@@ -23,18 +23,19 @@ start_locations = {
     "Drive": 0, 
     "MD": 1, 
     "Start": 2, 
-    "enterInvert": 3, 
-    "ConfirmTeam": 5, 
-    "enterBonus": 10, 
-    "Confirm.0": 16, 
-    "refuse": 18, 
-    "Confirm": 24
+    "enterInvert": 4, 
+    "ConfirmTeam": 6, 
+    "enterBonus": 11, 
+    "Confirm.0": 17, 
+    "refuse": 19, 
+    "Confirm": 25
 }
 
 def dungeon_start():
     ACTIONS = [
         Action("Drive"),
-        Action("MD"),
+        Action("MD", ver="Start"),
+        lambda: win_click(1588, 567) if p.INFINITE and now_rgb.button("infinite_off") else None,
         Action("Start"),
         Action("enterInvert", ver="ConfirmTeam"),
         select_team,
@@ -126,12 +127,32 @@ TERMIN = [
     lambda: try_loc.button("Drive")
 ]
 
+end_locations = {
+    "victory": 0,
+    "Claim": 2,
+    "ClaimInvert": 4,
+    "ConfirmInvert": 5,
+    "Confirm.0": 6,
+    "Drive": 8
+}
+
 def dungeon_end():
-    try:
-        chain_actions(try_click, TERMIN)
-    except RuntimeError:
-        print("Termination error")
-        logging.error("Termination error")
+    failed = 0
+    while True:
+        for key in end_locations.keys():
+            if now.button(key):
+                i = end_locations[key]
+                break
+        else: break
+        try:
+            chain_actions(try_click, TERMIN[i:])
+        except RuntimeError:
+            failed += 1
+            win_moveTo(1710, 982)
+        if failed > 5:
+            print("Termination error")
+            logging.error("Termination error")
+            break
     print("MD Finished!")
 
 # FAIL RUN
@@ -145,22 +166,40 @@ FAIL = [
     lambda: try_loc.button("Drive")
 ]
 
+fail_locations = {
+    "defeat": 0,
+    "Claim": 2,
+    "GiveUp": 3,
+    "ConfirmInvert": 4,
+    "loading": 5,
+    "Drive": 6
+}
+
 def dungeon_fail():
     if not p.RESTART:
         raise RuntimeError("Mirror dungeon failed... If you want to auto-retry, enable 'Restart after run fail'")
-    try:
-        chain_actions(try_click, FAIL)
-    except RuntimeError:
-        print("Termination error")
-        logging.error("Termination error")
+    failed = 0
+    while True:
+        for key in fail_locations.keys():
+            if now.button(key):
+                i = fail_locations[key]
+                break
+        else: break
+        try:
+            chain_actions(try_click, FAIL[i:])
+        except RuntimeError:
+            failed += 1
+            win_moveTo(1710, 982)
+        if failed > 5:
+            print("Termination error")
+            logging.error("Termination error")
+            break
     print("MD Failed!")
 
 
 # MAIN LOOP
 def main_loop():
     dungeon_start()
-    p.AGGRESSIVE_FUSING = True
-    p.DONE_FUSING = False
     error = 0
     last_error = 0
     ck = False
@@ -186,7 +225,10 @@ def main_loop():
             pause()
 
         if p.HARD and now.button("suicide"):
-            win_click(815, 681)
+            if not p.INFINITE:
+                win_click(815, 681)
+            else:
+                win_click(1117, 681)
             connection()
         
         if now.button("victory"):
@@ -221,7 +263,14 @@ def main_loop():
                     last_error = 0
                     level = 1
                     break
-            else:
+            else: 
+                # check if end
+                for key in end_locations.keys():
+                    if now.button(key):
+                        logging.info('Run Completed')
+                        dungeon_end()
+                        return True
+                
                 if last_error != 0:
                     if time.time() - last_error > 30:
                         handle_fuckup()
@@ -293,7 +342,7 @@ def set_team(team, teams):
     p.DUPLICATES = teams[team]["duplicates"]
     p.GIFTS = [team_list[keyword] for keyword in p.TEAM]
 
-    if not p.BUFF[3]: p.GIFTS[0]['uptie1'] = p.GIFTS[0]['uptie1'][:1]
+    if not p.BUFF[3]: p.GIFTS[0]['uptie1'] = {k: p.GIFTS[0]['uptie1'][k] for k in list(p.GIFTS[0]['uptie1'])[:1]}
 
     p.SELECTED = [list(SINNERS.keys())[i] for i in list(teams[team]["sinners"])]
     p.PICK = generate_packs(teams[team]["priority"])
@@ -302,6 +351,7 @@ def set_team(team, teams):
     logging.info(f'Team: {p.TEAM[0]}')
     
     difficulty = "HARD" if p.HARD else "NORMAL"
+    if p.INFINITE: difficulty = "INFINITY"
     logging.info(f'Difficulty: {difficulty}')
 
 
@@ -315,6 +365,10 @@ def execute_me(is_lux, count, count_exp, count_thd, teams, settings, hard, app, 
     p.SKIP = settings['skip']
     p.BUFF = settings['buff']
     p.CARD = settings['card']
+    p.WISHMAKING = settings['wishmaking']
+    p.WINRATE = settings['winrate']
+    p.INFINITE = settings['infinity']
+    p.KEYWORDLESS = settings['keywordless']
     p.APP = app
     p.WARNING = warning
 

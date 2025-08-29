@@ -2,6 +2,23 @@ from source.utils.utils import *
 import source.utils.params as p
 
 
+mounting_trials = [
+    "DefenseSkillUp",
+    "DefenseLevelUp",
+    "Resilient",
+    "Growth",
+    "BodyUp",
+    "Keen",
+    "OffenseLevelUp",
+    "TakeLessDamage",
+    "ClashPower",
+    "FinalPower",
+    "BasePower",
+    "Brutality",
+    "Headstrong"
+]
+
+
 def far_from_owned(coord, owned_x):
     '''
     Checks whether the ego gift is owned
@@ -56,7 +73,7 @@ def get_gift(image, owned_x):
         (removed from further analysis in case we are selecting multiple gifts)
     '''
     if p.GIFTS[0]["sin"] or not LocateRGB.check(PTH[p.GIFTS[0]["checks"][0]], image=image, region=REG["EGO"], wait=False):
-        for gift in [buy for aff in p.GIFTS if aff["sin"] for buy in aff["buy"]]:
+        for gift in [buy for aff in p.GIFTS if aff["sin"] for buy in aff["buy"]] + list(p.KEYWORDLESS.keys()):
             if (coord := LocateRGB.locate(PTH[str(gift)], image=image, region=REG["EGO"], conf=0.84, comp=0.94)) \
             and far_from_owned(gui.center(coord), owned_x):
                 point = gui.center(coord)
@@ -70,13 +87,63 @@ def get_gift(image, owned_x):
             point = ego_aff[1]
             win_click(point)
             return rectangle(image, (int(point[0]-100), 0), (int(point[0]+100), 110), (0, 0, 0), -1)
-        elif boxes := LocateRGB.locate_all(PTH[f"tier{lvl}"], image=image, region=REG["EGO"], method=cv2.TM_SQDIFF_NORMED, threshold=30):
+        elif boxes := LocateRGB.locate_all(PTH[f"tier{lvl}"], image=image, region=REG["EGO"], method=cv2.TM_SQDIFF_NORMED, threshold=30, conf=0.85):
             for box in boxes:
                 point = gui.center(box)
                 if far_from_owned(point, owned_x):
                     break
             win_click(point)
             return rectangle(image, (int(point[0]-100), 0), (int(point[0]+100), 110), (0, 0, 0), -1)
+
+
+def find_trial(trials_image):
+    '''
+    Locates the first prioritized mounting trial and returns its coordinates
+
+    Args:
+        trials_image: image with trials that can be modified
+
+    Returns:
+        res: list of matching bounding boxes
+    '''
+    for name in mounting_trials:
+        for c in [1, 1.05]:
+            res = LocateRGB.locate_all(PTH[f"trial_{name}"], trials_image, method=cv2.TM_SQDIFF_NORMED, comp=c, conf=0.87, threshold=100)
+            if res:
+                print(name)
+                return res
+    return []
+
+
+def get_trial(image, trials_image):
+    '''
+    Selects the best mounting trial
+
+    Args:
+        image: image with EGO gifts that can be modified
+        trials_image: image with trials that can be modified
+
+    Returns:
+        image: image with the selected EGO gift replaced with a black rectangle
+        (removed from further analysis in case we are selecting multiple gifts)
+        trials_image: image with the selected trials replaced with a black rectangle
+    '''
+    res = find_trial(trials_image)
+    print(res)
+    if len(res) == 1:
+        point = gui.center(res[0])
+        win_click(point[0], 600)
+        return rectangle(image, (int(point[0]-140), 0), (int(point[0]+140), 110), (0, 0, 0), -1), \
+               rectangle(trials_image, (int(point[0]-140), 0), (int(point[0]+140), 52), (0, 0, 0), -1)
+    elif len(res) > 1:
+        points = [gui.center(res[i]) for i in range(len(res))]
+        h, w = image.shape[:2]
+        mask = np.zeros((h, w), dtype=np.uint8)
+        mask = rectangle(mask, (int(points[0][0]-140), 0), (int(points[0][0]+140), 110), 255, -1)
+        mask = rectangle(mask, (int(points[1][0]-140), 0), (int(points[1][0]+140), 110), 255, -1)
+        return cv2.bitwise_and(image, image, mask=mask), None
+    else:
+        return image, None
 
 
 def grab_EGO():
@@ -91,11 +158,23 @@ def grab_EGO():
     image = screenshot(region=REG["EGO"])
 
     cycle = 1
-    if p.HARD and now.button("trials"): cycle = 2
+    trials = None
+    if p.HARD and now.button("trials"): 
+        cycle = 2
+        if p.INFINITE:
+            trials = screenshot(region=REG["buffs"])
+
 
     for _ in range(cycle):
-        image = get_gift(image, owned_x)
-        time.sleep(0.1)
+        if trials is not None:
+            image, trials = get_trial(image, trials)
+            time.sleep(0.1)
+            # cv2.imwrite(f"{time.time()}.png", image)
+            # if trials is not None:
+            #     cv2.imwrite(f"{time.time()}.png", trials)
+        if trials is None:
+            image = get_gift(image, owned_x)
+            time.sleep(0.1)
 
     try:
         ClickAction((1687, 870), ver="Confirm").execute(click)
@@ -126,7 +205,7 @@ def grab_card():
 
     win_moveTo(1000, 900)
     now_click.button("Cancel") # if was misclicked
-    time.sleep(1)
+    time.sleep(1.4)
     for i in p.CARD:
         if now.button(f"card{i}", "Card"):
             get_card(f"card{i}")

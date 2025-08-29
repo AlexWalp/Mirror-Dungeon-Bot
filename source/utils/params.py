@@ -1,6 +1,6 @@
 import threading
 
-V = "2.2.0"
+V = "2.3.0"
 
 SELECTED = ["YISANG", "DONQUIXOTE" , "ISHMAEL", "RODION", "SINCLAIR", "GREGOR"]
 GIFTS = []
@@ -14,9 +14,13 @@ RESTART = True
 ALTF4 = False
 NETZACH = False
 SKIP = True
+WINRATE = False
+WISHMAKING = False
 BUFF = [True, True, True, True]
 CARD = [1, 0, 2, 3, 4]
+KEYWORDLESS = {}
 HARD = False
+INFINITE = False
 APP = None
 
 PICK = {
@@ -42,6 +46,6 @@ pause_event = threading.Event()
 stop_event = threading.Event()
 
 SUPER = "shop" # for Hard MD
+DEAD = 0
 IDX = 0
-AGGRESSIVE_FUSING = True
-DONE_FUSING = False
+TO_UPTIE = {}
