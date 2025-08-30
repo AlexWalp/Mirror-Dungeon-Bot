@@ -133,7 +133,6 @@ end_locations = {
     "ClaimInvert": 4,
     "ConfirmInvert": 5,
     "Confirm.0": 6,
-    "Drive": 8
 }
 
 def dungeon_end():
@@ -172,7 +171,6 @@ fail_locations = {
     "GiveUp": 3,
     "ConfirmInvert": 4,
     "loading": 5,
-    "Drive": 6
 }
 
 def dungeon_fail():
