@@ -1,6 +1,6 @@
 import threading
 
-V = "2.3.0"
+V = "2.3.1"
 
 SELECTED = ["YISANG", "DONQUIXOTE" , "ISHMAEL", "RODION", "SINCLAIR", "GREGOR"]
 GIFTS = []
