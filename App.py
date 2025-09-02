@@ -916,7 +916,7 @@ class MyApp(QWidget):
             return
 
         button_key = next((k for k, v in self.buttons.items() if v == sender), None)
-        if not button_key:
+        if not button_key or int(button_key.split('keyword')[-1]) == self.team:
             return
         
         selected_affinity_buttons = [self.buttons[f'keyword{id}'] for id in self.selected_affinity[self.team]]
