@@ -73,7 +73,7 @@ def get_gift(image, owned_x):
         (removed from further analysis in case we are selecting multiple gifts)
     '''
     if p.GIFTS[0]["sin"] or not LocateRGB.check(PTH[p.GIFTS[0]["checks"][0]], image=image, region=REG["EGO"], wait=False):
-        for gift in [buy for aff in p.GIFTS if aff["sin"] for buy in aff["buy"]] + list(p.KEYWORDLESS.keys()):
+        for gift in list(p.KEYWORDLESS.keys()) + [buy for aff in p.GIFTS if aff["sin"] for buy in aff["buy"]]:
             if (coord := LocateRGB.locate(PTH[str(gift)], image=image, region=REG["EGO"], conf=0.84, comp=0.94)) \
             and far_from_owned(gui.center(coord), owned_x):
                 point = gui.center(coord)

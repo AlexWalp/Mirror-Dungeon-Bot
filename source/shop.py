@@ -625,7 +625,7 @@ def buy_some(rerolls=1, priority=False):
     iterations = rerolls + 1
     for _ in range(iterations):
         keywordless = [{"buy": [name for name, state in p.KEYWORDLESS.items() if state > 1], "sin": True}]
-        for aff in p.GIFTS + keywordless:
+        for aff in keywordless + p.GIFTS:
             if not priority or not aff["sin"]: # just buy same affinity
                 if "checks" in aff: # all but keywordless
                     buy_affinity(aff)
@@ -645,7 +645,8 @@ def buy_some(rerolls=1, priority=False):
 
 def buy(missing):
     output = False
-    for aff in p.GIFTS:
+    keywordless = [{"buy": [name for name, state in p.KEYWORDLESS.items() if state > 1], "sin": True}]
+    for aff in keywordless + p.GIFTS:
         if aff["sin"]:
             shop_shelf, out = buy_known(aff)
         else:

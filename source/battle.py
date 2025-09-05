@@ -169,7 +169,7 @@ def select_team():
         time.sleep(1)
 
     for i in range(4):
-        coords = [gui.center(box) for box in LocateGray.locate_all(PTH[f"{affinity}_team"], region=REG["teams"], threshold=15, conf=0.83)]
+        coords = [gui.center(box) for box in LocateGray.locate_all(PTH[f"{affinity}_team"], region=REG["teams"], threshold=15, conf=0.84)]
         print(coords)
         sorted(coords, key=lambda coord: coord[1])
 
@@ -275,6 +275,7 @@ def fight(lux=False):
 
     print("Entered Battle")
     last_error = 0
+    attempts = 0
     while True:
         ck = False
         if loc.button("winrate", wait=1):
@@ -315,6 +316,29 @@ def fight(lux=False):
             gui.mouseDown()
             wait_for_condition(lambda: LocateRGB.check(ego_image, region=REG["ego_usage"], wait=1), interval=0)
             gui.mouseUp()
+
+        if now.button("RetryStage"):
+            attempts += 1
+            if attempts >= 3:
+                logging.info("Got stuck in hard battle")
+                if not p.RESTART:
+                    wait_for_condition(lambda: not now.button("Confirm_retry", method=cv2.TM_SQDIFF_NORMED), lambda: win_click(1200, 400), interval=1, timer=3)
+                    Action("Confirm_retry", ver="loading").execute(click)
+                    loading_halt()
+                    logging.info("Run stopped")
+                    raise StopIteration("Dante, we failed... If you want to auto-retry the whole MD, enable 'Restart after run fail'")
+                else:
+                    wait_for_condition(lambda: not now.button("Confirm_retry", method=cv2.TM_SQDIFF_NORMED), lambda: win_click(1200, 670), interval=1, timer=3)
+                    Action("Confirm_retry", ver="loading").execute(click)
+                    loading_halt()
+                    print("Battle is over")
+                    logging.info("Battle is over")
+                    return True
+            else:
+                wait_for_condition(lambda: not now.button("Confirm_retry", method=cv2.TM_SQDIFF_NORMED), lambda: win_click(1200, 530), interval=1, timer=3)
+                Action("Confirm_retry", ver="loading").execute(click)
+                loading_halt()
+                logging.info(f"Re-attempting the battle (attempt {attempts + 1})")
 
         for i in exit_if:
             if now.button(i):
