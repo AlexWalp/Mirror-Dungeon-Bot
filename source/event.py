@@ -10,7 +10,7 @@ def event():
     start_time = time.time()
     while True:
         if time.time() - start_time > 100: return False
-        if gui.getActiveWindowTitle() != 'LimbusCompany':
+        if gui.getActiveWindowTitle() != p.LIMBUS_NAME:
             pause()
 
         for _ in range(3): win_click(906, 465, delay=0.01)

@@ -14,6 +14,18 @@ class SettingsManager:
         else:
             self.config = "CONFIG"
 
+    def set_version(self, version):
+        self.data["V"] = version
+        self.save_settings()
+
+    def is_version(self, last_version):
+        if "V" not in self.data:
+            return False
+        else:
+            v1 = list(map(int, last_version.split('.')))
+            v2 = list(map(int, self.data["V"].split('.')))
+            return v1 <= v2
+
     def get_username(self):
         return os.path.basename(os.path.expanduser("~"))
 
@@ -61,11 +73,15 @@ class SettingsManager:
         self.data["AFFINITY"] = state
         self.save_settings()
 
-    def save_config(self, key, value_list):
-        if self.config not in self.data:
-            self.data[self.config] = {}
+    def save_config(self, key, value_list, all=False):
+        if all: configs = ["CONFIG", "HARD"]
+        else: configs = [self.config]
 
-        self.data[self.config][str(key)] = value_list
+        for config in configs:
+            if config not in self.data:
+                self.data[config] = {}
+            self.data[config][str(key)] = value_list
+
         self.save_settings()
 
     def delete_config(self):

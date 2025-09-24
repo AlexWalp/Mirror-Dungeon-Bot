@@ -178,10 +178,16 @@ def next_step(nodes, extra_connections):
 
 
 def enter(wait=1):
+    button = None
     if now.button("enter", wait=wait):
+        button = "enter"
+    elif p.EXTREME and now.button("secretEncounter", wait=wait):
+        if p.SKIP: button = "skipEncounter"
+        else: button = "secretEncounter"
+    if button:
         wait_for_condition(
-            condition= lambda: now.button("enter"),
-            action=lambda: click.button("enter")
+            condition= lambda: now.button(button),
+            action=lambda: click.button(button)
         )
         win_moveTo(1721, 999)
         connection()
@@ -189,8 +195,13 @@ def enter(wait=1):
     return False
 
 
-def move(): 
+def move():
     enter(wait=False)
+
+    if now.button("Move") and p.MOVE_ANIMATION:
+        wait_for_condition(condition=lambda: now.button("Move"), interval=0.1)
+        p.MOVE_ANIMATION = False
+    
     if not now.button("Move") or \
            now.button("Confirm"): return False
     

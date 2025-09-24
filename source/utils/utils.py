@@ -19,114 +19,6 @@ class StopExecution(Exception): pass
 class WindowError(Exception): pass
 
 
-def print_settings():
-    print("\nCurrent Settings:")
-    print("─" * 66)
-    settings = {
-        "TEAM":     p.TEAM,
-        "SELECTED": p.SELECTED,
-        "BONUS":    p.BONUS,
-        "RESTART":  p.RESTART,
-        "ALTF4":    p.ALTF4,
-        "LOG":      p.LOG
-    }
-    for key, value in settings.items():
-        if isinstance(value, list):
-            value = ", ".join(str(v) for v in value)
-        print(f"{key:<9}: {str(value):<53}")
-    print("─" * 66)
-
-def parse_numbers(s):
-    nums = []
-    for i in range(1, 13):
-        if s.startswith(str(i)):
-            nums.append(i - 1)
-            s = s[len(str(i)):]
-    if len(nums) != 6 or s !="":
-        return None
-    return nums
-
-def setup():
-    print_settings()
-    print("Type 'help' if you need a description of each")
-    while True:
-        do = input("Type 1 to confirm your settings: ")
-        if "help" in do:
-            print("""
-Available Commands:
-──────────────────────────────────────────────────────────────────
-TEAM - Choose a build type (currently only 'BURN' is supported).
-    ➤ Usage: TEAM <TYPE>
-
-SELECTED - Default sinners the bot will pick if not manually selected.
-    ➤ Usage: SELECTED 1 2 3 4 5 6 (six in ascending order)
-    ➤ Note: Type 'SINNERS' to view sinner numbers.
-
-BONUS - Collect weekly bonuses automatically.
-    ➤ Usage: BONUS TRUE / BONUS FALSE
-
-RESTART - Restart failed runs automatically.
-    ➤ Usage: RESTART TRUE / RESTART FALSE
-
-ALTF4 - Close Limbus Company when done or stuck.
-    ➤ Usage: ALTF4 TRUE / ALTF4 FALSE
-
-LOG - Save events and errors to 'game.log'.
-    ➤ Usage: LOG TRUE / LOG FALSE
-──────────────────────────────────────────────────────────────────
-""")
-        elif "SINNERS" in do:
-            print("""
- Sinners List
-────────────────────────────────────
- 1. YISANG        7. HEATHCLIFF
- 2. FAUST         8. ISHMAEL
- 3. DONQUIXOTE    9. RODION
- 4. RYOSHU       10. SINCLAIR
- 5. MEURSAULT    11. OUTIS
- 6. HONGLU       12. GREGOR
-────────────────────────────────────
-Select six sinners in ascending order when using the 'SELECTED' command.
-""")
-        elif "TEAM" in do:
-            if "BURN" in do: p.TEAM = "BURN"; print_settings()
-            elif "BLEED" in do: p.TEAM = "BLEED"; print_settings()
-            elif "TREMOR" in do: p.TEAM = "TREMOR"; print_settings()
-            elif "RUPTURE" in do: p.TEAM = "RUPTURE"; print_settings()
-            elif "SINKING" in do: p.TEAM = "SINKING"; print_settings()
-            elif "POISE" in do: p.TEAM = "POISE"; print_settings()
-            elif "CHARGE" in do: p.TEAM = "CHARGE"; print_settings()
-            else: print("Incorrect format for SELECTED")
-        elif "SELECTED" in do:
-            num = ''.join(filter(str.isdigit, do))
-            num_list = parse_numbers(num)
-            if num_list:
-                list_of_sinners = list(SINNERS.keys())
-                p.SELECTED = [list_of_sinners[i] for i in num_list]
-                print_settings()
-            else: print("Incorrect format for SELECTED")
-        elif "BONUS" in do:
-            if "TRUE" in do: p.BONUS = True; print_settings()
-            elif "FALSE" in do: p.BONUS = False; print_settings()
-            else: print("Incorrect format for BONUS")
-        elif "RESTART" in do:
-            if "TRUE" in do: p.RESTART = True; print_settings()
-            elif "FALSE" in do: p.RESTART = False; print_settings()
-            else: print("Incorrect format for RESTART")
-        elif "ALTF4" in do:
-            if "TRUE" in do: p.ALTF4 = True; print_settings()
-            elif "FALSE" in do: p.ALTF4 = False; print_settings()
-            else: print("Incorrect format for ALTF4")
-        elif "LOG" in do:
-            if "TRUE" in do: p.LOG = True; print_settings()
-            elif "FALSE" in do: p.LOG = False; print_settings()
-            else: print("Incorrect format for LOG")
-        elif do == "0":
-            raise StopExecution()
-        elif do == "1":
-            break
-
-
 def check_window():
     screen_width = ctypes.windll.user32.GetSystemMetrics(0)
     screen_height = ctypes.windll.user32.GetSystemMetrics(1)
@@ -142,7 +34,7 @@ def check_window():
         raise WindowError("Window is partially or completely out of screen bounds!")
 
 def set_window():
-    hwnd = ctypes.windll.user32.FindWindowW(None, "LimbusCompany")
+    hwnd = ctypes.windll.user32.FindWindowW(None, p.LIMBUS_NAME)
 
     rect = ctypes.wintypes.RECT()
     ctypes.windll.user32.GetClientRect(hwnd, ctypes.byref(rect))
@@ -186,10 +78,6 @@ def screenshot(region=(0, 0, 1920, 1080)): # works only for cv2!
         round(w*comp),
         round(h*comp)
     )))
-    # if delay:
-    #     elapsed = time.time() - start_time
-    #     if elapsed < 0.03: time.sleep(0.03 - elapsed)
-    # return image
 
 def rectangle(image, point1, point2, color, type):
     comp = p.WINDOW[2] / 1920
@@ -261,7 +149,7 @@ def pause():
 
 
 def close_limbus():
-    if gui.getActiveWindowTitle() == 'LimbusCompany':
+    if gui.getActiveWindowTitle() == p.LIMBUS_NAME:
         gui.hotkey('alt', 'f4')
     if p.APP: QMetaObject.invokeMethod(p.APP, "stop_execution", Qt.ConnectionType.QueuedConnection)
     raise StopExecution()
@@ -279,12 +167,12 @@ def wait_for_condition(condition, action=None, interval=0.5, timer=20):
 
 
 def generate_packs(priority):
-    packs = {f"floor{i}": [] for i in range(1, 6)}
+    packs = {f"floor{i}": [] for i in list(range(1, 6)) + p.EXTREME*[15]}
 
     if p.HARD: floors = HARD_FLOORS
     else: floors = FLOORS
 
-    for i in range(1, 6):
+    for i in list(range(1, 6)) + p.EXTREME*[15]:
         for pack in priority:
             if pack in floors[i]:
                 packs[f"floor{i}"].append(pack)
@@ -681,11 +569,11 @@ class LocatePreset:
                     raise AssertionError("Verification reqires action to verify")
                 params["wait"] = False
             for i in range(3):
-                if gui.getActiveWindowTitle() != 'LimbusCompany': pause()
+                if gui.getActiveWindowTitle() != p.LIMBUS_NAME: pause()
                 if isinstance(ver, str):
                     condition = lambda: not self.button(ver, wait=False, click=False, error=False)
                 else:
-                    condition = lambda: LocateGray.check(state0, image=screenshot(region=ver), wait=False, conf=0.98)
+                    condition = lambda: LocateGray.check(state0, image=screenshot(region=ver), wait=False, conf=0.98, method=1)
                     # print(LocateGray.get_conf(state0, image=gui.screenshot(region=ver)))
 
                 verified = wait_for_condition(condition, interval=0.1, timer=3)
@@ -800,7 +688,7 @@ def chain_actions(preset: LocatePreset, actions: list):
         curr.execute(preset, ver=ver)
 
 def handle_fuckup():
-    if gui.getActiveWindowTitle() == 'LimbusCompany':
+    if gui.getActiveWindowTitle() == p.LIMBUS_NAME:
         set_window()
         win_click(1888, 901)
         gui.press("Esc")

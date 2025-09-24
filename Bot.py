@@ -5,7 +5,7 @@ from source.battle import fight, select_team
 from source.event import event
 from source.pack import pack
 from source.move import move
-from source.grab import grab_card, grab_EGO, confirm
+from source.grab import grab_card, grab_EGO, confirm, get_adversity
 from source.shop import shop
 from source.lux import grind_lux, check_enkephalin
 from source.teams import TEAMS, HARD
@@ -26,16 +26,25 @@ start_locations = {
     "enterInvert": 4, 
     "ConfirmTeam": 6, 
     "enterBonus": 11, 
-    "Confirm.0": 17, 
-    "refuse": 19, 
-    "Confirm": 25
+    "Confirm.0": 14, 
+    "refuse": 16, 
+    "Confirm": 24
 }
+
+def select_grace():
+    for i in range(len(p.BUFF)):
+        if p.BUFF[i]:
+            x = int(375 + 297*(i % 5))
+            y = int(375 + 333*(i // 5))
+            ClickAction((x, y), ver="money!").execute(try_click)
+            if p.BUFF[i] > 1:
+                ClickAction((x + 61*(1 - 2*(p.BUFF[i] < 3)), y + 140), ver="money!").execute(try_click)
 
 def dungeon_start():
     ACTIONS = [
         Action("Drive"),
         Action("MD", ver="Start"),
-        lambda: win_click(1588, 567) if p.INFINITE and now_rgb.button("infinite_off") else None,
+        lambda: win_click(1588, 567) if p.EXTREME and now_rgb.button("infinite_off") else None,
         Action("Start"),
         Action("enterInvert", ver="ConfirmTeam"),
         select_team,
@@ -45,10 +54,7 @@ def dungeon_start():
         lambda: wait_for_condition(lambda: not now.button("enterBonus")),
         lambda: time.sleep(0.2),
 
-        lambda: ClickAction(( 401, 381), ver="money!").execute(try_click) if p.BUFF[0] else None,
-        lambda: ClickAction(( 686, 381), ver="money!").execute(try_click) if p.BUFF[1] else None,
-        lambda: ClickAction(( 966, 381), ver="money!").execute(try_click) if p.BUFF[2] else None,
-        lambda: ClickAction((1241, 381), ver="money!").execute(try_click) if p.BUFF[3] else None,
+        select_grace,
 
         Action("enterBonus", ver="Confirm.0"),
         lambda: now_click.button("starlight"),
@@ -59,8 +65,10 @@ def dungeon_start():
         ClickAction(p.GIFTS[0]["checks"][2], ver="gifts!"),
         lambda: ClickAction((1239, 395), ver="selected!").execute(try_click) if (p.BUFF[3] or p.GIFTS[0]['checks'][5] == 0) else None,
         lambda: ClickAction((1239, 549), ver="selected!").execute(try_click) if (p.BUFF[3] or p.GIFTS[0]['checks'][5] == 1) else None,
+        lambda: ClickAction((1239, 703), ver="selected!").execute(try_click) if p.BUFF[9] else None,
         ClickAction((1624, 882)),
 
+        lambda: Action("Confirm", ver="Confirm").execute(try_click) if p.BUFF[9] else None,
         lambda: Action("Confirm", ver="Confirm").execute(try_click) if p.BUFF[3] else None,
         Action("Confirm", ver="loading"),
         loading_halt
@@ -79,6 +87,8 @@ def dungeon_start():
         except RuntimeError:
             failed += 1
             win_moveTo(1509, 978)
+        except gui.PauseException:
+            pause()
         if failed > 5:
             print("Initialization error")
             logging.error("Initialization error")
@@ -148,6 +158,8 @@ def dungeon_end():
         except RuntimeError:
             failed += 1
             win_moveTo(1710, 982)
+        except gui.PauseException:
+            pause()
         if failed > 5:
             print("Termination error")
             logging.error("Termination error")
@@ -186,6 +198,8 @@ def dungeon_fail():
         except RuntimeError:
             failed += 1
             win_moveTo(1710, 982)
+        except gui.PauseException:
+            pause()
         if failed > 5:
             print("Termination error")
             logging.error("Termination error")
@@ -198,8 +212,9 @@ def main_loop():
     dungeon_start()
     error = 0
     last_error = 0
+    p.MOVE_ANIMATION = False
     ck = False
-    level = 1
+    p.LVL = 1
     while True:
         if now.button("ServerError"):
             for _ in range(3):
@@ -217,11 +232,11 @@ def main_loop():
             time.sleep(0.2)
             win_click(967, 774)
 
-        if gui.getActiveWindowTitle() != 'LimbusCompany':
+        if gui.getActiveWindowTitle() != p.LIMBUS_NAME:
             pause()
 
         if p.HARD and now.button("suicide"):
-            if not p.INFINITE:
+            if not p.EXTREME:
                 win_click(815, 681)
             else:
                 win_click(1117, 681)
@@ -238,17 +253,21 @@ def main_loop():
             return False
 
         try:
-            ck, level = pack(level)
+            ck  = pack()
             ck += move()
             ck += fight()
             ck += event()
             ck += grab_EGO()
             ck += confirm()
+            if p.EXTREME:
+                ck += get_adversity()
             ck += grab_card()
-            ck += shop(level)
+            ck += shop()
         except RuntimeError:
             handle_fuckup()
             error += 1
+        except gui.PauseException:
+            pause()
 
         if ck == False:
             # check if start
@@ -285,51 +304,9 @@ def main_loop():
 
         time.sleep(0.2)
 
-# when cmd is run:
-# def replay_loop():
-#     setup()
-#     number = input("How many mirrors will you grind? ")
-#     number = int(''.join(filter(str.isdigit, number)) or '0')
-
-#     if number < 1:
-#         print("I respect that")
-#         return
-    
-#     # count_exp = 1
-#     # count_thd = 1
-#     # grind_lux(count_exp, count_thd)
-
-
-#     print(f"Grinding {number} mirrors...")
-#     print("Switch to Limbus Window")
-#     countdown(10)
-    
-#     p.GIFTS = TEAMS[p.TEAM]
-#     setup_logging(enable_logging=p.LOG)
-    
-#     logging.info('Script started')
-#     set_window()
-
-#     for i in range(number):
-#         if p.NETZACH: check_enkephalin()
-
-#         logging.info(f'Iteration {i}')
-#         completed = False
-#         while not completed:
-#             completed = main_loop()
-
-
-# if __name__ == "__main__":
-#     try:
-#         replay_loop()
-#         if p.ALTF4:
-#             close_limbus()
-#     except StopExecution:
-#         sys.exit()
-
 
 # when App is run:
-def set_team(team, teams):
+def set_team(team, teams, keywordless):
     if p.HARD: team_list = HARD
     else: team_list = TEAMS
 
@@ -347,7 +324,13 @@ def set_team(team, teams):
     logging.info(f'Team: {p.TEAM[0]}')
     
     difficulty = "HARD" if p.HARD else "NORMAL"
-    if p.INFINITE: difficulty = "INFINITY"
+    if p.EXTREME: 
+        difficulty = "EXTREME"
+        lunar_comp = list(set(["slashmemory", "piercememory", "bluntmemory"]) - set([f"{name.lower()}memory" for name in p.TEAM]))
+        stones = [f"stone{i}" for i in range(7)] + lunar_comp
+        p.KEYWORDLESS = keywordless | {"lunarmemory": 2} | {gift: 2 for gift in stones}
+    else:
+        p.KEYWORDLESS = keywordless
     logging.info(f'Difficulty: {difficulty}')
 
 
@@ -363,8 +346,7 @@ def execute_me(is_lux, count, count_exp, count_thd, teams, settings, hard, app, 
     p.CARD = settings['card']
     p.WISHMAKING = settings['wishmaking']
     p.WINRATE = settings['winrate']
-    p.INFINITE = settings['infinity']
-    p.KEYWORDLESS = settings['keywordless']
+    p.EXTREME = settings['infinity']
     p.APP = app
     p.WARNING = warning
 
@@ -377,7 +359,7 @@ def execute_me(is_lux, count, count_exp, count_thd, teams, settings, hard, app, 
 
     if not is_lux:
         rotator = cycle(list(teams.keys()))
-        
+        keywordless = settings['keywordless']
         print(f"Grinding {count} mirrors...")
         print("Switch to Limbus Window")
         countdown(10)
@@ -390,7 +372,7 @@ def execute_me(is_lux, count, count_exp, count_thd, teams, settings, hard, app, 
         else:
             for i in range(count):
                 team = next(rotator)
-                set_team(team, teams)
+                set_team(team, teams, keywordless)
 
                 logging.info(f'Iteration {i}')
                 completed = False

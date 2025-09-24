@@ -19,7 +19,12 @@ sins = { # bgr values
 comps = [0.71, 0.77, 0.89, 1]
 low = {"struggle": (0, 199, 252), "hopeless": (2, 245, 214)}
 ego = ["zayin", "teth", "he", "waw"]
-best = ["best_ego"]
+best1 = ["FluidSac"]
+best2 = [
+    "Sunshower", "MagicBullet", "Holiday", "EffervescentCorrosion", "DimensionShredder", "EbonyStem", "Binds", "YaSunyataTadRupam", 
+    "GardenofThorns", "AEDD", "Lantern", "CavernousWailing", "Capote", "Pursuance", "Regret", "RimeShank", "WishingCairn", 
+    "ElectricScreaming", "4thMatchFlame", "RedEyesOpen", "ArdorBlossomStar", "BlindObsession", "FluidSac", "HexNail"
+]
 
 def get_lowskill():
     image = screenshot(region=(0, 820, 1920, 100))
@@ -40,43 +45,64 @@ def get_lowskill():
         coords_x.append(int(x))
     return coords_x
 
-def select_ego():
-    time.sleep(0.4)
-    coords_x = get_lowskill()
-    if not coords_x: return
-    for x in coords_x:
-        win_moveTo(x, 990)
-        gui.mouseDown()
-        time.sleep(1.5)
-        gui.mouseUp()
-
-        image_best = screenshot(region=(0, 495, 1920, 50))
-        image_all = screenshot(region=(0, 200, 1920, 50))
-        for i in best:
-            res = LocateRGB.locate(PTH[i], image=image_best, region=(0, 495, 1920, 50), method=1, conf=0.8)
+def ego_click(best_ego):
+    gui.mouseDown()
+    time.sleep(1.5)
+    gui.mouseUp()
+    image_best = SIFTMatcher(region=(0, 495, 1920, 50), nfeatures=2000, contrastThreshold=0)
+    image_all = screenshot(region=(0, 200, 1920, 50))
+    for i in best_ego:
+        box = image_best.locate(PTH[i])
+        if box:
+            res = gui.center(box)
+            win_click(res, duration=0.1)
+            win_click(res, duration=0.1)
+            break
+    else:
+        for i in ego:
+            res = LocateRGB.locate(PTH[i], image=image_all, region=(0, 200, 1920, 50), method=1, conf=0.8)
+            print(i, res)
             if res:
-                res = gui.center(res)
-                win_click(res, duration=0.1)
-                win_click(res, duration=0.1)
+                c0, c1 = gui.center(res)
+                win_click(c0, int(c1 + 200), duration=0.1)
+                win_click(c0, int(c1 + 200), duration=0.1)
                 break
         else:
-            for i in ego:
-                res = LocateRGB.locate(PTH[i], image=image_all, region=(0, 200, 1920, 50), method=1, conf=0.8)
-                print(i, res)
-                if res:
-                    c0, c1 = gui.center(res)
-                    win_click(c0, int(c1 + 200), duration=0.1)
-                    win_click(c0, int(c1 + 200), duration=0.1)
-                    break
-            else:
-                win_click(1850, 1000)
-        time.sleep(0.2)
+            win_click(1850, 1000)
+    time.sleep(0.2)
+
+def select_ego():
+    time.sleep(0.8)
+    coords_x = get_lowskill()
+    if not coords_x: return
+
+    # try using zayin
+    for x in coords_x: 
+        win_moveTo(x, 990)
+        ego_click(best1)
     gui.press("p", 3, 0.3)
     time.sleep(0.8)
     coords_x = get_lowskill()
-    if coords_x:
+    if len(coords_x) < 3: 
+        # zayin kinda worked
         for x in coords_x: win_click(x, 990, duration=0.1)
-# end
+        return
+    
+    for x in coords_x: # zayin didn't work, so let's use something more deadly
+        win_click(x, 990, clicks=2, duration=0.1)
+        ego_click(best2)
+    gui.press("p", 3, 0.3)
+    time.sleep(0.8)
+    coords_x = get_lowskill()
+    if len(coords_x) < 3: 
+        # we winrate with this
+        for x in coords_x: win_click(x, 990, duration=0.1)
+        return
+    
+    # even that didn't work, so let's go for damage
+    gui.press("p", 1, 0.3)
+    time.sleep(0.8)
+
 
 def is_ego():
     threshold=60
@@ -169,7 +195,7 @@ def select_team():
         time.sleep(1)
 
     for i in range(4):
-        coords = [gui.center(box) for box in LocateGray.locate_all(PTH[f"{affinity}_team"], region=REG["teams"], threshold=15, conf=0.84)]
+        coords = [gui.center(box) for box in LocateGray.locate_all(PTH[f"{affinity}_team"], region=REG["teams"], threshold=15, conf=0.85)]
         print(coords)
         sorted(coords, key=lambda coord: coord[1])
 
@@ -254,13 +280,13 @@ def chain(gear_start, gear_end, background):
     y -= 46
     for i in range(skill_num):
         if moves[i]:
-            win_moveTo(x + 68, y + 200)
+            win_moveTo(x + 68, y + 200, duration=0.01)
         else:
-            win_moveTo(x + 68, y + 70)
+            win_moveTo(x + 68, y + 70, duration=0.01)
         x += 115
-        time.sleep(0.01)
     
-    gui.press("enter", 1, 0.1)
+    win_moveTo(x + 68, y + 120, duration=0.01)
+    # gui.press("enter", 1, 0.1)
     gui.mouseUp()
 
 
@@ -281,10 +307,12 @@ def fight(lux=False):
         if loc.button("winrate", wait=1):
             time.sleep(0.1)
             ck = True
+            is_focused = True
             try:
-                if lux or p.WINRATE: raise gui.ImageNotFoundException
                 gear_start = gui.center(LocateEdges.try_locate(PTH["gear"], region=(0, 761, 900, 179), conf=0.7))
                 gear_end = gui.center(LocateEdges.try_locate(PTH["gear2"], region=(350, 730, 1570, 232), conf=0.7))
+                is_focused = False
+                if lux or p.WINRATE: raise gui.ImageNotFoundException
                 background = screenshot(region=(round(gear_start[0] + 100), 775, round(gear_end[0] - gear_start[0] - 200), 10))
                 chain(gear_start, gear_end, background)
 
@@ -296,7 +324,8 @@ def fight(lux=False):
                     gui.press("enter", 1, 0.1)
                     time.sleep(1)
             except gui.ImageNotFoundException:
-                win_click(1549, 750, duration=0.1)
+                if is_focused:
+                    win_click(1385, 930, duration=0.1)
                 gui.press("p", 1, 0.1)
                 if not lux and p.HARD: select_ego()
                 gui.press("enter", 1, 0.1)
@@ -326,7 +355,7 @@ def fight(lux=False):
                     Action("Confirm_retry", ver="loading").execute(click)
                     loading_halt()
                     logging.info("Run stopped")
-                    raise StopIteration("Dante, we failed... If you want to auto-retry the whole MD, enable 'Restart after run fail'")
+                    raise StopIteration("Dante, we failed... If you want to end run here, enable 'End stuck runs'")
                 else:
                     wait_for_condition(lambda: not now.button("Confirm_retry", method=cv2.TM_SQDIFF_NORMED), lambda: win_click(1200, 670), interval=1, timer=3)
                     Action("Confirm_retry", ver="loading").execute(click)
@@ -351,7 +380,7 @@ def fight(lux=False):
             if now_rgb.button(f"end_{i}", "skip_yap"):
                 gui.press("space", 1, 0.1)
         
-        if gui.getActiveWindowTitle() != 'LimbusCompany':
+        if gui.getActiveWindowTitle() != p.LIMBUS_NAME:
             ck = True
             pause()
         

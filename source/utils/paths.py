@@ -56,7 +56,7 @@ REG = {
     "ConfirmInvert.1": ( 987,  704,  318,  130),
     "infinite_off"   : (1690,  500,   45,   30),
     # regions not binded to an image
-    "money!"         : (1718,   47,   57,   40),
+    "money!"         : (1526,   52,   80,   30),
     "gifts!"         : (1173,  324,  129,  125),
     "selected!"      : (1682,  855,   30,   42),
 
@@ -96,8 +96,12 @@ REG = {
     "Confirm.1"      : (1118,  754,  189,   70),
     "trials"         : (   0,  615, 1920,   55),
     "buffs"          : (   0,  664, 1920,   52),
+    "adversity"      : (  43,   32,  320,   70),
+    "projection"     : ( 153,  713, 1620,   76),
+    "selectCount"    : (1790,  843,   30,   45),
     # regions not binded to an image
     "rewardCount!"   : (1494,  181,   23,   42),
+    "selectCount!"   : (1745,  975,   32,   44),
 
     # move.py
     "Move"           : (1805,  107,   84,   86),
@@ -106,9 +110,11 @@ REG = {
     "suicide"        : ( 756,  233,  437,  121),
     "forfeit"        : ( 740,  547,  151,  208),
     "directions"     : ( 523,  303,  155,  473),
+    "secretEncounter": (1595,  767,  183,  100),
+    "skipEncounter"  : (1379,  763,  195,  110),
 
     # pack.py
-    "lvl"            : ( 957,  151,   25,   52),
+    "lvl"            : ( 950,  151,   40,   52),
     "PackChoice"     : (1757,  126,  115,  116),
     "PackCard"       : (  76,  799,  497,  885),
     "hardDifficulty" : ( 893,  207,  115,   44),
@@ -126,7 +132,6 @@ REG = {
     "keywordSel"     : ( 832,  119,  469,   58),
     "keywordRef"     : ( 678,  162,  340,   53),
     "fuse"           : ( 754,  117,  161,   81),
-    "fuseButton"     : (1107,  849,  161,   54),
     "scroll"         : (1647,  321,   64,   81),
     "scroll.0"       : (1647,  662,   64,   81),
     "wishmaking"     : ( 384,  731,   49,   53),
@@ -169,29 +174,30 @@ SINNERS = {
 }
 
 WORDLESS = {
-    0:  {"name": "ancienteffigy",       "state": 2, "tier": 4},
-    1:  {"name": "faith",               "state": 2, "tier": 4},
-    2:  {"name": "falsehalo",           "state": 3, "tier": 4},
-    3:  {"name": "kimjihoon",           "state": 2, "tier": 4},
-    4:  {"name": "pieceofrelationship", "state": 3, "tier": 4},
-    5:  {"name": "grandwelcome",        "state": 2, "tier": 3},
-    6:  {"name": "illusoryhunt",        "state": 2, "tier": 3},
-    7:  {"name": "prestigecard",        "state": 2, "tier": 3},
-    8:  {"name": "rustycoin",           "state": 2, "tier": 3},
-    9:  {"name": "specialcontract",     "state": 2, "tier": 3},
-    10: {"name": "blessing",            "state": 2, "tier": 3},
-    11: {"name": "carmilla",            "state": 3, "tier": 2},
-    12: {"name": "childwithinflask",    "state": 2, "tier": 2},
-    13: {"name": "coffeecranes",        "state": 2, "tier": 2},
-    14: {"name": "motheclipse",         "state": 2, "tier": 2},
-    15: {"name": "goldenurn",           "state": 2, "tier": 2},
-    16: {"name": "homeward",            "state": 2, "tier": 2},
-    17: {"name": "oracle",              "state": 2, "tier": 2},
-    18: {"name": "painkiller",          "state": 2, "tier": 2},
-    19: {"name": "hammer",              "state": 2, "tier": 2},
-    20: {"name": "investigatorbadge",   "state": 3, "tier": 2},
-    21: {"name": "lithograph",          "state": 2, "tier": 1},
-    22: {"name": "phlebotomypack",      "state": 2, "tier": 1},
+    0:  {"name": "falsehalo",           "state": 3, "tier": 4},
+    1:  {"name": "pieceofrelationship", "state": 3, "tier": 4},
+    2:  {"name": "carmilla",            "state": 3, "tier": 2},
+    3:  {"name": "investigatorbadge",   "state": 3, "tier": 2},
+    4:  {"name": "ancienteffigy",       "state": 2, "tier": 4},
+    5:  {"name": "faith",               "state": 2, "tier": 4},
+    6:  {"name": "kimjihoon",           "state": 2, "tier": 4},
+    7:  {"name": "grandwelcome",        "state": 2, "tier": 3},
+    8:  {"name": "illusoryhunt",        "state": 2, "tier": 3},
+    9:  {"name": "prestigecard",        "state": 2, "tier": 3},
+    10: {"name": "rustycoin",           "state": 2, "tier": 3},
+    11: {"name": "specialcontract",     "state": 2, "tier": 3},
+    12: {"name": "blessing",            "state": 2, "tier": 3},
+    13: {"name": "tango",               "state": 2, "tier": 3},
+    14: {"name": "childwithinflask",    "state": 2, "tier": 2},
+    15: {"name": "coffeecranes",        "state": 2, "tier": 2},
+    16: {"name": "motheclipse",         "state": 2, "tier": 2},
+    17: {"name": "goldenurn",           "state": 2, "tier": 2},
+    18: {"name": "homeward",            "state": 2, "tier": 2},
+    19: {"name": "oracle",              "state": 2, "tier": 2},
+    20: {"name": "painkiller",          "state": 2, "tier": 2},
+    21: {"name": "hammer",              "state": 2, "tier": 2},
+    22: {"name": "lithograph",          "state": 2, "tier": 1},
+    23: {"name": "phlebotomypack",      "state": 2, "tier": 1},
 }
 
 WORDLESS_MAP = {v["name"]: v["tier"] for v in WORDLESS.values()}
@@ -271,15 +277,21 @@ HARD_FLOORS = {
         'TheInfiniteProcession', 'TheHeartbreaking', 'LaManchalandReopening', 'TheEvilDefining',
         'TheUnchanging', 'FourHousesandGreed', 'Line5', 'TheSurrenderedWitnessing', 'TheDreamEnding',
         'TimekillingTimeBokGak', 'SpringCultivation'
+    ],
+    15: [
+        'Line3', 'Line4', 'Line5', 'SeaCR', 'BridleofInfinity', 'EfflorescingGreenery', 'ImpenetrablePath', 
+        'Line3Terminus', 'Bloodfiends', 'NCorp'
     ]
 }
+
 
 HARD_BANNED = [
     "TheNoonofViolet", "MurderontheWARPExpress", "FullStoppedbyaBullet", "TimekillingTime", 
     "NocturnalSweeping", 'Line4', 'Line3', 'toClaimTheirBonesBokGak', 'TheEvilDefining', 
     'SinkingDeluge', 'PoisedBreathing', 'InertSloth', 'EmotionalFlood', 'CrawlingAbyss', 
     'TreadwheelSloth', 'VainPride', 'PitifulEnvy', 'TyrannicalPride', 'UnrelentingMight', 
-    'Line5', 'TheSurrenderedWitnessing', 'TheDreamEnding', 'HatredandDespair', 'TimekillingTimeBokGak'
+    'Line5', 'TheSurrenderedWitnessing', 'TheDreamEnding', 'HatredandDespair', 
+    'TimekillingTimeBokGak', 'ImpenetrablePath'
 ]
 
 

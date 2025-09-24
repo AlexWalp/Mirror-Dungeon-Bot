@@ -11,13 +11,15 @@ def within_region(x, regions):
 
 
 def remove_pack(level, name):
-    for l in range(level, 6):
+    for l in list(range(level, 6)) + p.EXTREME*[15]:
         if name in p.PICK[f"floor{l}"]:
             p.PICK[f"floor{l}"].remove(name)
 
 
 def pack_eval(level, regions, skip, skips):
-    level = min(level, 5)
+    curr_lvl = level
+    if level > 10: level = 15
+    else: level = min(level, 5)
     # best packs
     priority = p.PICK[f"floor{level}"]
     print(priority)
@@ -37,7 +39,7 @@ def pack_eval(level, regions, skip, skips):
 
     attempts = 2
     while len(packs.keys()) < len(regions) and attempts > 0:
-        sift = SIFTMatcher(region=(161, 630, 1632, 100), nfeatures=2000, contrastThreshold=0)
+        sift = SIFTMatcher(region=(161, 630, 1632, 140), nfeatures=2000, contrastThreshold=0)
         for pack in pack_list:
             if len(packs.keys()) >= len(regions): break
             box = sift.locate(PTH[pack])
@@ -54,14 +56,20 @@ def pack_eval(level, regions, skip, skips):
     }
     logging.info(packs)
     print(packs)
-    
-    if priority: # picking best pack
+    # picking best pack
+    if priority and \
+       not (5 <= curr_lvl <= 10 and 10-curr_lvl >= len(priority)) and \
+       not (11 <= curr_lvl <= 15 and 15-curr_lvl >= len(priority)):
+
         for pr in priority:
             if pr in packs.keys():
                 print(f"Entering {pr}")
                 logging.info(f"Pack: {pr}")
                 remove_pack(level, pr)
                 return packs[pr]
+    elif priority:
+        banned += priority
+        priority = []
     if skip != skips and priority:
         return None
     
@@ -103,32 +111,55 @@ def pack_eval(level, regions, skip, skips):
     return id
 
 
-def pack(level):
-    if not now.button("PackChoice"):
-        return (False, level)
-    
-    max_floor = 5
-    if p.INFINITE: max_floor = 10
+def update_lvl(level):
+    floor_range = list(range(1, 6))
+    if p.EXTREME: floor_range = list(range(1, 10)) + [0]
 
-    for i in range(max_floor, 0, -1):
-        if now.button(f"lvl{i}", "lvl", conf=0.95):
-            level = i
+    assumed_lvl = 0
+    digit_conf = 0
+    for i in floor_range:
+        det = len(LocateGray.locate_all(PTH[f"lvl{i}"], region=REG["lvl"], threshold=5, conf=0.95))
+        if det == 1:
+            if i != 1:
+                conf = LocateGray.get_conf(PTH[f"lvl{i}"], region=REG["lvl"])
+                if conf < digit_conf: continue
+                else: 
+                    digit_conf = conf
+                    if assumed_lvl != 1:
+                        assumed_lvl //= 10
+            assumed_lvl = assumed_lvl*10 + i
+        elif det == 2:
+            assumed_lvl = 11
             break
 
-    if level <= 5:
+    if (assumed_lvl in range(1, 6)) or (p.EXTREME and assumed_lvl in range(1, 16)):
+        return assumed_lvl
+    elif (level + 1 in range(1, 6)) or (p.EXTREME and level + 1 in range(1, 16)):
+        return level + 1
+    else:
+        return level
+
+
+def pack():
+    if not now.button("PackChoice"):
+        return False
+    
+    p.LVL = update_lvl(p.LVL)
+    
+    if p.LVL <= 5:
         if not p.HARD:
             now.button("hardDifficulty", click=(1349, 64))
         else:
             if not now.button("hardDifficulty"):
                 win_click(1349, 64)
 
-    print(f"Entering Floor {level}")
-    logging.info(f"Floor {level}")
+    print(f"Entering Floor {p.LVL}")
+    logging.info(f"Floor {p.LVL}")
 
     win_moveTo(1721, 999)
     time.sleep(0.4)
 
-    skips = 1 + p.BUFF[2]*2
+    skips = 1 + p.BUFF[2] + int(p.BUFF[2] > 0)
     box = LocateGray.locate(PTH["PackCard"], region=REG["PackCard"])
     if box is None:
         card_count = 5
@@ -158,7 +189,7 @@ def pack(level):
 
     for skip in range(skips + 1):
         time.sleep(0.2)
-        id = pack_eval(level, regions, skip, skips)
+        id = pack_eval(p.LVL, regions, skip, skips)
         # cv2.imwrite(f"choices/pack{int(time.time())}.png", screenshot()) # debugging
         if not id is None:
             region = regions[id]
@@ -171,11 +202,7 @@ def pack(level):
             win_moveTo(1721, 999)
             time.sleep(2)
     
-    if try_loc.button("Move") and level != 1:
-        wait_for_condition(
-            condition=lambda: now.button("Move"),
-            interval=0.1
-        )
-        try_loc.button("Move")
-    time.sleep(0.5)
-    return (True, level)
+    if p.LVL != 1:
+        p.MOVE_ANIMATION = True
+    wait_for_condition(lambda: now.button("PackChoice"), interval=0.1)
+    return True

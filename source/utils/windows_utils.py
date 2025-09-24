@@ -4,6 +4,7 @@ import numpy as np
 import time
 import math
 import random
+import source.utils.params as p
 
 class BITMAPINFOHEADER(ctypes.Structure):
     _fields_ = [
@@ -241,6 +242,7 @@ def mouseUp(button='left', delay=0.09):
 
 class FailSafeException(Exception): pass
 class ImageNotFoundException(Exception): pass
+class PauseException(Exception): pass
 
 # Global fail-safe settings
 FAILSAFE = True
@@ -259,7 +261,10 @@ def _fail_safe_check():
     
     x, y = get_position()
     width, height = get_screen_size()
+    name = getActiveWindowTitle()
     
+    if name != p.LIMBUS_NAME:
+        raise PauseException
     if (x == 0 or x == width - 1) and (y == 0 or y == height - 1):
         raise FailSafeException(f"Mouse out of screen bounds at ({x}, {y})")
 

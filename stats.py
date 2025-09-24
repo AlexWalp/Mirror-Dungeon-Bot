@@ -146,7 +146,7 @@ def build_data(lines):
 
 
 TEAMS = ["BURN", "BLEED", "TREMOR", "RUPTURE", "SINKING", "POISE", "CHARGE", "SLASH", "PIERCE", "BLUNT"]
-MODES = ["NORMAL", "HARD", "INFINITY"]
+MODES = ["NORMAL", "HARD", "EXTREME"]
 
 def format_time(total_seconds):
     if total_seconds is None:

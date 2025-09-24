@@ -161,9 +161,13 @@ def grab_EGO():
     trials = None
     if p.HARD and now.button("trials"): 
         cycle = 2
-        if p.INFINITE:
+        if p.EXTREME:
             trials = screenshot(region=REG["buffs"])
-
+    elif p.BUFF[9]:
+        for i in [2, 3]:
+            if now.button(f"select{i}", "selectCount"):
+                cycle = i
+                break
 
     for _ in range(cycle):
         if trials is not None:
@@ -177,7 +181,8 @@ def grab_EGO():
             time.sleep(0.1)
 
     try:
-        ClickAction((1687, 870), ver="Confirm").execute(click)
+        for _ in range(cycle):
+            ClickAction((1687, 870), ver="Confirm").execute(click)
     except RuntimeError:
         gui.press("enter", 2, 1)
         time.sleep(1)
@@ -225,4 +230,16 @@ def confirm():
     win_moveTo(965, 878)
     time.sleep(0.3)
     now_click.button("Confirm")
+    return True
+
+
+def get_adversity():
+    if not now.button("adversity"): return False
+    x_coords = [box[0] for box in LocateRGB.locate_all(PTH["projection"], region=REG["projection"], threshold=100)]
+    sorted(x_coords)
+    for x in x_coords:
+        ClickAction((x, 550), ver="selectCount!").execute(click)
+    time.sleep(0.3)
+    win_click(1725, 1000)
+    wait_for_condition(lambda: now.button("adversity"), interval=0.2)
     return True

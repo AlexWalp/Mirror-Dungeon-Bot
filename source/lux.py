@@ -50,7 +50,7 @@ def grind_lux(count_exp, count_thd, teams):
     print("Entering Lux!")
     while count_exp:
         if not now.button("winrate") and not now.button("Exp"): start_lux()
-        if gui.getActiveWindowTitle() != 'LimbusCompany': pause()
+        if gui.getActiveWindowTitle() != p.LIMBUS_NAME: pause()
         time.sleep(0.5)
 
         choices = LocateRGB.locate_all(PTH["EnterDoor"], region=REG["pick!"])
@@ -80,7 +80,7 @@ def grind_lux(count_exp, count_thd, teams):
     p.SELECTED = p.SELECTED[:6]
     while count_thd:
         if not now.button("winrate") and not now.button("Exp"): start_lux()
-        if gui.getActiveWindowTitle() != 'LimbusCompany': pause()
+        if gui.getActiveWindowTitle() != p.LIMBUS_NAME: pause()
 
         if now.button("Exp"):
             if p.NETZACH: check_enkephalin(shift=227)

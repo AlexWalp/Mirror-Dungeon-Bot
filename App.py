@@ -120,23 +120,30 @@ class MyApp(QWidget):
         self.combo_boxes = []
         self.selectize_widgets = []
 
-        self.hard_conf = QLabel(self.config)
-        self.hard_conf.setPixmap(QPixmap(Bot.APP_PTH["OffHard"]))
-        self.hard_conf.setGeometry(43, 565, 43, 31)
-        self.hard_conf.hide()
-        self.hard_conf2 = QLabel(self.config)
-        self.hard_conf2.setPixmap(QPixmap(Bot.APP_PTH["hard_conf2"]))
-        self.hard_conf2.setGeometry(87, 31, 149, 27)
-        self.hard_conf2.hide()
-        self.hard_conf3 = QLabel(self.config)
-        self.hard_conf3.setPixmap(QPixmap(Bot.APP_PTH["infinity"]))
-        self.hard_conf3.setGeometry(366, 623, 128, 26)
-        self.hard_conf3.hide()
+        hard_conf_data = [
+            ("OffHard",      (43, 565, 43, 31)),
+            ("hard_conf2",   (87, 31, 149, 27)),
+            ("infinity",     (366, 623, 128, 26)),
+            ("skip_secrets", (42, 623, 128, 26)),
+            ("conf_end",     (204, 568, 128, 26)),
+        ]
+        self.hard_confs = []
+        for key, geom in hard_conf_data:
+            lbl = QLabel(self.config)
+            lbl.setPixmap(QPixmap(Bot.APP_PTH[key]))
+            lbl.setGeometry(*geom)
+            lbl.hide()
+            self.hard_confs.append(lbl)
 
         self.ego_panel = QLabel(self.config)
         self.ego_panel.setPixmap(QPixmap(Bot.APP_PTH["config_panel"]))
         self.ego_panel.setGeometry(0, 87, 700, 605)
         self.ego_panel.hide()
+
+        self.grace_panel = QLabel(self.config)
+        self.grace_panel.setPixmap(QPixmap(Bot.APP_PTH["grace_expand"]))
+        self.grace_panel.setGeometry(0, 405, 700, 123)
+        self.grace_panel.hide()
 
         self.lux = QLabel(self)
         self.lux.setPixmap(QPixmap(Bot.APP_PTH["Lux"]))
@@ -306,7 +313,7 @@ class MyApp(QWidget):
             self.avoid = self.get_avoid()
             self.set_card_buttons([])
             self.activate_ego_gifts({})
-            buff = [True, True, True, True]
+            buff = [1]*4 + [0]*6
             if self.hard:
                 on = [False, True, False, False, False, False, False]
                 self.set_buttons_active(on + buff)
@@ -447,12 +454,27 @@ class MyApp(QWidget):
     def _get_buff(self):
         return [
             (f'buff{i}', {
-                'geometry': (35 + 65*i, 416, 64, 68),
+                'geometry': (31 + 64*i, 416, 64, 68),
                 'checkable': True,
                 'checked': True,
-                'click_handler': self.update_button_icons,
+                'id': i,
+                'state': 1,
+                'click_handler': self.update_buff_icons,
                 'icon': Bot.APP_PTH['affinity_support']
             }) for i in range(4)
+        ]
+    
+    def _get_buff_ex(self):
+        return [
+            (f'buff{i}', {
+                'geometry': (31 + 64*i - (i//4), 11, 64, 68),
+                'checkable': True,
+                'checked': False,
+                'id': i,
+                'state': 0,
+                'click_handler': self.update_buff_icons,
+                'icon': Bot.APP_PTH['affinity_support']
+            }) for i in range(4, 10)
         ]
     
     def _get_button_selected(self):
@@ -469,7 +491,7 @@ class MyApp(QWidget):
     def _get_card_order(self):
         return [
             (f'card{i+1}', {
-                'geometry': (343 + 65*i - (i > 1), 416, 64, 68),
+                'geometry': (350 + 64*i - (i//3), 416, 64, 68),
                 'checkable': True,
                 'checked': False,
                 'id': i,
@@ -487,7 +509,7 @@ class MyApp(QWidget):
                 'state': 0,
                 'click_handler': self.update_ego_icons,
                 'icon': Bot.APP_PTH['select_gift1']
-            }) for i in range(23)
+            }) for i in range(24)
         ]
 
     def _create_buttons(self):
@@ -557,6 +579,16 @@ class MyApp(QWidget):
                 'glow': Bot.APP_PTH['sel_extra']
             }),
 
+            'grace_panel_open': CustomButton(self.config, {
+                'geometry': (137, 485, 78, 31),
+                'click_handler': self.toggle_grace_panel
+            }),
+
+            'grace_panel_close': CustomButton(self.grace_panel, {
+                'geometry': (137, 80, 78, 31),
+                'click_handler': self.toggle_grace_panel
+            }),
+
             'hard': CustomButton(self, {
                 'geometry': (24, 166, 178, 58),
                 'checkable': True,
@@ -611,6 +643,9 @@ class MyApp(QWidget):
 
         for name, settings in self._get_ego_buttons():
             self.buttons[name] = CustomButton(self.ego_panel, settings)
+
+        for name, settings in self._get_buff_ex():
+            self.buttons[name] = CustomButton(self.grace_panel, settings)
 
         self.buttons['update'].hide()
         self.check_version()
@@ -668,21 +703,19 @@ class MyApp(QWidget):
         sm.update_name(self.hard)
         self.set_priority()
         self.set_widgets()
-        buff = [True, True, True, True]
+        buff = [1]*4 + [0]*6
         if self.hard:
             on = [False, True, False, False, False, False, False]
             self.set_buttons_active(on + buff)
             self.buttons['on0'].config['icon'] = Bot.APP_PTH['sel1_hard']
-            self.hard_conf.show()
-            self.hard_conf2.show()
-            self.hard_conf3.show()
+            for lbl in self.hard_confs:
+                lbl.show()
         else:
             on = [False, True, False, False, True, False, False]
             self.set_buttons_active(on + buff)
             self.buttons['on0'].config['icon'] = Bot.APP_PTH['sel1_extra']
-            self.hard_conf.hide()
-            self.hard_conf2.hide()
-            self.hard_conf3.hide()
+            for lbl in self.hard_confs:
+                lbl.hide()
         self.activate_ego_gifts(sm.get_config(7))
         self.set_buttons_active(sm.get_config(8))
         self.set_card_buttons(sm.get_config(9))
@@ -709,6 +742,15 @@ class MyApp(QWidget):
         else:
             self.ego_panel.raise_()
             self.ego_panel.show()
+
+    def toggle_grace_panel(self):
+        if self.grace_panel.isVisible():
+            self.grace_panel.hide()
+        else:
+            self.grace_panel.raise_()
+            self.grace_panel.show()
+            for i in range(4):
+                self.buttons[f'buff{i}'].raise_()
 
     def save(self):
         if self.is_lux:
@@ -744,6 +786,7 @@ class MyApp(QWidget):
         sm.save_config(8, self.get_config_buttons())
         sm.save_config(9, self.get_cards())
         self.ego_panel.hide()
+        self.grace_panel.hide()
         self.config.hide()
 
     def update_sinners(self):
@@ -756,8 +799,8 @@ class MyApp(QWidget):
         activated = []
         for i in range(7):
             activated.append(self.buttons[f'on{i}'].isChecked())
-        for i in range(4):
-            activated.append(self.buttons[f'buff{i}'].isChecked())
+        for i in range(10):
+            activated.append(getattr(self.buttons[f'buff{i}'], 'config', {}).get('state', 0))
         return activated
     
     def ask_csv(self):
@@ -790,34 +833,43 @@ class MyApp(QWidget):
     
     def set_buttons_active(self, states):
         on_buttons = [self.buttons[f'on{i}'] for i in range(7)]
-        buff_buttons = [self.buttons[f'buff{i}'] for i in range(4)]
+        buff_buttons = [self.buttons[f'buff{i}'] for i in range(10)]
         
         if len(states) == 5: # old version
-            states += [False]*2 + [True]*4
+            states += [False]*2 + [1]*4 + [0]*6
         elif len(states) == 9: # less old version
             states = states[:5] + [False]*2 + states[-4:]
-        elif len(states) != 11: # not default
+        elif len(states) == 11: # less old
+            states += [0]*6
+        elif len(states) != 17:
             return
 
         buttons = on_buttons + buff_buttons
 
         for button, state in zip(buttons, states):
             button.setChecked(state)
-            if state:
+            if int(state) == 1:
                 icon_path = getattr(button, 'config', {}).get('icon', '')
                 if icon_path:
-                    button.setIcon(QIcon(icon_path))
+                    button.setIcon(QIcon(icon_path))     
+            elif int(state) > 1:
+                button.setIcon(QIcon(Bot.APP_PTH[f'grace{"+"*int(state - 1)}']))
             else:
                 button.setIcon(QIcon())
             button.setIconSize(button.size())
+            if 'state' in getattr(button, 'config', {}):
+                button.config['state'] = int(state)
 
 
     def activate_ego_gifts(self, data):
+        if not sm.is_version("3.0.0"): # reset old gift selection
+            sm.save_config(7, {}, all=True)
+            data = {}
+            sm.set_version(p.V)
         if isinstance(data, list): # old format
             data = {}
         self.keywordless = {}
-        print(data)
-        for id in range(23):
+        for id in range(24):
             if str(id) in data.keys():
                 state = data[str(id)]
                 self.buttons[f'ego{id}'].config["state"] = state
@@ -989,6 +1041,28 @@ class MyApp(QWidget):
             sender.setIcon(QIcon(Bot.APP_PTH[f'select_gift{next_state}']))
             if next_state != 1:
                 sender.setChecked(True)
+        sender.config["state"] = next_state
+
+    def update_buff_icons(self):
+        sender = self.sender()
+        if not sender or not isinstance(sender, QPushButton):
+            return
+        
+        id = getattr(sender, 'config', {}).get('id', None)
+        state = getattr(sender, 'config', {}).get('state', None)
+        if id is None or state is None: 
+            return
+
+        next_state = (state + 1) % 4
+
+        if next_state == 0:
+            sender.setIcon(QIcon())
+        else:
+            if next_state != 1:
+                sender.setChecked(True)
+                sender.setIcon(QIcon(Bot.APP_PTH[f'grace{"+"*(next_state - 1)}']))
+            else:
+                sender.setIcon(QIcon(Bot.APP_PTH['affinity_support']))
         sender.config["state"] = next_state
 
     def update_card_buttons(self):
@@ -1191,7 +1265,7 @@ class MyApp(QWidget):
             'wishmaking' : self.buttons['on5'].isChecked(),
             'winrate'    : self.hard or self.buttons['on6'].isChecked(),
             'infinity'   : self.hard and self.buttons['on6'].isChecked(),
-            'buff'       : [self.buttons[f'buff{i}'].isChecked() for i in range(4)],
+            'buff'       : [getattr(self.buttons[f'buff{i}'], 'config', {}).get('state', 0) for i in range(10)],
             'card'       : self.get_cards(),
             'keywordless': {Bot.WORDLESS[id]['name']: state for id, state in self.keywordless.items()}
         }
