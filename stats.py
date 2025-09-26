@@ -123,7 +123,7 @@ def build_data(lines):
             elif "Pack:" in line and run:
                 run.add_pack(get_next_word(line, "Pack:"))
             elif "Run Completed" in line:
-                if run and ((run.diff != "INFINITY" and run.state == 5) or (run.diff == "INFINITY" and run.state == 10)):
+                if run and ((run.diff != "EXTREME" and run.state == 5) or run.diff == "EXTREME"):
                     run.floors[run.state].end(unix_time(line, shift))
                     run.end(unix_time(line, shift))
                     data.append(run)
@@ -202,7 +202,7 @@ def export_to_csv(data, filename):
                 battle_types = ["Normal", "Focused", "Risky", "Miniboss", "Boss"]
                 writer.writerow(["Fights"] + battle_types + ["Total"])
                 
-                for floor_num in range(1, 6 + 5*(mode == "INFINITY")):
+                for floor_num in range(1, 6 + 10*(mode == "EXTREME")):
                     battle_times = {bt: [] for bt in battle_types}
                     floor_total_times = []
                     
@@ -237,7 +237,7 @@ def export_to_csv(data, filename):
                 
                 pack_data = {}
                 for run in runs:
-                    for floor_num in range(1, 6 + 5*(mode == "INFINITY")):
+                    for floor_num in range(1, 6 + 10*(mode == "EXTREME")):
                         if floor_num in run.floors:
                             floor = run.floors[floor_num]
                             if floor.pack is not None and floor.time is not None:

@@ -26,6 +26,7 @@ APP = None
 
 PICK = {}
 IGNORE = {}
+PICK_ALL = {}
 
 WARNING = None
 WINDOW = (0, 0, 1920, 1080)
@@ -39,4 +40,3 @@ DEAD = 0
 IDX = 0
 TO_UPTIE = {}
 MOVE_ANIMATION = False
-INFLATION = 1

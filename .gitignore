@@ -8,4 +8,5 @@ skill_data
 testing
 choices
 dist
+convert_ego.py
 game.csv

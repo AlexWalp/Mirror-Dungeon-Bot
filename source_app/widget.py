@@ -69,21 +69,37 @@ class FlowLayout(QLayout):
 class SelectizeItem(QWidget):
     removed = pyqtSignal(str)
 
-    def __init__(self, text, parent=None):
+    def __init__(self, text, number=None, parent=None):
         super().__init__(parent)
         self.text = text
-        self.setStyleSheet('border: 1px solid #d3c19b;background: #000000;border-radius: 3px;padding: 2px 5px;')
+        self.number = number
+        self.setStyleSheet('border: 1px solid #d3c19b; background: #000000; border-radius: 3px; padding: 2px 5px;')
         self.setup_ui()
 
     def setup_ui(self):
         self.layout = QHBoxLayout(self)
         self.layout.setContentsMargins(5, 2, 5, 2)
         
+        # Create a widget to hold number and text labels together
+        text_container = QWidget()
+        text_container.setStyleSheet('background: transparent;')
+        text_layout = QHBoxLayout(text_container)
+        text_layout.setContentsMargins(0, 0, 0, 0)
+        text_layout.setSpacing(0)
+        
+        if self.number is not None:
+            self.number_label = QLabel(str(self.number))
+            self.number_label.setStyleSheet('background: rgba(15, 100, 100, 0.7); color: #5df2ff; border: 1px solid #5df2ff; border-radius: 3px; padding: 2px 5px;')
+            text_layout.addWidget(self.number_label)
+        
         self.label = QLabel(self.text)
+        self.label.setStyleSheet('background: transparent; border: none; color: #EDD1AC;')
+        text_layout.addWidget(self.label)
+        
         self.btn_remove = QPushButton("×")
         self.btn_remove.setFixedSize(20, 20)
         
-        self.layout.addWidget(self.label)
+        self.layout.addWidget(text_container)
         self.layout.addWidget(self.btn_remove)
         self.btn_remove.clicked.connect(self.on_remove)
 
@@ -92,6 +108,8 @@ class SelectizeItem(QWidget):
     
     def setFont(self, font):
         self.label.setFont(font)
+        if hasattr(self, 'number_label'):
+            self.number_label.setFont(font)
 
     def on_remove(self):
         self.removed.emit(self.text)
@@ -99,21 +117,20 @@ class SelectizeItem(QWidget):
 class SelectizeWidget(QWidget):
     itemsChanged = pyqtSignal(list)
     itemRemoved = pyqtSignal(str)
-    itemAdded = pyqtSignal(str)
+    itemAdded = pyqtSignal(str, int)  # Modified to include number
 
     def __init__(self, parent=None, font=None):
         super().__init__(parent)
         self.font = font or QFont()
         self.setStyleSheet('color: #EDD1AC; background: transparent; border: none;')
         self.items = []
+        self.item_numbers = {}  # Dictionary to store item numbers
         self.setup_ui()
-        # self.apply_style()
 
     def setup_ui(self):
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         
-        # Scroll Area with Flow Layout
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll_content = QWidget()
@@ -122,37 +139,44 @@ class SelectizeWidget(QWidget):
         
         self.layout.addWidget(self.scroll)
 
-    def addItems(self, items):
-        for item in items:
-            self.add_item(item)
+    def addItems(self, items, numbers=None):
+        for i, item in enumerate(items):
+            number = numbers.get(item) if numbers else None
+            self.add_item(item, number)
 
     def getItems(self):
         return self.items
 
-    def add_item(self, text):
+    def getItemNumbers(self):
+        return self.item_numbers
+
+    def add_item(self, text, number=None):
         if text not in self.items:
             self.items.append(text)
+            if number is not None:
+                self.item_numbers[text] = number
             self._refresh_items()
             self.itemsChanged.emit(self.items)
-            self.itemAdded.emit(text)
+            self.itemAdded.emit(text, number if number is not None else -1)
 
     def remove_item(self, text):
         if text in self.items:
             self.items.remove(text)
+            if text in self.item_numbers:
+                del self.item_numbers[text]
             self._refresh_items()
             self.itemsChanged.emit(self.items)
             self.itemRemoved.emit(text)
 
     def _refresh_items(self):
-        # Clear existing items
         while self.scroll_layout.count():
             child = self.scroll_layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
         
-        # Add current items
         for item in self.items:
-            item_widget = SelectizeItem(item)
+            number = self.item_numbers.get(item)
+            item_widget = SelectizeItem(item, number)
             item_widget.setFont(self.font)
             item_widget.removed.connect(self.remove_item)
             self.scroll_layout.addWidget(item_widget)

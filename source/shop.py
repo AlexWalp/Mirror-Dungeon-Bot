@@ -339,6 +339,8 @@ def fuse():
     got_all = False
     advanced_fusing = fuse_search(have)
 
+    if p.EXTREME: coords_agg = coords
+
     # get powerful ego gift
     for i in range(len(p.GIFTS)):
         if not list(p.GIFTS[i]["uptie2"].keys())[0] in have.keys():
@@ -413,6 +415,7 @@ def fuse():
 
 def confirm_affinity(teams=None):
     if teams is None: teams = p.GIFTS
+    if not (0 <= p.IDX < len(teams)): p.IDX = 0
     click_rgb.button(teams[p.IDX]["checks"][3], "affinity!")
     win_click(1194, 841)
 
@@ -454,9 +457,7 @@ def fuse_loop():
         if p.TO_UPTIE:
             enhance(p.TO_UPTIE)
 
-        buy_some(4)
-        sell({"all": 600})
-        buy_some(2)
+        buy_some(2 + 2*(p.LVL < 11))
 
 
 ### EGO gift enhance logic
@@ -700,6 +701,7 @@ def buy_some(rerolls=1, priority=False):
             rerolls -= 1
             win_click(1489, 177)
             connection()
+            time.sleep(0.1)
 
 def buy(missing):
     output = False
@@ -749,6 +751,7 @@ def buy_loop(missing, floor1=False, keyword_ref=True):
             if (not result or floor1) and balance() >= 200:
                 win_click(1489, 177)
                 connection()
+                time.sleep(0.1)
                 if p.EXTREME:
                     time.sleep(0.2)
                     for _ in range(1 + int(p.SUPER == "supershop")):
@@ -820,12 +823,15 @@ def shop():
 
     time.sleep(0.2)
 
+    wait_for_condition(lambda: now_click.button("Confirm"))
+
     if p.DEAD > 0 and p.HARD:
         revive_idiots()
         heal_all()
 
     if p.LVL > 11:
-        heal_all()
+        for _ in range(min(p.LVL - 11, 3)):
+            heal_all()
 
     if p.EXTREME:
         for _ in range(1 + int(p.SUPER == "supershop")):
@@ -847,6 +853,13 @@ def shop():
     if 5 + p.EXTREME*11 > p.LVL > 1 or not p.SKIP:
         buy_some(rerolls=0, priority=True)
         fuse_loop()
+    
+    if p.EXTREME:
+        win_click(1489, 177)
+        connection()
+        time.sleep(0.1)
+        for _ in range(1 + int(p.SUPER == "supershop")):
+            buy_skill3()
     
     time.sleep(0.1)
     leave()

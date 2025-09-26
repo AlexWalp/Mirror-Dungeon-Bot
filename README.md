@@ -39,7 +39,7 @@
   - ### Starts from any moment of MD exploration
 
   - ### Restarts if run fails
-  If 6 or more sinners are dead, the bot (with default settings) will restart the run.
+  If all selected sinners are dead, the bot (with default settings) will restart the run.
 
   - ### Reclicks if action failed
     Sometimes timings mess up, so in order to address this issue most bot actions are verified.
@@ -94,7 +94,8 @@
 
 - ## Recommended Team
   - **Normal MD:** Rupture is the fastest team with average time of 24 minutes per run.  
-  - **Hard MD:** Rupture is the best team with average time of 38 minutes per run. <br><br>
+  - **Hard MD:** Rupture is the best team with average time of 38 minutes per run.
+  - **Extreme MD:** Both Rupture and Tremor are viable options.<br><br>
 
   <img src="ImageAssets/readme/team.png" alt="Team" width="100%">
 
@@ -138,7 +139,13 @@
   ### Hard MD:
   - **All battles** are winrated.
   - If the clash is **Struggling** or **Hopeless**, the bot uses the leftmost available EGO.
-  - If the clash is **Struggling/Hopeless** and an EGO is selected, it will be replaced with a defense skill.<br><br>
+  - If a clash is **Struggling/Hopeless** and an EGO is selected, it will be replaced with a defense skill, provided there are fewer than 3 such cases.
+  - If after EGO selection there are 3 or more **Struggling/Hopeless** clashes, replaces the EGO with high-rolling alternative.<br>
+  
+  High-rolling EGO options include: <br>
+
+  ***Sunshower, Magic Bullet, Holiday, Effervescent Corrosion, Dimension Shredder, Ebony Stem, Binds, Ya Sunyata Tad Rupam, Garden of Thorns, AEDD, Lantern, Cavernous Wailing, Capote, Pursuance, Regret, Rime Shank, Wishing Cairn, Electric Screaming, 4th Match Flame, Red Eyes Open, Ardor Blossom Star, Blind Obsession, Fluid Sac, Hex Nail***
+  - If there are still 3 or more **Struggling/Hopeless** clashes, goes for Damage instead of Win Rate<br><br>
   
   <img src="ImageAssets/readme/ego.gif" width='100%' />
 
@@ -195,7 +202,7 @@ or manually install:
 - `numpy`
 - `PyQt6`
 
-Then you can run `App.py` for GUI interface or run `Bot.py` for cmd input without GUI.
+Then you can run `App.py` to launch the application.
 
 # Usage:
 

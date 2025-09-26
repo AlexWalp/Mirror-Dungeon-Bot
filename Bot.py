@@ -212,8 +212,8 @@ def main_loop():
     dungeon_start()
     error = 0
     last_error = 0
-    p.MOVE_ANIMATION = False
     ck = False
+    p.MOVE_ANIMATION = False
     p.LVL = 1
     while True:
         if now.button("ServerError"):
@@ -276,7 +276,7 @@ def main_loop():
                     dungeon_start()
                     error = 0
                     last_error = 0
-                    level = 1
+                    p.LVL = 1
                     break
             else: 
                 # check if end
@@ -318,8 +318,10 @@ def set_team(team, teams, keywordless):
     if not p.BUFF[3]: p.GIFTS[0]['uptie1'] = {k: p.GIFTS[0]['uptie1'][k] for k in list(p.GIFTS[0]['uptie1'])[:1]}
 
     p.SELECTED = [list(SINNERS.keys())[i] for i in list(teams[team]["sinners"])]
-    p.PICK = generate_packs(teams[team]["priority"])
-    p.IGNORE = generate_packs(teams[team]["avoid"])
+    p.PICK = generate_packs_pr(teams[team]["priority"])
+    p.IGNORE = generate_packs_av(teams[team]["avoid"])
+    p.PICK_ALL = generate_packs_all(teams[team]["priority"])
+    print(p.PICK, p.IGNORE, p.PICK_ALL)
 
     logging.info(f'Team: {p.TEAM[0]}')
     

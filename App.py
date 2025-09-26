@@ -174,26 +174,36 @@ class MyApp(QWidget):
     def set_priority(self, team=None):
         if team is None:
             team = self.team
-
-        self.priority, self.avoid = self.get_packs(team)
+        self.priority, self.avoid, self.priority_floors, self.avoid_floors = self.get_packs(team)
         self.all = self.get_all()
     
     def get_packs(self, team):
         if sm.config_exists(team):
             data = sm.get_config(team)
-            if len(data) == 2 and all(isinstance(x, list) for x in data):
+            if len(data) == 4 and all(isinstance(x, list) for x in data[:2]):
                 priority = data[0]
                 avoid = data[1]
-            else: # old format
+                priority_floors = data[2]
+                avoid_floors = data[3]
+            elif len(data) == 2 and all(isinstance(x, list) for x in data): # old format
+                priority = data[0]
+                avoid = data[1]
+                priority_floors = {}
+                avoid_floors = {}
+            else: # older format
                 priority = data
                 if sm.config_exists(7):
                     avoid = sm.get_config(7)
                 else:
                     avoid = self.get_avoid()
+                priority_floors = {}
+                avoid_floors = {}
         else: 
             priority = self.get_priority(team)
             avoid = self.get_avoid()
-        return priority, avoid
+            priority_floors = {}
+            avoid_floors = {}
+        return priority, avoid, priority_floors, avoid_floors
 
     def set_widgets(self):
         for widget in self.config_widgets:
@@ -204,6 +214,7 @@ class MyApp(QWidget):
         items_to_remove = set(self.priority) | set(self.avoid)
         self.available_items = [item for item in self.all if item not in items_to_remove]
         self.all = self.available_items.copy()
+
         for i in range(2):
             combo = QComboBox()
             combo.addItems(self.available_items)
@@ -211,53 +222,74 @@ class MyApp(QWidget):
             combo.setStyleSheet('color: #EDD1AC;')
             combo.setFixedSize(185, 32)
 
-            btn_add = QPushButton("Add")
-            btn_add.setFont(QFont(self.family, 20))
-            btn_add.setStyleSheet('color: #EDD1AC;')
-            btn_add.setFixedSize(52, 32)  # narrower than combo
-
             selectize = SelectizeWidget(font=QFont(self.family, 15))
             selectize.itemAdded.connect(self.handle_item_added)
             selectize.itemRemoved.connect(self.handle_item_removed)
 
             if i == 0:
                 for item in self.priority:
-                    selectize.add_item(item)
+                    number = getattr(self, 'priority_floors', {}).get(item)
+                    selectize.add_item(item, number)
             else:
                 for item in self.avoid:
-                    selectize.add_item(item)
+                    number = getattr(self, 'avoid_floors', {}).get(item)
+                    selectize.add_item(item, number)
 
-            def make_handler(selectize_widget, combo_box, index):
+            def make_handler(selectize_widget, combo_box, index, line_edit=None):
                 def handler():
                     text = combo_box.currentText()
-                    # Prevent adding empty items
                     if not text or text not in self.available_items:
                         return
-                    selectize_widget.add_item(text)
+                    number = None
+                    if line_edit and line_edit.text():
+                        try:
+                            num = int(line_edit.text())
+                            if 1 <= num <= 5 + int(10*self.hard) and self.check_floor(text, num):
+                                number = num
+                            line_edit.clear()  # Reset line edit
+                        except ValueError:
+                            pass
+                    selectize_widget.add_item(text, number)
                     if index == 0:
                         self.priority = selectize_widget.getItems()
+                        self.priority_floors = selectize_widget.getItemNumbers()
                     else:
                         self.avoid = selectize_widget.getItems()
+                        self.avoid_floors = selectize_widget.getItemNumbers()
                 return handler
 
-            btn_add.clicked.connect(make_handler(selectize, combo, i))
-
-            # Parent widget
             widget = QWidget(self.config)
             widget.setStyleSheet("background: transparent;")
             widget.setGeometry(46 + i * 323, 172, 287, 187)
 
-            # Layout setup
             layout = QVBoxLayout(widget)
             layout.setContentsMargins(0, 0, 0, 0)
 
             top_row = QWidget()
-            top_row.setFixedSize(263, 32)
+            top_row.setFixedSize(300, 32)
             top_layout = QHBoxLayout(top_row)
             top_layout.setContentsMargins(0, 0, 0, 0)
-            top_layout.setSpacing(26)  # space between combo and button
+
             top_layout.addWidget(combo)
+
+            btn_add = QPushButton("Add")
+            btn_add.setFont(QFont(self.family, 20))
+            btn_add.setStyleSheet('color: #EDD1AC;')
+            
+            top_layout.setSpacing(10)
+            line_edit = QLineEdit()
+            line_edit.setFont(QFont(self.family, 18))
+            if self.hard: validator = QRegularExpressionValidator(QRegularExpression("^(1[0-5]|[1-9])$"))
+            else: validator = QRegularExpressionValidator(QRegularExpression("^([1-5])$"))
+            line_edit.setValidator(validator)
+            line_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            line_edit.setFixedSize(32, 32)
+            line_edit.setStyleSheet('color: #5df2ff')
+            btn_add.setFixedSize(52, 32)
+            top_layout.addWidget(line_edit)
             top_layout.addWidget(btn_add)
+            btn_add.clicked.connect(make_handler(selectize, combo, i, line_edit))
+
             top_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
             layout.addWidget(top_row, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
@@ -288,9 +320,13 @@ class MyApp(QWidget):
     def handle_item_removed(self, item):
         # Remove from both lists (if present)
         if item in self.priority:
-            self.priority.remove(item)  # ACTUALLY remove from priority
+            self.priority.remove(item)
+            if hasattr(self, 'priority_floors'):
+                self.priority_floors.pop(item, None)
         if item in self.avoid:
-            self.avoid.remove(item)  # ACTUALLY remove from avoid
+            self.avoid.remove(item)
+            if hasattr(self, 'avoid_floors'):
+                self.avoid_floors.pop(item, None)
         
         if item not in self.available_items:
             orig_index = next((i for i, x in enumerate(self.all) if x == item), -1)
@@ -311,6 +347,8 @@ class MyApp(QWidget):
         if default:
             self.priority = self.get_priority(team)
             self.avoid = self.get_avoid()
+            self.priority_floors = {}
+            self.avoid_floors = {}
             self.set_card_buttons([])
             self.activate_ego_gifts({})
             buff = [1]*4 + [0]*6
@@ -323,32 +361,7 @@ class MyApp(QWidget):
             sm.delete_config()
         else:
             self.set_priority(team)
-        
-        # Clear all selectize widgets
-        for widget in self.selectize_widgets:
-            while widget.scroll_layout.count():
-                child = widget.scroll_layout.takeAt(0)
-                if child.widget():
-                    child.widget().deleteLater()
-            widget.items = []
-        
-        # Rebuild the available items list
-        items_to_remove = set(self.priority) | set(self.avoid)
-        self.available_items = [item for item in self.all if item not in items_to_remove]
-        
-        # Reinitialize the widgets with default values
-        for i, widget in enumerate(self.selectize_widgets):
-            items_to_add = self.priority if i == 0 else self.avoid
-            for item in items_to_add:
-                widget.add_item(item)
-        
-        # Update all combo boxes
-        for combo in self.combo_boxes:
-            current_text = combo.currentText()
-            combo.clear()
-            combo.addItems(self.available_items)
-            if current_text in self.available_items:
-                combo.setCurrentText(current_text)
+        self.set_widgets()
 
     def _day(self, sin=False):
         # perfect timezone that refreshes dailies at 12 AM
@@ -373,6 +386,19 @@ class MyApp(QWidget):
             return Bot.HARD_UNIQUE
         else:
             return Bot.FLOORS_UNIQUE
+        
+    def check_floor(self, name, floor):
+        if 11 > floor > 5: floor = 5
+        elif floor > 10:   floor = 15
+
+        if self.hard: 
+            floor_dict = Bot.HARD_FLOORS
+        else: 
+            floor_dict = Bot.FLOORS
+
+        if name in floor_dict[floor]:
+            return True
+        return False
 
     def get_avoid(self):
         if self.hard:
@@ -781,7 +807,7 @@ class MyApp(QWidget):
             CustomButton.glow_multiple([self.buttons[f'card{i}'] for i in errors])
             return
         
-        sm.save_config(self.team, (self.priority, self.avoid))
+        sm.save_config(self.team, (self.priority, self.avoid, self.priority_floors, self.avoid_floors))
         sm.save_config(7, {str(id): state for id, state in self.keywordless.items()})
         sm.save_config(8, self.get_config_buttons())
         sm.save_config(9, self.get_cards())
@@ -1245,14 +1271,14 @@ class MyApp(QWidget):
                 i = (self.team + index) % 7
                 affinity = self.selected_affinity[i][0]
                 if self.buttons[f"team{i}"].isChecked():
-                    priority, avoid = self.get_packs(i)
+                    priority, avoid, priority_f, avoid_f = self.get_packs(i)
                     self.teams[i] = {
                         "duplicates": affinity in duplicates,
                         "affinity_idx": counts[i],
                         "affinity": self.selected_affinity[i],
                         "sinners": self.sinner_selections[i], 
-                        "priority": priority,
-                        "avoid": avoid
+                        "priority": (priority, priority_f),
+                        "avoid": (avoid, priority_f, avoid_f)
                     }
 
         self.settings = {

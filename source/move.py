@@ -46,14 +46,19 @@ def position(object, shift=0):
 def hook():
     Bus = find_bus()
     if Bus is None : return False
-    position(Bus)
-    return True
+    win_moveTo(Bus)
+    Danteh = zoom(1)
+    if Danteh: return True
+    return False
 
 
 def is_boss(region, comp):
     image = screenshot(region=region)
     red_mask = cv2.inRange(image, np.array([0, 0, 180]), np.array([50, 50, 255]))
-    return now_click.button("boss", region, image=red_mask, comp=comp, conf=0.6)
+    for i in range(2):
+        res = now_click.button(f"boss{i}", region, image=red_mask, comp=comp, conf=0.6)
+        if res: return res
+    return now_click.button("boss_ark", region, image=image, comp=comp)
 
 def is_risky(_loc, comp, region):
     if _loc.button("risk0", region) or \
@@ -229,9 +234,8 @@ def move():
     if Dante is None: 
         Dante = zoom(-1)
         comp = 0.86 # image compression is on
-        if Dante is None and find_bus(): hook()
-        if Dante is None: Dante = zoom(1)
-        if Dante is None: return False
+        if Dante is None and find_bus():
+            if not hook(): return False
     
     position(Dante)
     

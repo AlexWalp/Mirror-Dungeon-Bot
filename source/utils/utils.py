@@ -166,16 +166,50 @@ def wait_for_condition(condition, action=None, interval=0.5, timer=20):
     return True
 
 
-def generate_packs(priority):
-    packs = {f"floor{i}": [] for i in list(range(1, 6)) + p.EXTREME*[15]}
+def generate_packs_pr(input_priority):
+    priority, priority_f = input_priority
+    
+    packs = {f"floor{i}": [] for i in range(1, 6 + p.EXTREME*10)}
+    floors = HARD_FLOORS if p.HARD else FLOORS
 
-    if p.HARD: floors = HARD_FLOORS
-    else: floors = FLOORS
-
-    for i in list(range(1, 6)) + p.EXTREME*[15]:
+    for i in range(1, 6 + p.EXTREME*10):
         for pack in priority:
-            if pack in floors[i]:
+            assigned_on_this_floor = {pack for pack, fl in priority_f.items() if fl == i}
+            if (pack in floors[format_lvl(i)] and (
+               (pack in priority_f and priority_f[pack] == i) or
+               (pack not in priority_f and not assigned_on_this_floor))):
                 packs[f"floor{i}"].append(pack)
+    return packs
+
+def generate_packs_av(input_avoid):
+    avoid, priority_f, avoid_f = input_avoid
+    
+    packs = {f"floor{i}": [] for i in range(1, 6 + p.EXTREME*10)}
+    floors = HARD_FLOORS if p.HARD else FLOORS
+
+    for i in range(1, 6 + p.EXTREME*10):
+        for pack in avoid:
+            if (pack in floors[format_lvl(i)] and (
+               (pack in avoid_f and avoid_f[pack] == i) or
+               (pack not in avoid_f))):
+                packs[f"floor{i}"].append(pack)
+        for pack in priority_f.keys():
+            if pack in floors[format_lvl(i)] and priority_f[pack] != i:
+                packs[f"floor{i}"].append(pack)
+    return packs
+
+def format_lvl(lvl):
+    if lvl < 6: return lvl
+    elif lvl < 11: return 5
+    else: return 15
+
+def generate_packs_all(input_priority):
+    priority, priority_f = input_priority
+    packs = {f"floor{i}": [] for i in range(1, 6 + p.EXTREME*10)}
+    floors = HARD_FLOORS if p.HARD else FLOORS
+
+    for i in range(1, 6 + p.EXTREME*10):
+        packs[f"floor{i}"] = list((set(priority) - set(priority_f.keys())) & set(floors[format_lvl(i)]))
     return packs
 
 
@@ -218,7 +252,7 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
         return cv2.warpPerspective(image, M_combined, (w + 1, h))
 
     @staticmethod
-    def _load_template(template, comp=1, v_comp=None, distort=None):
+    def _load_template(template, comp=1, v_comp=None, h_comp=None, distort=None):
         if isinstance(template, str):
             template = cv2.imread(template)
         elif not isinstance(template, np.ndarray):
@@ -232,6 +266,11 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
         elif v_comp:
             new_size = (int(template.shape[1]), int(template.shape[0] * v_comp))
             template = cv2.resize(template, new_size, interpolation=cv2.INTER_AREA)
+        if h_comp and not (0 < h_comp):
+            raise ValueError(f"Invalid horizontal compression value: '{h_comp}'")
+        elif h_comp:
+            new_size = (int(template.shape[1] * h_comp), int(template.shape[0]))
+            template = cv2.resize(template, new_size, interpolation=cv2.INTER_CUBIC)
         if distort:
             h, w = template.shape[:2]
             shift = int(w * distort)

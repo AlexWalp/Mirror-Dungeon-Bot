@@ -1,6 +1,7 @@
 from source.utils.utils import *
 from source.event import event
 import source.utils.params as p
+from itertools import product
 
 
 exit_if = ["loading", "Move", "EGObin", "encounterreward", "victory", "defeat", "PackChoice"]
@@ -21,7 +22,7 @@ low = {"struggle": (0, 199, 252), "hopeless": (2, 245, 214)}
 ego = ["zayin", "teth", "he", "waw"]
 best1 = ["FluidSac"]
 best2 = [
-    "Sunshower", "MagicBullet", "Holiday", "EffervescentCorrosion", "DimensionShredder", "EbonyStem", "Binds", "YaSunyataTadRupam", 
+    "DimensionShredder", "Sunshower", "MagicBullet", "Holiday", "EffervescentCorrosion", "EbonyStem", "Binds", "YaSunyataTadRupam", 
     "GardenofThorns", "AEDD", "Lantern", "CavernousWailing", "Capote", "Pursuance", "Regret", "RimeShank", "WishingCairn", 
     "ElectricScreaming", "4thMatchFlame", "RedEyesOpen", "ArdorBlossomStar", "BlindObsession", "FluidSac", "HexNail"
 ]
@@ -49,10 +50,10 @@ def ego_click(best_ego):
     gui.mouseDown()
     time.sleep(1.5)
     gui.mouseUp()
-    image_best = SIFTMatcher(region=(0, 495, 1920, 50), nfeatures=2000, contrastThreshold=0)
     image_all = screenshot(region=(0, 200, 1920, 50))
-    for i in best_ego:
-        box = image_best.locate(PTH[i])
+    _, image_best = cv2.threshold(cv2.cvtColor(screenshot(region=(0, 495, 1920, 50)), cv2.COLOR_BGR2GRAY), 100, 255, cv2.THRESH_TOZERO)
+    for i, h_comp in product(best_ego, [0.95, 0.98, 1, 1.02, 1.05]):
+        box = LocateGray.locate(PTH[i], image=image_best, region=(0, 495, 1920, 50), method=1, h_comp=h_comp, conf=0.6)
         if box:
             res = gui.center(box)
             win_click(res, duration=0.1)
@@ -69,6 +70,8 @@ def ego_click(best_ego):
                 break
         else:
             win_click(1850, 1000)
+    if not loc.button("winrate", wait=2):
+        win_click(1888, 901)
     time.sleep(0.2)
 
 def select_ego():
@@ -90,6 +93,7 @@ def select_ego():
     
     for x in coords_x: # zayin didn't work, so let's use something more deadly
         win_click(x, 990, clicks=2, duration=0.1)
+        time.sleep(0.1)
         ego_click(best2)
     gui.press("p", 3, 0.3)
     time.sleep(0.8)
@@ -102,6 +106,8 @@ def select_ego():
     # even that didn't work, so let's go for damage
     gui.press("p", 1, 0.3)
     time.sleep(0.8)
+    coords_x = get_lowskill()
+    for x in coords_x: win_click(x, 990, duration=0.1)
 
 
 def is_ego():

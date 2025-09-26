@@ -2,7 +2,7 @@ from source.utils.utils import *
 
 PROBS = ["VeryHigh", "High", "Normal", "Low", "VeryLow"]
 
-favorites = ["chicken"]
+favorites = ["chicken", "factory"]
 
 def event():
     if not now.button("eventskip"): return False
@@ -28,7 +28,7 @@ def event():
             if not egos:
                 for choice in [316, 520, 730]:
                     win_click(1348, choice, delay=0)
-                    if wait_for_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
+                    if wait_for_condition(lambda: now.button("choices"), interval=0.5, timer=2): continue
                 else:
                     continue
             

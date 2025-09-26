@@ -11,15 +11,12 @@ def within_region(x, regions):
 
 
 def remove_pack(level, name):
-    for l in list(range(level, 6)) + p.EXTREME*[15]:
+    for l in range(level, 6 + p.EXTREME*10):
         if name in p.PICK[f"floor{l}"]:
             p.PICK[f"floor{l}"].remove(name)
 
 
 def pack_eval(level, regions, skip, skips):
-    curr_lvl = level
-    if level > 10: level = 15
-    else: level = min(level, 5)
     # best packs
     priority = p.PICK[f"floor{level}"]
     print(priority)
@@ -30,11 +27,7 @@ def pack_eval(level, regions, skip, skips):
     print(banned)
     logging.info(f"Ignore: {banned}")
 
-    if p.HARD:
-        pack_list = HARD_FLOORS[level]
-    else:
-        pack_list = FLOORS[level]
-
+    pack_list = HARD_FLOORS[format_lvl(level)] if p.HARD else FLOORS[format_lvl(level)]
     packs = dict()
 
     attempts = 2
@@ -45,31 +38,28 @@ def pack_eval(level, regions, skip, skips):
             box = sift.locate(PTH[pack])
             if box:
                 x, _ = gui.center(box)
-                if all(abs(x - existing) > 100 for existing in list(packs.values())):
-                    packs[pack] = x
+                if (region_id := within_region(x, regions)) is not None \
+                   and region_id not in packs.values():
+                        packs[pack] = region_id
         attempts -= 1
     
-    packs = {
-        pack: region_id 
-        for pack, x in packs.items() 
-        if (region_id := within_region(x, regions)) is not None
-    }
     logging.info(packs)
     print(packs)
-    # picking best pack
-    if priority and \
-       not (5 <= curr_lvl <= 10 and 10-curr_lvl >= len(priority)) and \
-       not (11 <= curr_lvl <= 15 and 15-curr_lvl >= len(priority)):
-
-        for pr in priority:
-            if pr in packs.keys():
-                print(f"Entering {pr}")
-                logging.info(f"Pack: {pr}")
-                remove_pack(level, pr)
-                return packs[pr]
-    elif priority:
-        banned += priority
-        priority = []
+    
+    # picking the best pack
+    for i in range(2):
+        if priority:
+            for pr in priority:
+                if pr in packs.keys():
+                    print(f"Entering {pr}")
+                    logging.info(f"Pack: {pr}")
+                    remove_pack(level, pr)
+                    return packs[pr]
+            else:
+                if i == 0 and skip == skips:
+                    priority = p.PICK_ALL[f"floor{level}"]
+                else: break
+        else: break
     if skip != skips and priority:
         return None
     
@@ -145,7 +135,9 @@ def pack():
         return False
     
     p.LVL = update_lvl(p.LVL)
-    
+
+    if p.LVL == 6 or p.LVL == 11: time.sleep(2) # animation
+
     if p.LVL <= 5:
         if not p.HARD:
             now.button("hardDifficulty", click=(1349, 64))
