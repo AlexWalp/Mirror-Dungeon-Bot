@@ -46,10 +46,8 @@ def position(object, shift=0):
 def hook():
     Bus = find_bus()
     if Bus is None : return False
-    win_moveTo(Bus)
-    Danteh = zoom(1)
-    if Danteh: return True
-    return False
+    position(Bus)
+    return True
 
 
 def is_boss(region, comp):
@@ -234,8 +232,9 @@ def move():
     if Dante is None: 
         Dante = zoom(-1)
         comp = 0.86 # image compression is on
-        if Dante is None and find_bus():
-            if not hook(): return False
+        if Dante is None and find_bus(): hook()
+        if Dante is None: Dante = zoom(1)
+        if Dante is None: return False
     
     position(Dante)
     
