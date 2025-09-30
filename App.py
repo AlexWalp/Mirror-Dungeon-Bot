@@ -469,12 +469,12 @@ class MyApp(QWidget):
             }) for i in range(7)
         ] + [
             (f'on{i+7}', {
-                'geometry': (223 + 148*i, 155, 144, 56),
+                'geometry': (223 + 111*i, 155, 107, 56),
                 'checkable': True,
-                'checked': i % 2 == 0,
+                'checked': i != 1,
                 'click_handler': self.update_button_icons,
                 'icon': Bot.APP_PTH['sel_lux']
-            }) for i in range(3)
+            }) for i in range(4)
         ]
     
     def _get_buff(self):
@@ -1283,7 +1283,7 @@ class MyApp(QWidget):
 
         self.settings = {
             'log'        : self.buttons['log'].isChecked(),
-            'bonus'      : self.buttons['on0'].isChecked(),
+            'bonus'      : self.buttons['on0'].isChecked() if not self.is_lux else self.buttons['on10'].isChecked(),
             'restart'    : self.buttons['on1'].isChecked() if not self.is_lux else self.buttons['on7'].isChecked(),
             'altf4'      : self.buttons['on2'].isChecked() if not self.is_lux else self.buttons['on8'].isChecked(),
             'enkephalin' : self.buttons['on3'].isChecked() if not self.is_lux else self.buttons['on9'].isChecked(),

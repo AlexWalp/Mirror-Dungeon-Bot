@@ -44,7 +44,7 @@ def get_lowskill():
             x += int(0.206*x - 224)
         if any(abs(x - px) <= 20 for px in coords_x): continue
         coords_x.append(int(x))
-    return coords_x
+    return sorted(coords_x)
 
 def ego_click(best_ego):
     gui.mouseDown()
@@ -74,8 +74,14 @@ def ego_click(best_ego):
         win_click(1888, 901)
     time.sleep(0.2)
 
+
+def check_selection(button="winrate_on", st_clicks=3):
+    gui.press("p", st_clicks, 0.5)
+    time.sleep(0.5)
+    wait_for_condition(lambda: not loc.button(button, "winrate", wait=0.5, method=cv2.TM_SQDIFF_NORMED), lambda: gui.press("p"))
+
 def select_ego():
-    time.sleep(0.8)
+    loc.button("winrate_on", "winrate", wait=1, method=cv2.TM_SQDIFF_NORMED)
     coords_x = get_lowskill()
     if not coords_x: return
 
@@ -83,8 +89,7 @@ def select_ego():
     for x in coords_x: 
         win_moveTo(x, 990)
         ego_click(best1)
-    gui.press("p", 3, 0.3)
-    time.sleep(0.8)
+    check_selection()
     coords_x = get_lowskill()
     if len(coords_x) < 3: 
         # zayin kinda worked
@@ -95,8 +100,7 @@ def select_ego():
         win_click(x, 990, clicks=2, duration=0.1)
         time.sleep(0.1)
         ego_click(best2)
-    gui.press("p", 3, 0.3)
-    time.sleep(0.8)
+    check_selection()
     coords_x = get_lowskill()
     if len(coords_x) < 3: 
         # we winrate with this
@@ -104,8 +108,7 @@ def select_ego():
         return
     
     # even that didn't work, so let's go for damage
-    gui.press("p", 1, 0.3)
-    time.sleep(0.8)
+    check_selection("damage_on", st_clicks=1)
     coords_x = get_lowskill()
     for x in coords_x: win_click(x, 990, duration=0.1)
 
@@ -361,7 +364,9 @@ def fight(lux=False):
                     Action("Confirm_retry", ver="loading").execute(click)
                     loading_halt()
                     logging.info("Run stopped")
-                    raise StopIteration("Dante, we failed... If you want to end run here, enable 'End stuck runs'")
+                    err = StopIteration("Dante, we failed... If you want to end run here, enable 'End stuck runs'")
+                    if p.ALTF4: close_limbus(error=err)
+                    raise err
                 else:
                     wait_for_condition(lambda: not now.button("Confirm_retry", method=cv2.TM_SQDIFF_NORMED), lambda: win_click(1200, 670), interval=1, timer=3)
                     Action("Confirm_retry", ver="loading").execute(click)

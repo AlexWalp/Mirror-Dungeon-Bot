@@ -194,7 +194,7 @@ def pack():
             win_moveTo(1721, 999)
             time.sleep(2)
     
-    if p.LVL != 1:
-        p.MOVE_ANIMATION = True
     wait_for_condition(lambda: now.button("PackChoice"), interval=0.1)
+    if p.LVL != 1: p.MOVE_ANIMATION = True
+    else: time.sleep(0.5)
     return True

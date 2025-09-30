@@ -200,12 +200,15 @@ def enter(wait=1):
 
 def move():
     enter(wait=False)
+    is_move = now.button("Move")
 
-    if now.button("Move") and p.MOVE_ANIMATION:
+    if is_move and p.MOVE_ANIMATION:
         wait_for_condition(condition=lambda: now.button("Move"), interval=0.1)
         p.MOVE_ANIMATION = False
+        is_move = loc.button("Move", wait=2)
+        time.sleep(0.5)
     
-    if not now.button("Move") or \
+    if not is_move or \
            now.button("Confirm"): return False
     
     if p.HARD:

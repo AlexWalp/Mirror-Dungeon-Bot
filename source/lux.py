@@ -115,4 +115,21 @@ def grind_lux(count_exp, count_thd, teams):
     wait_for_condition(lambda: not now.button("Exp"))
     time.sleep(1)
     gui.press("Esc")
+    if p.BONUS: collect_dailies()
     logging.info("Done with Luxcavation!")
+
+
+def collect_dailies():
+    Action("Window", ver="Settings").execute(click)
+    ClickAction((1621, 352), ver="PassMissions").execute(click)
+    Action("PassMissions", ver="Daily").execute(click)
+    wait_for_condition( 
+        lambda: 0 < len(LocateRGB.locate_all(PTH["collect"], region=REG["collect"], threshold=50)),
+        click_collect
+    )
+    gui.press("Esc")
+
+def click_collect():
+    now_click.button("collect")
+    connection()
+    time.sleep(1)

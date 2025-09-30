@@ -148,11 +148,13 @@ def pause():
     logging.info("Execution resumed")
 
 
-def close_limbus():
+def close_limbus(error=None):
     if gui.getActiveWindowTitle() == p.LIMBUS_NAME:
         gui.hotkey('alt', 'f4')
     if p.APP: QMetaObject.invokeMethod(p.APP, "stop_execution", Qt.ConnectionType.QueuedConnection)
-    raise StopExecution()
+    if error is None:
+        raise StopExecution
+    else: raise error
 
 
 def wait_for_condition(condition, action=None, interval=0.5, timer=20):

@@ -682,9 +682,10 @@ def buy_some(rerolls=1, priority=False):
     time.sleep(0.2)
     iterations = rerolls + 1
     keywordless = [{"buy": [name for name, state in p.KEYWORDLESS.items() if state > 1], "sin": True}]
+    sold_all = False
     for _ in range(iterations):
-        if not priority and balance() < 200:
-            sell({"all": 300})
+        if not priority and not sold_all and balance() < 200:
+            sold_all = not sell({"all": 300})
         if p.EXTREME:
             for _ in range(1 + int(p.SUPER == "supershop")):
                 buy_skill3()
@@ -702,6 +703,7 @@ def buy_some(rerolls=1, priority=False):
             win_click(1489, 177)
             connection()
             time.sleep(0.1)
+        elif balance() < 120: return
 
 def buy(missing):
     output = False
@@ -803,10 +805,12 @@ def heal_all():
     if balance() < 100: return
 
     ClickAction((293, 705), ver="return").execute(click)
-    ClickAction((1545, 500), ver="connecting").execute(click)
-    time.sleep(1)
-    Action("return", ver=p.SUPER).execute(click)
-    time.sleep(0.2)
+    try:
+        ClickAction((1545, 500), ver="connecting").execute(click)
+        time.sleep(1)
+    finally:
+        Action("return", ver=p.SUPER).execute(click)
+        time.sleep(0.2)
 
 ### General
 def leave():
@@ -817,6 +821,8 @@ def leave():
 
 
 def shop():
+    if now_click.button("return"): time.sleep(0.5)
+
     if now.button("shop"): p.SUPER = "shop"
     elif not p.HARD or not now.button("supershop"): return False
     else: p.SUPER = "supershop"
