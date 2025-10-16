@@ -287,7 +287,7 @@ HARD_FLOORS = {
     ],
     15: [
         'Line3', 'Line4', 'Line5', 'SeaCR', 'BridleofInfinity', 'EfflorescingGreenery', 'ImpenetrablePath', 
-        'Line3Terminus', 'Bloodfiends', 'NCorp'
+        'Line3Terminus', 'Bloodfiends', 'NCorp', 'CertainLibrary', 'TheGreenDawn', 'BeautifulVoice'
     ]
 }
 

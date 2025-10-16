@@ -374,13 +374,13 @@ def execute_me(is_lux, count, count_exp, count_thd, teams, settings, hard, app, 
         else:
             for i in range(count):
                 team = next(rotator)
-                set_team(team, teams, keywordless)
 
                 logging.info(f'Iteration {i}')
                 completed = False
                 while not completed:
+                    set_team(team, teams, keywordless)
                     completed = main_loop()
-                if p.NETZACH: check_enkephalin()
+                    if p.NETZACH: check_enkephalin()
 
         if p.ALTF4:
             close_limbus()
