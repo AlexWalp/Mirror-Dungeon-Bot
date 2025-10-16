@@ -1,6 +1,6 @@
 import threading
 
-V = "3.0.1"
+V = "777.777.777"
 LIMBUS_NAME = "LimbusCompany"
 
 SELECTED = ["YISANG", "DONQUIXOTE" , "ISHMAEL", "RODION", "SINCLAIR", "GREGOR"]
@@ -40,3 +40,5 @@ DEAD = 0
 IDX = 0
 TO_UPTIE = {}
 MOVE_ANIMATION = False
+
+GOT_WEALTH = False

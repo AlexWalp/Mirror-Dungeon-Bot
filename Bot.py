@@ -125,24 +125,31 @@ def handle_bonus():
     if not wait_for_condition(lambda: not click_bonus()):
         raise RuntimeError
 
+# FAIL RUN
 TERMIN = [
     Action("victory", click=(1693, 841)),
     lambda: win_moveTo(1710, 982),
-    Action("Claim", ver="ClaimInvert"),
-    handle_bonus,
-    Action("ClaimInvert"),
-    Action("ConfirmInvert", ver="Confirm.0"),
-    collect_rewards,
+    Action("Claim"),
+    Action("GiveUp"),
+    Action("ConfirmInvert", ver="loading"),
     loading_halt,
     lambda: try_loc.button("Drive")
 ]
 
+# end_locations = {
+#     "victory": 0,
+#     "Claim": 2,
+#     "ClaimInvert": 4,
+#     "ConfirmInvert": 5,
+#     "Confirm.0": 6,
+# }
+
 end_locations = {
     "victory": 0,
     "Claim": 2,
-    "ClaimInvert": 4,
-    "ConfirmInvert": 5,
-    "Confirm.0": 6,
+    "GiveUp": 3,
+    "ConfirmInvert": 4,
+    "loading": 5,
 }
 
 def dungeon_end():
@@ -164,7 +171,26 @@ def dungeon_end():
             print("Termination error")
             logging.error("Termination error")
             break
-    print("MD Finished!")
+    print("MD Failed!")
+    # failed = 0
+    # while True:
+    #     for key in end_locations.keys():
+    #         if now.button(key):
+    #             i = end_locations[key]
+    #             break
+    #     else: break
+    #     try:
+    #         chain_actions(try_click, TERMIN[i:])
+    #     except RuntimeError:
+    #         failed += 1
+    #         win_moveTo(1710, 982)
+    #     except gui.PauseException:
+    #         pause()
+    #     if failed > 5:
+    #         print("Termination error")
+    #         logging.error("Termination error")
+    #         break
+    # print("MD Finished!")
 
 # FAIL RUN
 FAIL = [
@@ -215,6 +241,7 @@ def main_loop():
     ck = False
     p.MOVE_ANIMATION = False
     p.LVL = 1
+    p.GOT_WEALTH = False
     while True:
         if now.button("ServerError"):
             for _ in range(3):
@@ -245,7 +272,7 @@ def main_loop():
         if now.button("victory"):
             logging.info('Run Completed')
             dungeon_end()
-            return True
+            return False
 
         if now.button("defeat"):
             logging.info('Run Failed')
@@ -264,6 +291,11 @@ def main_loop():
             ck += grab_card()
             ck += shop()
         except RuntimeError:
+            if now.button("defeat"):
+                logging.info('Run Failed')
+                dungeon_fail()
+                return False
+            
             handle_fuckup()
             error += 1
         except gui.PauseException:
@@ -284,7 +316,7 @@ def main_loop():
                     if now.button(key):
                         logging.info('Run Completed')
                         dungeon_end()
-                        return True
+                        return False
                 
                 if last_error != 0:
                     if time.time() - last_error > 30:
@@ -374,13 +406,13 @@ def execute_me(is_lux, count, count_exp, count_thd, teams, settings, hard, app, 
         else:
             for i in range(count):
                 team = next(rotator)
-                set_team(team, teams, keywordless)
 
                 logging.info(f'Iteration {i}')
                 completed = False
                 while not completed:
+                    set_team(team, teams, keywordless)
                     completed = main_loop()
-                if p.NETZACH: check_enkephalin()
+                    if p.NETZACH: check_enkephalin()
 
         if p.ALTF4:
             close_limbus()

@@ -227,6 +227,7 @@ def grab_card():
 def confirm():
     '''Function to confirm EGO gift pop-ups'''
     if not now_click.button("Confirm"): return False
+    if p.GOT_WEALTH: pause()
     win_moveTo(965, 878)
     time.sleep(0.3)
     now_click.button("Confirm")

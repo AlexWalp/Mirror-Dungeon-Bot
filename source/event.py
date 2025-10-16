@@ -6,7 +6,15 @@ favorites = ["chicken", "factory"]
 
 def event():
     if not now.button("eventskip"): return False
-
+    if p.GOT_WEALTH:
+        gui.press("Esc")
+        time.sleep(0.5)
+        chain_actions(click, [
+            Action("forfeit"),
+            Action("ConfirmInvert", ver="connecting"),
+        ])
+        connection()
+        raise RuntimeError
     start_time = time.time()
     while True:
         if time.time() - start_time > 100: return False
@@ -18,6 +26,8 @@ def event():
         if now.button("choices"):
             time.sleep(0.1)
             if now_click.button("textNew", "textEGO"): 
+                logging.info("Got Wealth Event")
+                p.GOT_WEALTH = True
                 if wait_for_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
             if now_click.button("textLvl", "textEGO"): 
                 if wait_for_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue

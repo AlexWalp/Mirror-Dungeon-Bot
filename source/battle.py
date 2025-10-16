@@ -304,6 +304,15 @@ def fight(lux=False):
     is_battle   = now.button("winrate")
     if not is_tobattle and not is_battle: return False
     if is_tobattle:
+        if p.GOT_WEALTH:
+            gui.press("Esc", 2, 0.5)
+            time.sleep(0.5)
+            chain_actions(click, [
+                Action("forfeit"),
+                Action("ConfirmInvert", ver="connecting"),
+            ])
+            connection()
+            raise RuntimeError
         win_moveTo(1714, 940)
         if lux: select_team()
         select(p.SELECTED)

@@ -827,6 +827,16 @@ def shop():
     elif not p.HARD or not now.button("supershop"): return False
     else: p.SUPER = "supershop"
 
+    if p.GOT_WEALTH:
+        gui.press("Esc")
+        time.sleep(0.5)
+        chain_actions(click, [
+            Action("forfeit"),
+            Action("ConfirmInvert", ver="connecting"),
+        ])
+        connection()
+        raise RuntimeError
+
     time.sleep(0.2)
 
     wait_for_condition(lambda: now_click.button("Confirm"))

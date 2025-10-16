@@ -62,6 +62,15 @@ def pack_eval(level, regions, skip, skips):
         else: break
     if skip != skips and priority:
         return None
+    elif level == 1:
+        win_click(1800, 80)
+        time.sleep(0.5)
+        chain_actions(click, [
+            Action("forfeit"),
+            Action("ConfirmInvert", ver="connecting"),
+        ])
+        connection()
+        raise RuntimeError
     
     # removing S.H.I.T. packs
     filtered = {pack: i for pack, i in packs.items() if pack not in banned}
