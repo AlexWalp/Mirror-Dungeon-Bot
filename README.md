@@ -1,3 +1,17 @@
+# Wealth Search
+### Some features are disabled for this version
+### WARNING: This script only works if Wealth EGO gift has not yet been found
+Basically, it just checks whether it gets EGO gift after clicking ??? option
+## Recommended packs for Wealth search:
+- ### F1: Dregs of the Manor
+- ### F2: Emotional Repression / Emotional Seduction
+- ### F3: Burning Haze / Trickled Sanguine Blood
+- ### F4 and F5: Season of the Flame / Mountain of Corpses, Sea of Blood
+
+The packs are based on [this Steam Wealth guide](https://steamcommunity.com/sharedfiles/filedetails/?id=3524110409)
+<br><br>
+
+
 <div align="center">
 <a href="https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/latest/download/app.exe">
   <img alt="Download" src="https://img.shields.io/badge/app.exe-Download-blue.svg">

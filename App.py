@@ -14,7 +14,7 @@ class MyApp(QWidget):
         self.count = 0
         self.team = 0
         self.sinners = []
-        self.hard = False
+        self.hard = True
 
         self.is_lux = False
         self.count_exp = 1
@@ -38,20 +38,19 @@ class MyApp(QWidget):
 
     def _init_ui(self):
         """Initialize main window settings"""
-        self.setWindowTitle(f"ChargeGrinder v{p.V}")
+        self.setWindowTitle(f"Wealth Search v{p.V}")
         self.setWindowIcon(QIcon(Bot.ICON))
         self.setFixedSize(700, 785)
         self.background = QPixmap(Bot.APP_PTH["UI"])
         
-        self.inputField = QLineEdit(self)
+        self.inputField = QLabel(self)
         font_id = QFontDatabase.addApplicationFont(Bot.APP_PTH["ExcelsiorSans"])
         if font_id != -1: self.family = QFontDatabase.applicationFontFamilies(font_id)[0]
-        self.inputField.setFont(QFont(self.family, 30))
+        self.inputField.setFont(QFont(self.family, 25))
         self.inputField.setGeometry(108, 100, 90, 50)
-        self.inputField.setValidator(QIntValidator(0, 1000))
         self.inputField.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.inputField.setStyleSheet('color: #EDD1AC; background: transparent; border: none;')
-        self.inputField.setText("1")
+        self.inputField.setText("a lot of")
 
         self.overlay = QLabel(self)
         overlay_pixmap = QPixmap(Bot.APP_PTH['frames'])
@@ -353,7 +352,7 @@ class MyApp(QWidget):
             self.activate_ego_gifts({})
             buff = [1]*4 + [0]*6
             if self.hard:
-                on = [False, True, False, False, False, False, False]
+                on = [False, True, False, True, False, False, False]
                 self.set_buttons_active(on + buff)
             else:
                 on = [False, True, False, False, True, False, False]
@@ -461,12 +460,19 @@ class MyApp(QWidget):
         return [
             (f'on{i}', {
                 'geometry': (30 + 162*i - (162*4 - 2)*(i > 3) - i//2, 557 + 55*(i > 3), 154, 49),
+                'checkable': False,
+                'checked': i == 1,
+                'icon': Bot.APP_PTH[f'sel{"1"*(i == 0)}_extra'],
+            }) for i in [0, 1, 2, 4, 6]
+        ] + [
+            (f'on{i}', {
+                'geometry': (30 + 162*i - (162*4 - 2)*(i > 3) - i//2, 557 + 55*(i > 3), 154, 49),
                 'checkable': True,
-                'checked': i == 1 or i == 4,
+                'checked': False,
                 'click_handler': self.update_button_icons,
                 'icon': Bot.APP_PTH[f'sel{"1"*(i == 0)}_extra'],
                 'glow': Bot.APP_PTH['sel_extra'],
-            }) for i in range(7)
+            }) for i in [3, 5]
         ] + [
             (f'on{i+7}', {
                 'geometry': (223 + 111*i, 155, 107, 56),
@@ -617,9 +623,8 @@ class MyApp(QWidget):
 
             'hard': CustomButton(self, {
                 'geometry': (24, 166, 178, 58),
-                'checkable': True,
-                'checked': False,
-                'click_handler': self.set_hardmode,
+                'checkable': False,
+                'checked': True,
                 'icon': Bot.APP_PTH['hard']
             }),
 
@@ -683,8 +688,9 @@ class MyApp(QWidget):
         self.set_widgets()
         self.set_selected_buttons(self.sinner_selections[self.team])
         self.set_affinity_buttons(self.selected_affinity[self.team])
+        self.set_hardmode()
         self.activate_ego_gifts(sm.get_config(7))
-        self.set_buttons_active(sm.get_config(8))
+        self.set_buttons_active([False, True, False, True, False, False, False, 1, 1, 3, 1, 0, 0, 0, 0, 0, 0])
         self.set_card_buttons(sm.get_config(9))
         self.overlay.raise_()
 
@@ -725,7 +731,6 @@ class MyApp(QWidget):
     def set_hardmode(self):
         self.update_button_icons()
 
-        self.hard = self.buttons['hard'].isChecked()
         sm.update_name(self.hard)
         self.set_priority()
         self.set_widgets()
@@ -809,7 +814,6 @@ class MyApp(QWidget):
         
         sm.save_config(self.team, (self.priority, self.avoid, self.priority_floors, self.avoid_floors))
         sm.save_config(7, {str(id): state for id, state in self.keywordless.items()})
-        sm.save_config(8, self.get_config_buttons())
         sm.save_config(9, self.get_cards())
         self.ego_panel.hide()
         self.grace_panel.hide()
@@ -891,7 +895,6 @@ class MyApp(QWidget):
         if not sm.is_version("3.0.0"): # reset old gift selection
             sm.save_config(7, {}, all=True)
             data = {}
-            sm.set_version(p.V)
         if isinstance(data, list): # old format
             data = {}
         self.keywordless = {}
@@ -1241,9 +1244,7 @@ class MyApp(QWidget):
     
     def get_params(self):
         # MD count
-        text = self.inputField.text()
-        if text: self.count = int(text)
-        else: self.count = 0
+        self.count = 1
 
         # Lux count
         text = self.exp.text()
