@@ -82,7 +82,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='app',
+    name='wealth_search',
     debug=False,
     bootloader_ignore_signals=False,
     strip=True,
