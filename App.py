@@ -1,33 +1,38 @@
 from source_app.utils import *
 from source_app.settings_manager import SettingsManager
-from source_app.widget import SelectizeWidget
+from source_app.widget import SelectizeWidget, IntField, AllIntField
 from source_app.button import CustomButton
 from source_app.run import VersionChecker, BotWorker
 
-sm = SettingsManager()
-
 
 class MyApp(QWidget):
+    # TODO: I need to decompose this shitty class a bit
+    W, H = 700, 785
+
     def __init__(self):
         super().__init__()
         # params
+        self.hard = False
         self.count = 0
         self.team = 0
         self.sinners = []
-        self.hard = False
 
         self.is_lux = False
+        self.is_proceed = False
         self.count_exp = 1
         self.count_thd = 3
 
-        self.sinner_selections = {i: sm.get_team(i) for i in range(17)}
         self.selected_affinity = {i: [i] for i in range(7)}
         self.team_lux = self._day()
         self.team_lux_buttons = [self.team_lux, 3 + self._day(sin=True)]
         self.keywordless = {}
 
+        self.load_settings()
         self._init_ui()
         self._create_buttons()
+        # self.store_original_geometries()
+
+        self.setFocus()
     
     #     self.debug_timer = QTimer()
     #     self.debug_timer.timeout.connect(self.print_state)
@@ -36,22 +41,57 @@ class MyApp(QWidget):
     # def print_state(self):
     #     print(f"Current state - Affinity: {self.team}, Priority: {self.priority}")
 
+    # def store_original_geometries(self):
+    #     self.original_geometries = {}
+    #     for w in self.findChildren(QWidget):
+    #         if w is not self:
+    #             self.original_geometries[w] = w.geometry()
+
+    # def resizeEvent(self, event):
+    #     scale_w = self.width()  / self.W
+    #     scale_h = self.height() / self.H
+    #     scale = min(scale_w, scale_h)
+
+    #     for w, g in self.original_geometries.items():
+    #         w.setGeometry(
+    #             int(g.x() * scale),
+    #             int(g.y() * scale),
+    #             int(g.width() * scale),
+    #             int(g.height() * scale)
+    #         )
+
+    #     super().resizeEvent(event)
+
+    ### LOAD SETTINGS FROM CONFIG FILE
+    def load_settings(self):
+        self.sm = SettingsManager(error_handler=self.show_error, hard=lambda: self.hard)
+        self.sinner_selections = {i: self.sm.get_team(i) for i in range(17)}
+
+    def show_error(self, message):
+        QTimer.singleShot(0, lambda: self._show_blocking_error(message))
+
+    def _show_blocking_error(self, message):
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Critical)
+        msg.setWindowTitle("Bot Warning")
+        msg.setInformativeText(message)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg.exec()
+
+    ### UI
     def _init_ui(self):
         """Initialize main window settings"""
         self.setWindowTitle(f"ChargeGrinder v{p.V}")
         self.setWindowIcon(QIcon(Bot.ICON))
-        self.setFixedSize(700, 785)
+        self.setFixedSize(self.W, self.H)
         self.background = QPixmap(Bot.APP_PTH["UI"])
         
-        self.inputField = QLineEdit(self)
         font_id = QFontDatabase.addApplicationFont(Bot.APP_PTH["ExcelsiorSans"])
         if font_id != -1: self.family = QFontDatabase.applicationFontFamilies(font_id)[0]
+        self.inputField = AllIntField(self)
         self.inputField.setFont(QFont(self.family, 30))
         self.inputField.setGeometry(108, 100, 90, 50)
-        self.inputField.setValidator(QIntValidator(0, 1000))
-        self.inputField.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.inputField.setStyleSheet('color: #EDD1AC; background: transparent; border: none;')
-        self.inputField.setText("1")
+        self.inputField.setText("3")
 
         self.overlay = QLabel(self)
         overlay_pixmap = QPixmap(Bot.APP_PTH['frames'])
@@ -119,6 +159,10 @@ class MyApp(QWidget):
 
         self.combo_boxes = []
         self.selectize_widgets = []
+        self.line_edits = []
+        self.font_large = QFont(self.family, 18)  # Cache fonts
+        self.font_medium = QFont(self.family, 15)
+        self.btn_font = QFont(self.family, 20)
 
         hard_conf_data = [
             ("OffHard",      (43, 565, 43, 31)),
@@ -150,21 +194,15 @@ class MyApp(QWidget):
         self.lux.setGeometry(0, 92, 700, 295)
         self.lux.hide()
 
-        self.exp = QLineEdit(self.lux)
+        self.exp = IntField(self.lux)
         self.exp.setFont(QFont(self.family, 30))
         self.exp.setGeometry(108, 8, 90, 50)
-        self.exp.setValidator(QIntValidator(0, 1000))
-        self.exp.setText(str(self.count_exp))
-        self.exp.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.exp.setStyleSheet('color: #EDD1AC; background: transparent; border: none;')
+        self.exp.setText("1")
 
-        self.thd = QLineEdit(self.lux)
+        self.thd = IntField(self.lux)
         self.thd.setFont(QFont(self.family, 30))
         self.thd.setGeometry(108, 78, 90, 50)
-        self.thd.setValidator(QIntValidator(0, 1000))
-        self.thd.setText(str(self.count_thd))
-        self.thd.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.thd.setStyleSheet('color: #EDD1AC; background: transparent; border: none;')
+        self.thd.setText("3")
 
         # self.test = QPushButton(self)
         # self.test.setText("Test")
@@ -178,85 +216,25 @@ class MyApp(QWidget):
         self.all = self.get_all()
     
     def get_packs(self, team):
-        if sm.config_exists(team):
-            data = sm.get_config(team)
-            if len(data) == 4 and all(isinstance(x, list) for x in data[:2]):
-                priority = data[0]
-                avoid = data[1]
-                priority_floors = data[2]
-                avoid_floors = data[3]
-            elif len(data) == 2 and all(isinstance(x, list) for x in data): # old format
-                priority = data[0]
-                avoid = data[1]
-                priority_floors = {}
-                avoid_floors = {}
-            else: # older format
-                priority = data
-                if sm.config_exists(7):
-                    avoid = sm.get_config(7)
-                else:
-                    avoid = self.get_avoid()
-                priority_floors = {}
-                avoid_floors = {}
-        else: 
+        if self.sm.config_exists(team):
+            priority, avoid, priority_floors, avoid_floors = self.sm.get_config(team)
+        else:
             priority = self.get_priority(team)
             avoid = self.get_avoid()
             priority_floors = {}
             avoid_floors = {}
         return priority, avoid, priority_floors, avoid_floors
 
-    def set_widgets(self):
-        for widget in self.config_widgets:
-            widget.deleteLater()
-        self.config_widgets.clear()
-        self.combo_boxes.clear()
-        self.selectize_widgets.clear()
-        items_to_remove = set(self.priority) | set(self.avoid)
-        self.available_items = [item for item in self.all if item not in items_to_remove]
-        self.all = self.available_items.copy()
-
+    def init_widgets(self):
         for i in range(2):
             combo = QComboBox()
-            combo.addItems(self.available_items)
-            combo.setFont(QFont(self.family, 18))
+            combo.setFont(self.font_large)
             combo.setStyleSheet('color: #EDD1AC;')
             combo.setFixedSize(185, 32)
 
-            selectize = SelectizeWidget(font=QFont(self.family, 15))
+            selectize = SelectizeWidget(font=self.font_medium)
             selectize.itemAdded.connect(self.handle_item_added)
             selectize.itemRemoved.connect(self.handle_item_removed)
-
-            if i == 0:
-                for item in self.priority:
-                    number = getattr(self, 'priority_floors', {}).get(item)
-                    selectize.add_item(item, number)
-            else:
-                for item in self.avoid:
-                    number = getattr(self, 'avoid_floors', {}).get(item)
-                    selectize.add_item(item, number)
-
-            def make_handler(selectize_widget, combo_box, index, line_edit=None):
-                def handler():
-                    text = combo_box.currentText()
-                    if not text or text not in self.available_items:
-                        return
-                    number = None
-                    if line_edit and line_edit.text():
-                        try:
-                            num = int(line_edit.text())
-                            if 1 <= num <= 5 + int(10*self.hard) and self.check_floor(text, num):
-                                number = num
-                            line_edit.clear()  # Reset line edit
-                        except ValueError:
-                            pass
-                    selectize_widget.add_item(text, number)
-                    if index == 0:
-                        self.priority = selectize_widget.getItems()
-                        self.priority_floors = selectize_widget.getItemNumbers()
-                    else:
-                        self.avoid = selectize_widget.getItems()
-                        self.avoid_floors = selectize_widget.getItemNumbers()
-                return handler
 
             widget = QWidget(self.config)
             widget.setStyleSheet("background: transparent;")
@@ -273,24 +251,50 @@ class MyApp(QWidget):
             top_layout.addWidget(combo)
 
             btn_add = QPushButton("Add")
-            btn_add.setFont(QFont(self.family, 20))
+            btn_add.setFont(self.btn_font)
             btn_add.setStyleSheet('color: #EDD1AC;')
-            
-            top_layout.setSpacing(10)
+            btn_add.setFixedSize(52, 32)
+
             line_edit = QLineEdit()
-            line_edit.setFont(QFont(self.family, 18))
-            if self.hard: validator = QRegularExpressionValidator(QRegularExpression("^(1[0-5]|[1-9])$"))
-            else: validator = QRegularExpressionValidator(QRegularExpression("^([1-5])$"))
+            line_edit.setFont(self.font_large)
+            if self.hard:
+                validator = QRegularExpressionValidator(QRegularExpression("^(1[0-5]|[1-9])$"))
+            else:
+                validator = QRegularExpressionValidator(QRegularExpression("^([1-5])$"))
             line_edit.setValidator(validator)
             line_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
             line_edit.setFixedSize(32, 32)
             line_edit.setStyleSheet('color: #5df2ff')
-            btn_add.setFixedSize(52, 32)
+
             top_layout.addWidget(line_edit)
             top_layout.addWidget(btn_add)
-            btn_add.clicked.connect(make_handler(selectize, combo, i, line_edit))
-
+            top_layout.setSpacing(10)
             top_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+
+            def make_handler(selectize_widget, combo_box, index, line_edit):
+                def handler():
+                    text = combo_box.currentText()
+                    if not text or text not in self.available_items:
+                        return
+                    number = None
+                    if line_edit.text():
+                        try:
+                            num = int(line_edit.text())
+                            if 1 <= num <= 5 + int(10 * self.hard) and self.check_floor(text, num):
+                                number = num
+                            line_edit.clear()
+                        except ValueError:
+                            pass
+                    selectize_widget.add_item(text, number)
+                    if index == 0:
+                        self.priority = selectize_widget.getItems()
+                        self.priority_floors = selectize_widget.getItemNumbers()
+                    else:
+                        self.avoid = selectize_widget.getItems()
+                        self.avoid_floors = selectize_widget.getItemNumbers()
+                return handler
+
+            btn_add.clicked.connect(make_handler(selectize, combo, i, line_edit))
 
             layout.addWidget(top_row, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
             layout.addWidget(selectize)
@@ -299,7 +303,39 @@ class MyApp(QWidget):
 
             self.combo_boxes.append(combo)
             self.selectize_widgets.append(selectize)
+            self.line_edits.append(line_edit)  # New: store for later updates
             self.config_widgets.append(widget)
+
+    def set_widgets(self):
+        for i in range(2):
+            line_edit = self.line_edits[i]
+            if self.hard:
+                validator = QRegularExpressionValidator(QRegularExpression("^(1[0-5]|[1-9])$"))
+            else:
+                validator = QRegularExpressionValidator(QRegularExpression("^([1-5])$"))
+            line_edit.setValidator(validator)
+
+        items_to_remove = set(self.priority) | set(self.avoid)
+        self.available_items = [item for item in self.all if item not in items_to_remove]
+        self.all = self.available_items.copy()
+
+        for i in range(2):
+            combo = self.combo_boxes[i]
+            selectize = self.selectize_widgets[i]
+
+            combo.clear()
+            combo.addItems(self.available_items)
+
+            selectize.clear()
+            if i == 0:
+                for item in self.priority:
+                    number = self.priority_floors.get(item)
+                    selectize.add_item(item, number, refresh=False)
+            else:
+                for item in self.avoid:
+                    number = self.avoid_floors.get(item)
+                    selectize.add_item(item, number, refresh=False)
+            selectize._refresh_items()
 
     def handle_item_added(self, item):
         if item in self.available_items:
@@ -358,7 +394,8 @@ class MyApp(QWidget):
             else:
                 on = [False, True, False, False, True, False, False]
                 self.set_buttons_active(on + buff)
-            sm.delete_config()
+            self.sm.delete_config()
+            self.sm.save_settings()
         else:
             self.set_priority(team)
         self.set_widgets()
@@ -469,12 +506,12 @@ class MyApp(QWidget):
             }) for i in range(7)
         ] + [
             (f'on{i+7}', {
-                'geometry': (223 + 111*i, 155, 107, 56),
+                'geometry': (223 + 89*i - (i // 3) - (i == 2), 155, 85, 56),
                 'checkable': True,
                 'checked': i != 1,
                 'click_handler': self.update_button_icons,
                 'icon': Bot.APP_PTH['sel_lux']
-            }) for i in range(4)
+            }) for i in range(5)
         ]
     
     def _get_buff(self):
@@ -677,46 +714,66 @@ class MyApp(QWidget):
         self.check_version()
 
         self.set_team()
+        self.set_extra()
         self.priority_team.setPixmap(QPixmap(Bot.APP_PTH[f'team{self.selected_affinity[self.team][0]}']))
         self.set_priority()
 
+        self.init_widgets()
         self.set_widgets()
         self.set_selected_buttons(self.sinner_selections[self.team])
         self.set_affinity_buttons(self.selected_affinity[self.team])
-        self.activate_ego_gifts(sm.get_config(7))
-        self.set_buttons_active(sm.get_config(8))
-        self.set_card_buttons(sm.get_config(9))
+        self.activate_ego_gifts(self.sm.get_config(7))
+        self.set_buttons_active(self.sm.get_config(8))
+        self.set_card_buttons(self.sm.get_config(9))
         self.overlay.raise_()
 
     def set_team(self):
         # first 7 values - whether button is activated, last - team index
-        state = sm.get_aff()
-        if state:
-            self.team = state["7"]
-            for i in range(7):
-                data = state[str(i)]
-                if isinstance(data, list) and len(data) == 2:
-                    self.selected_affinity[i] = data[1]
-                    self.buttons[f"icon{i}"].setIcon(QIcon(Bot.APP_PTH[f"t{self.selected_affinity[i][0]}"]))
-                    is_selected = data[0]
-                else: # old version
-                    is_selected = data
-                if is_selected:
-                    self.buttons[f"team{i}"].setChecked(True)
-                    if i == self.team:
-                        self.buttons[f"team{i}"].setIcon(QIcon(Bot.APP_PTH["affinity"]))
-                    else:
-                        self.buttons[f"team{i}"].setIcon(QIcon(Bot.APP_PTH["affinity_support"]))
+        state = self.sm.get_aff()
+        if not state: return
+
+        self.team = state["7"]
+        for i in range(7):
+            is_selected, self.selected_affinity[i] = state[str(i)]
+            self.buttons[f"icon{i}"].setIcon(QIcon(Bot.APP_PTH[f"t{self.selected_affinity[i][0]}"]))
+            if is_selected:
+                self.buttons[f"team{i}"].setChecked(True)
+                if i == self.team:
+                    self.buttons[f"team{i}"].setIcon(QIcon(Bot.APP_PTH["affinity"]))
                 else:
-                    self.buttons[f"team{i}"].setChecked(False)
-                    self.buttons[f"team{i}"].setIcon(QIcon())
+                    self.buttons[f"team{i}"].setIcon(QIcon(Bot.APP_PTH["affinity_support"]))
+            else:
+                self.buttons[f"team{i}"].setChecked(False)
+                self.buttons[f"team{i}"].setIcon(QIcon())
+
+    def set_extra(self):
+        state = self.sm.get_extra()
+        if not state: return
+
+        self.inputField.setText(str(state[0]) if state[0] != -1 else "ALL")
+        self.exp.setText(str(state[1]))
+        self.thd.setText(str(state[2]))
+
+        for i in range(5):
+            if state[i + 3]:
+                self.buttons[f"on{i + 7}"].setChecked(True)
+                self.buttons[f"on{i + 7}"].setIcon(QIcon(Bot.APP_PTH["sel_lux"]))
+            else:
+                self.buttons[f"on{i + 7}"].setChecked(False)
+                self.buttons[f"on{i + 7}"].setIcon(QIcon())
     
     def save_affinity(self):
         state = dict()
         for i in range(7):
             state[str(i)] = (self.buttons[f"team{i}"].isChecked(), self.selected_affinity[i])
         state[str(7)] = self.team
-        sm.save_aff(state)
+        self.sm.set_aff(state)
+
+        extra = [self.count, self.count_exp, self.count_thd]
+        for i in range(5):
+            extra.append(self.buttons[f"on{i + 7}"].isChecked())
+        self.sm.set_extra(extra)
+        self.sm.save_settings()
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -724,9 +781,7 @@ class MyApp(QWidget):
 
     def set_hardmode(self):
         self.update_button_icons()
-
         self.hard = self.buttons['hard'].isChecked()
-        sm.update_name(self.hard)
         self.set_priority()
         self.set_widgets()
         buff = [1]*4 + [0]*6
@@ -742,9 +797,9 @@ class MyApp(QWidget):
             self.buttons['on0'].config['icon'] = Bot.APP_PTH['sel1_extra']
             for lbl in self.hard_confs:
                 lbl.hide()
-        self.activate_ego_gifts(sm.get_config(7))
-        self.set_buttons_active(sm.get_config(8))
-        self.set_card_buttons(sm.get_config(9))
+        self.activate_ego_gifts(self.sm.get_config(7))
+        self.set_buttons_active(self.sm.get_config(8))
+        self.set_card_buttons(self.sm.get_config(9))
 
     def set_lux(self):
         self.lux.show()
@@ -754,7 +809,8 @@ class MyApp(QWidget):
         self.update_sinners()
         self.sinner_selections[self.team] = self.sinners
         self.set_selected_buttons(self.sinner_selections[self.team_lux + 7])
-
+    
+    @pyqtSlot()
     def lux_hide(self):
         self.is_lux = False
         self.update_sinners() 
@@ -784,7 +840,8 @@ class MyApp(QWidget):
         else:
             team = self.team
         self.update_sinners()
-        sm.save_team(team, self.sinners)
+        self.sm.set_team(team, self.sinners)
+        self.sm.save_settings()
     
     def reset(self):
         self.selected_button_order.clear()
@@ -807,10 +864,11 @@ class MyApp(QWidget):
             CustomButton.glow_multiple([self.buttons[f'card{i}'] for i in errors])
             return
         
-        sm.save_config(self.team, (self.priority, self.avoid, self.priority_floors, self.avoid_floors))
-        sm.save_config(7, {str(id): state for id, state in self.keywordless.items()})
-        sm.save_config(8, self.get_config_buttons())
-        sm.save_config(9, self.get_cards())
+        self.sm.set_config(self.team, (self.priority, self.avoid, self.priority_floors, self.avoid_floors))
+        self.sm.set_config(7, {str(id): state for id, state in self.keywordless.items()})
+        self.sm.set_config(8, self.get_config_buttons())
+        self.sm.set_config(9, self.get_cards())
+        self.sm.save_settings()
         self.ego_panel.hide()
         self.grace_panel.hide()
         self.config.hide()
@@ -860,15 +918,6 @@ class MyApp(QWidget):
     def set_buttons_active(self, states):
         on_buttons = [self.buttons[f'on{i}'] for i in range(7)]
         buff_buttons = [self.buttons[f'buff{i}'] for i in range(10)]
-        
-        if len(states) == 5: # old version
-            states += [False]*2 + [1]*4 + [0]*6
-        elif len(states) == 9: # less old version
-            states = states[:5] + [False]*2 + states[-4:]
-        elif len(states) == 11: # less old
-            states += [0]*6
-        elif len(states) != 17:
-            return
 
         buttons = on_buttons + buff_buttons
 
@@ -888,12 +937,12 @@ class MyApp(QWidget):
 
 
     def activate_ego_gifts(self, data):
-        if not sm.is_version("3.0.0"): # reset old gift selection
-            sm.save_config(7, {}, all=True)
-            data = {}
-            sm.set_version(p.V)
-        if isinstance(data, list): # old format
-            data = {}
+        # if not sm.is_version("3.0.0"): # reset old gift selection
+        #     sm.save_config(7, {}, all=True)
+        #     data = {}
+        #     sm.set_version(p.V)
+        # if isinstance(data, list): # old format
+        #     data = {}
         self.keywordless = {}
         for id in range(24):
             if str(id) in data.keys():
@@ -1041,6 +1090,13 @@ class MyApp(QWidget):
             icon_path = getattr(sender, 'config', {}).get('icon', '')
             if icon_path:
                 sender.setIcon(QIcon(icon_path))
+
+            names = ["on8", "on11"]
+            for i in range(2):
+                if sender is self.buttons[names[i]]:
+                    self.buttons[names[(i + 1) % 2]].setChecked(False)
+                    self.buttons[names[(i + 1) % 2]].setIcon(QIcon())
+                    break
         else:
             sender.setIcon(QIcon())
         sender.setIconSize(sender.size())
@@ -1207,14 +1263,11 @@ class MyApp(QWidget):
             self.buttons['update'].start_flickering()
 
     def check_inputs(self):
-        # if len(self.selected_button_order) < 6: return False
-        if not self.is_lux and self.count == 0: return False
         if self.is_lux and (self.count_exp + self.count_thd) < 1: return False
         return True
     
     def check_sinners(self):
         errors = []
-        # print(self.teams)
         for team in self.teams.keys():
             if len(self.teams[team]["sinners"]) < 1:
                 errors.append(team)
@@ -1223,7 +1276,11 @@ class MyApp(QWidget):
 
         suffix = ''
         frame = (10, 10, 43, 41)
-        if self.is_lux: 
+        if self.is_lux:
+            if self.is_proceed and [i for i in errors if i < 7]:
+                CustomButton.glow_multiple([self.buttons['MD']])
+                return False
+            errors = [i - 7 for i in errors if i >= 7]
             suffix = '_lux'
 
         # set up glows
@@ -1240,10 +1297,17 @@ class MyApp(QWidget):
         return False
     
     def get_params(self):
+        # logging
+        try:
+            setup_logging(enable_logging=self.buttons['log'].isChecked())
+        except PermissionError:
+            print("No logging I guess")
+            setup_logging(enable_logging=False)
+
         # MD count
         text = self.inputField.text()
-        if text: self.count = int(text)
-        else: self.count = 0
+        if text != "ALL": self.count = int(text)
+        else: self.count = -1
 
         # Lux count
         text = self.exp.text()
@@ -1261,12 +1325,13 @@ class MyApp(QWidget):
 
         self.update_sinners()
         if self.is_lux:
+            self.is_proceed = self.buttons["on11"].isChecked()
             self.sinner_selections[self.team_lux + 7] = self.sinners
             for i in self.team_lux_buttons:
                 if i is not None:
-                    self.teams[i] = {"sinners": self.sinner_selections[i + 7]}
-        else:
-            self.sinner_selections[self.team] = self.sinners
+                    self.teams[i + 7] = {"sinners": self.sinner_selections[i + 7]}
+        if not self.is_lux or self.is_proceed:
+            if not self.is_lux: self.sinner_selections[self.team] = self.sinners
             for index in range(7):
                 i = (self.team + index) % 7
                 affinity = self.selected_affinity[i][0]
@@ -1279,10 +1344,10 @@ class MyApp(QWidget):
                         "sinners": self.sinner_selections[i], 
                         "priority": (priority, priority_f),
                         "avoid": (avoid, priority_f, avoid_f)
-                    }
+                    }               
+        
 
         self.settings = {
-            'log'        : self.buttons['log'].isChecked(),
             'bonus'      : self.buttons['on0'].isChecked() if not self.is_lux else self.buttons['on10'].isChecked(),
             'restart'    : self.buttons['on1'].isChecked() if not self.is_lux else self.buttons['on7'].isChecked(),
             'altf4'      : self.buttons['on2'].isChecked() if not self.is_lux else self.buttons['on8'].isChecked(),
@@ -1314,7 +1379,6 @@ class MyApp(QWidget):
 
         self.thread = QThread()
         self.worker = BotWorker(
-            self.is_lux,
             self.count,
             self.count_exp,
             self.count_thd,
@@ -1375,7 +1439,7 @@ class MyApp(QWidget):
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Critical)
         msg.setWindowTitle("Bot Error")
-        msg.setText("An error occurred:")
+        msg.setText("Traceback is saved in the log file. \nError message:")
         msg.setInformativeText(message)
         msg.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg.exec()

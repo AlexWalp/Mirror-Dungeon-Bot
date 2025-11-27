@@ -31,26 +31,24 @@ def start_lux():
             Action("Lux", ver="Exp").execute(click)
     except RuntimeError:
         print("Lux init failed")
+    except gui.PauseException as e:
+        pause(e.window)
 
 
 def team_setup(teams, index):
     lux_list = ["SLASH", "PIERCE", "BLUNT", "WRATH", "LUST", "SLOTH", "GLUTTONY", "GLOOM", "PRIDE", "ENVY"]
-    team_idx = list(teams.keys())
+    team_idx = [i for i in teams.keys() if i >= 7]
     if index < len(team_idx):
-        p.TEAM = [lux_list[team_idx[index]]]
+        p.TEAM = [lux_list[team_idx[index] - 7]]
         p.SELECTED = [list(SINNERS.keys())[i] for i in list(teams[team_idx[index]]["sinners"])]
 
 
 def grind_lux(count_exp, count_thd, teams):
     team_setup(teams, index=0)
-    countdown(10)
-    setup_logging(enable_logging=p.LOG)
-    logging.info('Script started')
 
-    print("Entering Lux!")
     while count_exp:
         if not now.button("winrate") and not now.button("Exp"): start_lux()
-        if gui.getActiveWindowTitle() != p.LIMBUS_NAME: pause()
+        if (win := gui.getActiveWindowTitle()) != p.LIMBUS_NAME: pause(win)
         time.sleep(0.5)
 
         choices = LocateRGB.locate_all(PTH["EnterDoor"], region=REG["pick!"])
@@ -80,7 +78,7 @@ def grind_lux(count_exp, count_thd, teams):
     p.SELECTED = p.SELECTED[:6]
     while count_thd:
         if not now.button("winrate") and not now.button("Exp"): start_lux()
-        if gui.getActiveWindowTitle() != p.LIMBUS_NAME: pause()
+        if (win := gui.getActiveWindowTitle()) != p.LIMBUS_NAME: pause(win)
 
         if now.button("Exp"):
             if p.NETZACH: check_enkephalin(shift=227)

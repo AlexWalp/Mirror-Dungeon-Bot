@@ -1,4 +1,5 @@
 from source_app.utils import *
+from source_app.cache import CacheWorker
 
 
 class VersionChecker(QThread):
@@ -30,9 +31,8 @@ class BotWorker(QObject):
     error = pyqtSignal(str)
     warning = pyqtSignal(str)
 
-    def __init__(self, is_lux, count, count_exp, count_thd, teams, settings, hard, app):
+    def __init__(self, count, count_exp, count_thd, teams, settings, hard, app):
         super().__init__()
-        self.is_lux = is_lux
         self.count = count
         self.count_exp = count_exp
         self.count_thd = count_thd
@@ -41,10 +41,16 @@ class BotWorker(QObject):
         self.hard = hard
         self.app = app
 
+        self.cache_thread = None
+        self.cache_worker = None
+
     def run(self):
         try:
+            teams_filtered = {k: v for k, v in self.teams.items() if k < 7}
+            if teams_filtered:
+                self.start_cache_thread(teams_filtered, self.settings, self.hard)
+
             Bot.execute_me(
-                self.is_lux,
                 self.count,
                 self.count_exp,
                 self.count_thd,
@@ -55,6 +61,19 @@ class BotWorker(QObject):
                 warning=self.warning.emit
             )
         except Exception as e:
+            logging.exception("Uncaught exception in BotWorker thread")  
             self.error.emit(str(e))
         finally:
             self.finished.emit()
+
+    def start_cache_thread(self, teams, settings, hard):
+        self.cache_thread = QThread()
+        self.cache_worker = CacheWorker(teams, settings, hard)
+
+        self.cache_worker.moveToThread(self.cache_thread)
+        self.cache_thread.started.connect(self.cache_worker.run)
+        self.cache_worker.finished.connect(self.cache_thread.quit)
+        self.cache_worker.finished.connect(self.cache_worker.deleteLater)
+        self.cache_thread.finished.connect(self.cache_thread.deleteLater)
+
+        self.cache_thread.start()

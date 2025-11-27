@@ -150,21 +150,23 @@ class SelectizeWidget(QWidget):
     def getItemNumbers(self):
         return self.item_numbers
 
-    def add_item(self, text, number=None):
+    def add_item(self, text, number=None, refresh=True):
         if text not in self.items:
             self.items.append(text)
             if number is not None:
                 self.item_numbers[text] = number
-            self._refresh_items()
+            if refresh:
+                self._refresh_items()
             self.itemsChanged.emit(self.items)
             self.itemAdded.emit(text, number if number is not None else -1)
 
-    def remove_item(self, text):
+    def remove_item(self, text, refresh=True):
         if text in self.items:
             self.items.remove(text)
             if text in self.item_numbers:
                 del self.item_numbers[text]
-            self._refresh_items()
+            if refresh:
+                self._refresh_items()
             self.itemsChanged.emit(self.items)
             self.itemRemoved.emit(text)
 
@@ -180,3 +182,38 @@ class SelectizeWidget(QWidget):
             item_widget.setFont(self.font)
             item_widget.removed.connect(self.remove_item)
             self.scroll_layout.addWidget(item_widget)
+
+    def clear(self):
+        self.items = []
+        self.item_numbers = {}
+        self._refresh_items()
+
+
+
+class IntField(QLineEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setValidator(QIntValidator(0, 1000))
+        self.setMaxLength(4)
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setStyleSheet('color: #EDD1AC; background: transparent; border: none;')
+        self.default_value = "0"
+        self.setText(self.default_value)
+
+    def focusInEvent(self, event):
+        if self.text() == self.default_value:
+            self.clear()
+        super().focusInEvent(event)
+
+    def focusOutEvent(self, event):
+        txt = self.text().strip()
+
+        if txt == "" or (txt.isdigit() and int(txt) == 0):
+            self.setText(self.default_value)
+        super().focusOutEvent(event)
+
+class AllIntField(IntField):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.default_value = "ALL"
+        self.setText(self.default_value)

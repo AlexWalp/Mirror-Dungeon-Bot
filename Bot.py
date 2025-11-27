@@ -76,19 +76,20 @@ def dungeon_start():
     
     failed = 0
     while True:
-        now_click.button("resume")
-        for key in start_locations.keys():
-            if now.button(key):
-                i = start_locations[key]
-                break
-        else: break
         try:
-            chain_actions(try_click, ACTIONS[i:])
-        except RuntimeError:
-            failed += 1
-            win_moveTo(1509, 978)
-        except gui.PauseException:
-            pause()
+            now_click.button("resume")
+            for key in start_locations.keys():
+                if now.button(key):
+                    i = start_locations[key]
+                    break
+            else: break
+            try:
+                chain_actions(try_click, ACTIONS[i:])
+            except RuntimeError:
+                failed += 1
+                win_moveTo(1509, 978)
+        except gui.PauseException as e:
+            pause(e.window)
         if failed > 5:
             print("Initialization error")
             logging.error("Initialization error")
@@ -148,18 +149,23 @@ end_locations = {
 def dungeon_end():
     failed = 0
     while True:
-        for key in end_locations.keys():
-            if now.button(key):
-                i = end_locations[key]
-                break
-        else: break
         try:
-            chain_actions(try_click, TERMIN[i:])
-        except RuntimeError:
-            failed += 1
-            win_moveTo(1710, 982)
-        except gui.PauseException:
-            pause()
+            for key in end_locations.keys():
+                if now.button(key):
+                    i = end_locations[key]
+                    break
+            else: break
+            try:
+                chain_actions(try_click, TERMIN[i:])
+            except RuntimeError:
+                failed += 1
+                win_moveTo(1710, 982)
+        except gui.PauseException as e:
+            pause(e.window)
+        if now.button("out_of_fuel"):
+            logging.error("We are out of enkephalin!")
+            if p.APP: QMetaObject.invokeMethod(p.APP, "stop_execution", Qt.ConnectionType.QueuedConnection)
+            raise StopExecution
         if failed > 5:
             print("Termination error")
             logging.error("Termination error")
@@ -188,18 +194,19 @@ fail_locations = {
 def dungeon_fail():
     failed = 0
     while True:
-        for key in fail_locations.keys():
-            if now.button(key):
-                i = fail_locations[key]
-                break
-        else: break
         try:
-            chain_actions(try_click, FAIL[i:])
-        except RuntimeError:
-            failed += 1
-            win_moveTo(1710, 982)
-        except gui.PauseException:
-            pause()
+            for key in fail_locations.keys():
+                if now.button(key):
+                    i = fail_locations[key]
+                    break
+            else: break
+            try:
+                chain_actions(try_click, FAIL[i:])
+            except RuntimeError:
+                failed += 1
+                win_moveTo(1710, 982)
+        except gui.PauseException as e:
+            pause(e.window)
         if failed > 5:
             print("Termination error")
             logging.error("Termination error")
@@ -232,8 +239,7 @@ def main_loop():
             time.sleep(0.2)
             win_click(967, 774)
 
-        if gui.getActiveWindowTitle() != p.LIMBUS_NAME:
-            pause()
+        if (win := gui.getActiveWindowTitle()) != p.LIMBUS_NAME: pause(win)
 
         if p.HARD and now.button("suicide"):
             if not p.EXTREME:
@@ -266,8 +272,8 @@ def main_loop():
         except RuntimeError:
             handle_fuckup()
             error += 1
-        except gui.PauseException:
-            pause()
+        except gui.PauseException as e:
+            pause(e.window)
 
         if ck == False:
             # check if start
@@ -336,9 +342,8 @@ def set_team(team, teams, keywordless):
     logging.info(f'Difficulty: {difficulty}')
 
 
-def execute_me(is_lux, count, count_exp, count_thd, teams, settings, hard, app, warning):
+def execute_me(count, count_exp, count_thd, teams, settings, hard, app, warning):
     p.HARD = hard
-    p.LOG = settings['log']
     p.BONUS = settings['bonus']
     p.RESTART = settings['restart']
     p.ALTF4 = settings['altf4']
@@ -352,26 +357,23 @@ def execute_me(is_lux, count, count_exp, count_thd, teams, settings, hard, app, 
     p.APP = app
     p.WARNING = warning
 
-    try:
-        setup_logging(enable_logging=p.LOG)
-    except PermissionError:
-        print("No logging I guess")
-        setup_logging(enable_logging=False)
-
-
-    if not is_lux:
-        rotator = cycle(list(teams.keys()))
-        keywordless = settings['keywordless']
-        print(f"Grinding {count} mirrors...")
-        print("Switch to Limbus Window")
-        countdown(10)
-        logging.info('Script started')
-
+    if count == -1: count = 9999
+    print("Switch to Limbus Window")
+    countdown(10)
+    logging.info('Script started')
     try:
         set_window()
-        if is_lux:
+        lux_keys = [key for key in teams.keys() if key >= 7]
+        team_keys = [key for key in teams.keys() if key < 7]
+        if lux_keys:
+            print("Entering Lux!")
             grind_lux(count_exp, count_thd, teams)
-        else:
+            if team_keys and p.APP: QMetaObject.invokeMethod(p.APP, "lux_hide", Qt.ConnectionType.QueuedConnection)
+        if team_keys:
+            print("Entering MD!")
+            rotator = cycle(team_keys)
+            keywordless = settings['keywordless']
+
             for i in range(count):
                 team = next(rotator)
 
@@ -385,6 +387,7 @@ def execute_me(is_lux, count, count_exp, count_thd, teams, settings, hard, app, 
         if p.ALTF4:
             close_limbus()
     except StopExecution:
+        if p.ALTF4: close_limbus()
         return
     except ZeroDivisionError: # gotta launch the game
         raise RuntimeError("Launch Limbus Company!")

@@ -391,9 +391,9 @@ def fight(lux=False):
             if now_rgb.button(f"end_{i}", "skip_yap"):
                 gui.press("space", 1, 0.1)
         
-        if gui.getActiveWindowTitle() != p.LIMBUS_NAME:
+        if (win := gui.getActiveWindowTitle()) != p.LIMBUS_NAME:
             ck = True
-            pause()
+            pause(win)
         
         if now.button("pause"):
             ck = True

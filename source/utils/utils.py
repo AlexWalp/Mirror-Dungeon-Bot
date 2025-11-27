@@ -1,4 +1,4 @@
-import time, os
+import time, os, logging
 
 print("Loading...")
 load_time = time.time()
@@ -6,7 +6,6 @@ load_time = time.time()
 import numpy as np, cv2, ctypes, random
 
 import source.utils.windows_utils as gui
-from source.utils.log_config import *
 from source.utils.paths import *
 import source.utils.params as p
 
@@ -126,24 +125,17 @@ def countdown(seconds): # no more than 99 seconds!
     print(" " * (len(f"Starting in: {seconds:2} [--------------------]")), end="\r")
     print("Grinding Time!")
 
-def pause():
-    logging.info("Execution paused")
+def pause(other_win):
+    print(f"Switched to window: {other_win}")
+    logging.info(f"Execution paused")
     if p.APP:
         QMetaObject.invokeMethod(p.APP, "to_pause", Qt.ConnectionType.QueuedConnection)
         p.pause_event.clear()
         p.pause_event.wait()
         if p.stop_event.is_set():
-            raise StopExecution()
+            raise StopExecution
         countdown(5)
-    else:
-        while True:
-            print("The bot is paused...")
-            do = input("Press 1 to continue or press 0 to exit: ")
-            if do == "0":
-                raise StopExecution()
-            if do == "1":
-                countdown(5)
-                break
+    else: raise StopExecution
     set_window()
     logging.info("Execution resumed")
 
@@ -262,7 +254,7 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
     
         comp = comp*(p.WINDOW[2] / 1920)
         if comp != 1:
-            template = cv2.resize(template, None, fx=comp, fy=comp, interpolation=cv2.INTER_LINEAR)
+            template = cv2.resize(template, None, fx=comp, fy=comp, interpolation=cv2.INTER_AREA)
         if v_comp and not (0 < v_comp <= 1):
             raise ValueError(f"Invalid vertical compression value: '{v_comp}'")
         elif v_comp:
@@ -610,7 +602,7 @@ class LocatePreset:
                     raise AssertionError("Verification reqires action to verify")
                 params["wait"] = False
             for i in range(3):
-                if gui.getActiveWindowTitle() != p.LIMBUS_NAME: pause()
+                if (win := gui.getActiveWindowTitle()) != p.LIMBUS_NAME: pause(win)
                 if isinstance(ver, str):
                     condition = lambda: not self.button(ver, wait=False, click=False, error=False)
                 else:

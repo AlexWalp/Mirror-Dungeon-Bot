@@ -1,7 +1,8 @@
 from source.utils.utils import *
-from itertools import combinations_with_replacement, cycle
+from itertools import combinations_with_replacement
 import source.utils.params as p
 from source.teams import TEAMS
+from source_app.params import CACHE
 
 loc_shop = loc_rgb(conf=0.83, wait=False, method=cv2.TM_SQDIFF_NORMED)
 shop_click = loc_shop(click=True, wait=5)
@@ -152,9 +153,10 @@ def inventory_check(reg, h, uptie_det=True):
 
         for gift in p.GIFTS[i]["all"]:
             try:
-                template = amplify(cv2.imread(PTH[gift]))
+                if gift in CACHE: template = CACHE[gift]
+                else: template = amplify(cv2.imread(PTH[gift]))
                 x, y = gui.center(LocateRGB.try_locate(template, image=image, region=reg, conf=0.87))
-                print(f"got {gift} at {x, y}")
+                # print(f"got {gift} at {x, y}")
                 have[gift] = (x, y, h)
 
                 if uptie_det and gift in uptie_ego.keys():
@@ -164,7 +166,7 @@ def inventory_check(reg, h, uptie_det=True):
                             uptie[gift] = enhance_cost[uptie_ego[gift]]
                     except cv2.error:
                         print("Uptie detection failed")
-
+                
                 fuse_shelf = rectangle(fuse_shelf, (int(x - 62 - reg[0]), int(y - 72 - reg[1])), (int(x + 60 - reg[0]), int(y + 60 - reg[1])), (0, 0, 0), -1)
                 image = rectangle(image, (int(x - 62 - reg[0]), int(y - 72 - reg[1])), (int(x + 60 - reg[0]), int(y + 60 - reg[1])), (0, 0, 0), -1)
             except gui.ImageNotFoundException:
@@ -172,9 +174,10 @@ def inventory_check(reg, h, uptie_det=True):
     
     for gift in list(p.KEYWORDLESS.keys()):
         try:
-            template = amplify(cv2.imread(PTH[gift]))
+            if gift in CACHE: template = CACHE[gift]
+            else: template = amplify(cv2.imread(PTH[gift]))
             x, y = gui.center(LocateRGB.try_locate(template, image=image, region=reg, conf=0.86))
-            print(f"got {gift}")
+            # print(f"got {gift}")
             have[gift] = (x, y, h)
 
             if uptie_det and p.KEYWORDLESS[gift] > 2:
@@ -467,7 +470,8 @@ def uptie_inventory_check(gifts, reg):
 
     for gift in gifts:
         try:
-            template = amplify(cv2.imread(PTH[gift]))
+            if gift in CACHE: template = CACHE[gift]
+            else: template = amplify(cv2.imread(PTH[gift]))
             x, y = gui.center(LocateRGB.try_locate(template, image=image, region=reg, conf=0.88))
             print(f"got {gift}")
             win_click(x, y)

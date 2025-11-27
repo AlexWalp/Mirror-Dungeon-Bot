@@ -242,7 +242,10 @@ def mouseUp(button='left', delay=0.09):
 
 class FailSafeException(Exception): pass
 class ImageNotFoundException(Exception): pass
-class PauseException(Exception): pass
+class PauseException(Exception):
+    def __init__(self, name):
+        super().__init__(name)
+        self.window = name
 
 # Global fail-safe settings
 FAILSAFE = True
@@ -264,7 +267,7 @@ def _fail_safe_check():
     name = getActiveWindowTitle()
     
     if name != p.LIMBUS_NAME:
-        raise PauseException
+        raise PauseException(name)
     if (x == 0 or x == width - 1) and (y == 0 or y == height - 1):
         raise FailSafeException(f"Mouse out of screen bounds at ({x}, {y})")
 
