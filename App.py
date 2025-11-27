@@ -7,8 +7,6 @@ from source_app.run import VersionChecker, BotWorker
 
 class MyApp(QWidget):
     # TODO: I need to decompose this shitty class a bit
-    W, H = 700, 785
-
     def __init__(self):
         super().__init__()
         # params
@@ -30,7 +28,6 @@ class MyApp(QWidget):
         self.load_settings()
         self._init_ui()
         self._create_buttons()
-        # self.store_original_geometries()
 
         self.setFocus()
     
@@ -41,26 +38,6 @@ class MyApp(QWidget):
     # def print_state(self):
     #     print(f"Current state - Affinity: {self.team}, Priority: {self.priority}")
 
-    # def store_original_geometries(self):
-    #     self.original_geometries = {}
-    #     for w in self.findChildren(QWidget):
-    #         if w is not self:
-    #             self.original_geometries[w] = w.geometry()
-
-    # def resizeEvent(self, event):
-    #     scale_w = self.width()  / self.W
-    #     scale_h = self.height() / self.H
-    #     scale = min(scale_w, scale_h)
-
-    #     for w, g in self.original_geometries.items():
-    #         w.setGeometry(
-    #             int(g.x() * scale),
-    #             int(g.y() * scale),
-    #             int(g.width() * scale),
-    #             int(g.height() * scale)
-    #         )
-
-    #     super().resizeEvent(event)
 
     ### LOAD SETTINGS FROM CONFIG FILE
     def load_settings(self):
@@ -81,9 +58,6 @@ class MyApp(QWidget):
     ### UI
     def _init_ui(self):
         """Initialize main window settings"""
-        self.setWindowTitle(f"ChargeGrinder v{p.V}")
-        self.setWindowIcon(QIcon(Bot.ICON))
-        self.setFixedSize(self.W, self.H)
         self.background = QPixmap(Bot.APP_PTH["UI"])
         
         font_id = QFontDatabase.addApplicationFont(Bot.APP_PTH["ExcelsiorSans"])
@@ -1451,8 +1425,55 @@ class MyApp(QWidget):
         self.warn_txt.setText(message)
         self.warn.show()
 
+
+class ScrollableMyApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.base_width = 700
+        self.base_height = 785
+        
+        self.setWindowTitle(f"ChargeGrinder v{p.V}")
+        self.setWindowIcon(QIcon(Bot.ICON))
+        
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setWidgetResizable(False)
+        
+        self.content_widget = MyApp()
+        self.content_widget.setFixedSize(self.base_width, self.base_height)
+               
+        self.scroll_area.setWidget(self.content_widget)
+        self.setCentralWidget(self.scroll_area)
+        
+        self.setFixedSize(self.base_width, self.get_window_height())
+        self.update_scrollbar_visibility()
+    
+    def update_scrollbar_visibility(self):
+        current_height = self.height()
+        
+        if current_height >= self.base_height:
+            self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        else:
+            self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
+    def get_display_height(self):
+        screen = QApplication.screenAt(self.pos())
+        if screen is None:
+            screen = QApplication.primaryScreen()
+        
+        return screen.availableGeometry().height()
+
+    def get_window_height(self):
+        display_height = self.get_display_height() 
+        if display_height < self.base_height:
+            return display_height - 50
+        else:
+            return self.base_height
+
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = MyApp()
+    window = ScrollableMyApp()
     window.show()
     sys.exit(app.exec())
