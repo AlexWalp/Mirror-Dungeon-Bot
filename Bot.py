@@ -164,6 +164,7 @@ def dungeon_end():
             pause(e.window)
         if now.button("out_of_fuel"):
             logging.error("We are out of enkephalin!")
+            if p.ALTF4: close_limbus()
             if p.APP: QMetaObject.invokeMethod(p.APP, "stop_execution", Qt.ConnectionType.QueuedConnection)
             raise StopExecution
         if failed > 5:
@@ -303,8 +304,7 @@ def main_loop():
 
         if error > 20:
             logging.error('We are stuck')
-            if p.ALTF4:
-                close_limbus()
+            if p.ALTF4: close_limbus()
             if p.APP: QMetaObject.invokeMethod(p.APP, "stop_execution", Qt.ConnectionType.QueuedConnection)
             raise StopExecution # change maybe
 
@@ -387,7 +387,6 @@ def execute_me(count, count_exp, count_thd, teams, settings, hard, app, warning)
         if p.ALTF4:
             close_limbus()
     except StopExecution:
-        if p.ALTF4: close_limbus()
         return
     except ZeroDivisionError: # gotta launch the game
         raise RuntimeError("Launch Limbus Company!")
