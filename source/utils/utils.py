@@ -1,71 +1,21 @@
-import time, os, logging
-
-print("Loading...")
-load_time = time.time()
-
-import numpy as np, cv2, ctypes, random
-
-import source.utils.windows_utils as gui
+import numpy as np, cv2, random, time, os, platform, logging
 from source.utils.paths import *
 import source.utils.params as p
 
 from PyQt6.QtCore import QMetaObject, Qt
 
-print(f"All packages imported in {(time.time() - load_time):.2f} seconds")
+if platform.system() == "Windows":
+    import source.utils.os_windows_utils as gui
+elif platform.system() == "Linux":
+    if os.environ.get("XDG_SESSION_TYPE") == "x11":
+        import source.utils.os_linux_utils as gui
+    else:
+        raise RuntimeError("Wayland is not supported. Use Plasma (X11).")
+else:
+    raise RuntimeError("Unsupported OS")
 
 
 class StopExecution(Exception): pass
-class WindowError(Exception): pass
-
-
-def check_window():
-    screen_width = ctypes.windll.user32.GetSystemMetrics(0)
-    screen_height = ctypes.windll.user32.GetSystemMetrics(1)
-        
-    left, top, width, height = p.WINDOW
-    in_bounds = (
-        0 <= left <= screen_width and
-        0 <= top <= screen_height and
-        left + width <= screen_width and
-        top + height <= screen_height
-    )
-    if not in_bounds:
-        raise WindowError("Window is partially or completely out of screen bounds!")
-
-def set_window():
-    hwnd = ctypes.windll.user32.FindWindowW(None, p.LIMBUS_NAME)
-
-    rect = ctypes.wintypes.RECT()
-    ctypes.windll.user32.GetClientRect(hwnd, ctypes.byref(rect))
-
-    pt = ctypes.wintypes.POINT(0, 0)
-    ctypes.windll.user32.ClientToScreen(hwnd, ctypes.byref(pt))
-
-    client_width = rect.right - rect.left
-    client_height = rect.bottom - rect.top
-    left, top = pt.x, pt.y
-
-    target_ratio = 16 / 9
-    if client_width / client_height > target_ratio:
-        target_height = client_height
-        target_width = int(target_height * target_ratio)
-    elif client_width / client_height < target_ratio:
-        target_width = client_width
-        target_height = int(target_width / target_ratio)
-    else:
-        target_width = client_width
-        target_height = client_height
-
-    left += (client_width - target_width) // 2
-    top += (client_height - target_height) // 2
-
-    p.WINDOW = (left, top, target_width, target_height)
-    check_window()
-
-    if int(client_width / 16) != int(client_height / 9):
-        p.WARNING(f"Game window ({client_width} x {client_height}) is not 16:9\nIt is recommended to set the game to either\n1920 x 1080 or 1280 x 720")
-
-    print("WINDOW:", p.WINDOW)
 
 
 def screenshot(region=(0, 0, 1920, 1080)): # works only for cv2!
@@ -136,7 +86,7 @@ def pause(other_win):
             raise StopExecution
         countdown(5)
     else: raise StopExecution
-    set_window()
+    gui.set_window()
     logging.info("Execution resumed")
 
 
@@ -722,7 +672,7 @@ def chain_actions(preset: LocatePreset, actions: list):
 
 def handle_fuckup():
     if gui.getActiveWindowTitle() == p.LIMBUS_NAME:
-        set_window()
+        gui.set_window()
         win_click(1888, 901)
         gui.press("Esc")
         gui.press("Esc")

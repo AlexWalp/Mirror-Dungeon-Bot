@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, platform
 
 try:
     BASE_PATH = sys._MEIPASS
@@ -25,7 +25,11 @@ PTH = collect_png_paths(ASSETS_DIR)
 # App.py assets
 APP_DIR = os.path.join(BASE_PATH,"ImageAssets/AppUI")
 APP_PTH = collect_png_paths(APP_DIR)
-ICON = os.path.join(BASE_PATH,"app_icon.ico")
+
+if platform.system() == "Windows":
+    ICON = os.path.join(BASE_PATH,"app_icon.ico")
+else:
+    ICON = os.path.join(BASE_PATH,"app.png")
 
 # regions for some buttons
 REG = {
@@ -117,7 +121,7 @@ REG = {
     # pack.py
     "lvl"            : ( 950,  151,   40,   52),
     "PackChoice"     : (1757,  126,  115,  116),
-    "PackCard"       : (  76,  799,  497,  885),
+    "PackCard"       : (  76,  799,  497,   85),
     "hardDifficulty" : ( 893,  207,  115,   44),
 
     # shop.py

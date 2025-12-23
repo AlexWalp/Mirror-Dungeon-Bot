@@ -239,7 +239,7 @@ def mouseUp(button='left', delay=0.09):
     _human_delay(delay, delay + 0.02)
 
 
-
+class WindowError(Exception): pass
 class FailSafeException(Exception): pass
 class ImageNotFoundException(Exception): pass
 class PauseException(Exception):
@@ -465,3 +465,51 @@ def randomize_delay(base_delay):
     return base_delay * random.uniform(0.8, 1.2)
 
 
+def check_window():
+    screen_width = ctypes.windll.user32.GetSystemMetrics(0)
+    screen_height = ctypes.windll.user32.GetSystemMetrics(1)
+        
+    left, top, width, height = p.WINDOW
+    in_bounds = (
+        0 <= left <= screen_width and
+        0 <= top <= screen_height and
+        left + width <= screen_width and
+        top + height <= screen_height
+    )
+    if not in_bounds:
+        raise WindowError("Window is partially or completely out of screen bounds!")
+
+def set_window():
+    hwnd = ctypes.windll.user32.FindWindowW(None, p.LIMBUS_NAME)
+
+    rect = ctypes.wintypes.RECT()
+    ctypes.windll.user32.GetClientRect(hwnd, ctypes.byref(rect))
+
+    pt = ctypes.wintypes.POINT(0, 0)
+    ctypes.windll.user32.ClientToScreen(hwnd, ctypes.byref(pt))
+
+    client_width = rect.right - rect.left
+    client_height = rect.bottom - rect.top
+    left, top = pt.x, pt.y
+
+    target_ratio = 16 / 9
+    if client_width / client_height > target_ratio:
+        target_height = client_height
+        target_width = int(target_height * target_ratio)
+    elif client_width / client_height < target_ratio:
+        target_width = client_width
+        target_height = int(target_width / target_ratio)
+    else:
+        target_width = client_width
+        target_height = client_height
+
+    left += (client_width - target_width) // 2
+    top += (client_height - target_height) // 2
+
+    p.WINDOW = (left, top, target_width, target_height)
+    check_window()
+
+    if int(client_width / 16) != int(client_height / 9):
+        p.WARNING(f"Game window ({client_width} x {client_height}) is not 16:9\nIt is recommended to set the game to either\n1920 x 1080 or 1280 x 720")
+
+    print("WINDOW:", p.WINDOW)

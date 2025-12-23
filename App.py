@@ -203,7 +203,8 @@ class MyApp(QWidget):
         for i in range(2):
             combo = QComboBox()
             combo.setFont(self.font_large)
-            combo.setStyleSheet('color: #EDD1AC;')
+            combo.setStyle(QStyleFactory.create('Windows'))
+            combo.setStyleSheet('color: #EDD1AC; selection-background-color: transparent; outline: none; border: none;')
             combo.setFixedSize(185, 32)
 
             selectize = SelectizeWidget(font=self.font_medium)
@@ -226,7 +227,8 @@ class MyApp(QWidget):
 
             btn_add = QPushButton("Add")
             btn_add.setFont(self.btn_font)
-            btn_add.setStyleSheet('color: #EDD1AC;')
+            btn_add.setStyle(QStyleFactory.create('Windows'))
+            btn_add.setStyleSheet('color: #EDD1AC; outline: none;')
             btn_add.setFixedSize(52, 32)
 
             line_edit = QLineEdit()
@@ -238,7 +240,8 @@ class MyApp(QWidget):
             line_edit.setValidator(validator)
             line_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
             line_edit.setFixedSize(32, 32)
-            line_edit.setStyleSheet('color: #5df2ff')
+            line_edit.setStyle(QStyleFactory.create('Windows'))
+            line_edit.setStyleSheet('color: #5df2ff; outline: none;')
 
             top_layout.addWidget(line_edit)
             top_layout.addWidget(btn_add)
@@ -1439,6 +1442,7 @@ class ScrollableMyApp(QMainWindow):
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.scroll_area.setWidgetResizable(False)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         
         self.content_widget = MyApp()
         self.content_widget.setFixedSize(self.base_width, self.base_height)

@@ -362,7 +362,7 @@ def execute_me(count, count_exp, count_thd, teams, settings, hard, app, warning)
     countdown(10)
     logging.info('Script started')
     try:
-        set_window()
+        gui.set_window()
         lux_keys = [key for key in teams.keys() if key >= 7]
         team_keys = [key for key in teams.keys() if key < 7]
         if lux_keys:

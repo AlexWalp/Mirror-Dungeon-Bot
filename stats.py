@@ -259,7 +259,10 @@ def export_to_csv(data, filename):
 
 
 def log_to_csv():
-    if getattr(sys, 'frozen', False):
+    appimage_path = os.environ.get("APPIMAGE")
+    if appimage_path:
+        base_path = os.path.dirname(appimage_path)    
+    elif getattr(sys, 'frozen', False):
         base_path = os.path.dirname(sys.executable)
     else:
         base_path = os.path.abspath(os.path.join(os.path.dirname(__file__)))

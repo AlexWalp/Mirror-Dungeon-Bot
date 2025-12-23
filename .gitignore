@@ -1,12 +1,13 @@
 __pycache__
 venv
 build
-game.log
-testing.py
+dist
+AppDir
 data
 skill_data
 testing
 choices
-dist
-convert_ego.py
+game.log
 game.csv
+testing.py
+convert_ego.py
