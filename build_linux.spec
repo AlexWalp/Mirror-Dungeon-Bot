@@ -73,7 +73,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=["source.utils.os_windows_backend"],
     noarchive=False,
     optimize=1,
 )

@@ -6,6 +6,8 @@ import math
 import random
 import source.utils.params as p
 
+ctypes.windll.user32.SetProcessDPIAware()
+
 class BITMAPINFOHEADER(ctypes.Structure):
     _fields_ = [
         ("biSize", wintypes.DWORD),
@@ -268,8 +270,6 @@ def _fail_safe_check():
     
     if name != p.LIMBUS_NAME:
         raise PauseException(name)
-    if (x == 0 or x == width - 1) and (y == 0 or y == height - 1):
-        raise FailSafeException(f"Mouse out of screen bounds at ({x}, {y})")
 
 
 def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True):
@@ -466,15 +466,25 @@ def randomize_delay(base_delay):
 
 
 def check_window():
-    screen_width = ctypes.windll.user32.GetSystemMetrics(0)
-    screen_height = ctypes.windll.user32.GetSystemMetrics(1)
-        
+    user32 = ctypes.windll.user32
+
+    vx = user32.GetSystemMetrics(76)
+    vy = user32.GetSystemMetrics(77)
+    vw = user32.GetSystemMetrics(78)
+    vh = user32.GetSystemMetrics(79)
+
+    vright = vx + vw
+    vbottom = vy + vh
+
     left, top, width, height = p.WINDOW
+    right = left + width
+    bottom = top + height
+
     in_bounds = (
-        0 <= left <= screen_width and
-        0 <= top <= screen_height and
-        left + width <= screen_width and
-        top + height <= screen_height
+        left >= vx and
+        top >= vy and
+        right <= vright and
+        bottom <= vbottom
     )
     if not in_bounds:
         raise WindowError("Window is partially or completely out of screen bounds!")

@@ -1421,7 +1421,7 @@ class MyApp(QWidget):
         msg.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg.exec()
 
-        self.close()
+        self.window().close()
 
     def handle_bot_warning(self, message):
         self.warn.raise_()

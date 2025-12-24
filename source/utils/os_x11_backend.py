@@ -239,26 +239,23 @@ def screenshot(imageFilename=None, region=None):
     Returns numpy array in BGR order (height, width, 3) for cv2 compatibility.
     """
     with mss.mss() as sct:
+        full = sct.grab(sct.monitors[0])
+        img = np.array(full)[:, :, :3]
+
         if region:
-            # mss uses left/top/width/height
-            monitor = {"left": region[0], "top": region[1], "width": region[2], "height": region[3]}
-        else:
-            # monitors[0] is the full virtual screen (all monitors combined)
-            monitor = sct.monitors[0]
+            min_x, min_y, _, _ = get_virtual_screen_bounds()
+            left, top, width, height = region
 
-        sct_img = sct.grab(monitor)
+            x0 = left - min_x
+            y0 = top - min_y
 
-        # Convert to NumPy array: shape (height, width, 4) in BGRA
-        arr = np.array(sct_img)
-
-        # Slice to BGR (drop alpha, no need to reverse channels)
-        arr = arr[:, :, :3]
-
+            img = img[y0:y0+height, x0:x0+width]
+        
         if imageFilename:
             import cv2
-            cv2.imwrite(imageFilename, arr)
+            cv2.imwrite(imageFilename, img)
 
-        return arr
+        return img
 
 # Map logical buttons to X button numbers
 _BUTTON_MAP = {'left': 1, 'middle': 2, 'right': 3}
@@ -537,7 +534,8 @@ def set_window():
     left += (client_width - target_width) // 2
     top += (client_height - target_height) // 2
 
-    p.WINDOW = (-left, -top, target_width, target_height)
+    min_x, min_y, _, _ = get_virtual_screen_bounds()
+    p.WINDOW = (left - min_x, top - min_y, target_width, target_height)
     check_window()
 
     if int(client_width / 16) != int(client_height / 9):

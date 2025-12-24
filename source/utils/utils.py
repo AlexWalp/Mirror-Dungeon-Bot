@@ -5,10 +5,10 @@ import source.utils.params as p
 from PyQt6.QtCore import QMetaObject, Qt
 
 if platform.system() == "Windows":
-    import source.utils.os_windows_utils as gui
+    import source.utils.os_windows_backend as gui
 elif platform.system() == "Linux":
     if os.environ.get("XDG_SESSION_TYPE") == "x11":
-        import source.utils.os_linux_utils as gui
+        import source.utils.os_x11_backend as gui
     else:
         raise RuntimeError("Wayland is not supported. Use Plasma (X11).")
 else:
@@ -398,7 +398,7 @@ def create_mask(image, target_hsv, tolerance):
     return mask
 
 
-class SIFTMatcher:
+class SIFTMatcher: # unlike other modules, this works only with 1920x1080
     def __init__(self, image=None, region=(0, 0, 1920, 1080), **sift_params):
         self.region = region
         self.base_image = self._prepare_image(image, region)
@@ -407,17 +407,27 @@ class SIFTMatcher:
     
     @staticmethod
     def _prepare_image(image, region):
+        x, y, w, h = region
+        comp = p.WINDOW[2] / 1920
+        x_d, y_d, w_d, h_d = round(p.WINDOW[0] + x*comp), round(p.WINDOW[1] + y*comp), round(w*comp), round(h*comp)
+
         if isinstance(image, str):
             img = cv2.imread(image)
             if img is None:
                 raise FileNotFoundError(f"Image not found: {image}")
-            return img
+            img = img[y_d:y_d+h_d, x_d:x_d+w_d]
         elif image is None:
-            return screenshot(region=region)
+            img = screenshot(region=region)
         elif isinstance(image, np.ndarray):
-            return image
+            img = image[y_d:y_d+h_d, x_d:x_d+w_d]
         else:
             raise TypeError(f"Unsupported image type: {type(image)}")
+
+        h_img, w_img = img.shape[:2]
+        if w_img != w:
+            scale = w / w_img
+            img = cv2.resize(img, (w, int(h_img * scale)), interpolation=cv2.INTER_LINEAR)
+        return img
     
     @staticmethod
     def _load_template(template):
@@ -432,10 +442,10 @@ class SIFTMatcher:
             raise TypeError(f"Unsupported template type: {type(template)}")
     
     def _match_template(self, template, min_matches=40, inlier_ratio=0.25):
-        comp = p.WINDOW[2] / 1920
+        # comp = p.WINDOW[2] / 1920
         template = SIFTMatcher._load_template(template)
-        if comp != 1:
-            template = cv2.resize(template, None, fx=comp, fy=comp, interpolation=cv2.INTER_LINEAR)
+        # if comp != 1:
+        #     template = cv2.resize(template, None, fx=comp, fy=comp, interpolation=cv2.INTER_LINEAR)
         
         kp1, des1 = self.sift.detectAndCompute(template, None)
 
@@ -469,11 +479,10 @@ class SIFTMatcher:
         y_min, y_max = min(y_coords), max(y_coords)
         
         if (x_max - x_min < 2 * w) and (y_max - y_min < 2 * h):
-            comp_inv = 1920 / p.WINDOW[2]
-            x_full = int(x_min * comp_inv) + self.region[0]
-            y_full = int(y_min * comp_inv) + self.region[1]
-            width = int((x_max - x_min) * comp_inv)
-            height = int((y_max - y_min) * comp_inv)
+            x_full = int(x_min + self.region[0])
+            y_full = int(y_min + self.region[1])
+            width = int(x_max - x_min)
+            height = int(y_max - y_min)
             
             return (x_full, y_full, width, height)
     
