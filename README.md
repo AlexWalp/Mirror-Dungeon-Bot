@@ -5,7 +5,7 @@
 <img alt="version" src="https://img.shields.io/github/v/release/AlexWalp/Mirror-Dungeon-Bot">
 <img alt="download" src="https://img.shields.io/github/downloads/AlexWalp/Mirror-Dungeon-Bot/total">
 <img alt="language" src="https://img.shields.io/badge/Language-Python-blue">
-<img alt="platform" src="https://img.shields.io/badge/platform-Windows-blue">
+<img alt="platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue">
 </div>
 <div align="center"> 
 <a href="https://www.paypal.com/ncp/payment/98WFWFCUHLQML">
@@ -188,25 +188,36 @@ This tool does not modify or access any game files and relies solely on the disp
 
 # Installation
 ### 📦 Option 1: Run the Prebuilt Executable 
-[![Download](https://img.shields.io/badge/app.exe-Download-blue.svg?style=for-the-badge)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/latest/download/app.exe) <p>
-- Launch **app.exe** from [the latest release](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/latest) - no additional files required.
-- No OCR is used anymore, all detection is now done with open cv.
+- ## Windows
+  [![Download](https://img.shields.io/badge/app.exe-Download-blue.svg?style=for-the-badge)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/latest/download/app.exe) <p>
+  - Launch **app.exe** from [the latest release](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/latest) - no additional files required.
+- ## Linux (X11)
+  [![Download](https://img.shields.io/badge/CGrinder.AppImage-Download-yellow.svg?style=for-the-badge)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/latest/download/CGrinder-x86_64.AppImage) <p>
+  - Wayland is currently not suppored, so you would need to run X11 session.
+  - Download AppImage from [the latest release](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/latest).
+  - Make it executable with `chmod +x CGrinder-x86_64.AppImage`.
 
 ### 🐍 Option 2: Run with Python
 Make sure you have **Python 3** installed. Then either:
 
-`pip install -r requirements.txt`
+Windows: <br>
+`pip install -r requirements.txt` 
+
+Linux: <br>
+`pip install -r requirements_linux.txt`
 
 or manually install:
 - `opencv-python-headless`
 - `numpy`
 - `PyQt6`
+- `python-xlib` _(Linux only)_
+- `mss` _(Linux only)_
 
 Then you can run `App.py` to launch the application.
 
 # Usage:
 
-> **Game interface must be in English!** <br> **Make sure that the Limbus Company window is fully visible!** <br> Set the in-game resolution to **16:9** ratio (**1920x1080** is best, but **1280x720** also works)
+> **Game interface must be in English!** <br> **No mods installed (e.g. speech bubbles)** <br> **HDR should probably be disabled if you have it** <br> **Make sure that the Limbus Company window is fully visible!** <br> Set the in-game resolution to **16:9** ratio (**1920x1080** is best, but **1280x720** also works)
 
 
 - You can set up sinners and other settings upon program execution. ChargeGrinder will start running in 10 seconds after that. 

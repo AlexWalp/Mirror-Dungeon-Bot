@@ -487,6 +487,17 @@ def randomize_delay(base_delay):
     return base_delay * random.uniform(0.8, 1.2)
 
 
+def get_absolute_position(win):
+    x = y = 0
+    while True: # Ugly!!!
+        geom = win.get_geometry()
+        x += geom.x
+        y += geom.y
+        parent = win.query_tree().parent
+        if parent.id == _root.id:
+            break
+        win = parent
+    return x, y
 
 
 def check_window():
@@ -501,6 +512,7 @@ def check_window():
     if not in_bounds:
         raise WindowError("Window is partially or completely out of screen bounds!")
 
+
 def set_window():
     """
     Find window by p.LIMBUS_NAME, calculate its client center and set p.WINDOW
@@ -511,13 +523,6 @@ def set_window():
         raise WindowError(f"Window '{p.LIMBUS_NAME}' not found.")
 
     geom = w.get_geometry()
-    # translate to root coordinates
-    try:
-        tx = w.translate_coords(_root, 0, 0)
-        left, top = tx.x, tx.y
-    except Exception:
-        left, top = geom.x, geom.y
-
     client_width, client_height = geom.width, geom.height
 
     target_ratio = 16 / 9
@@ -531,11 +536,11 @@ def set_window():
         target_width = client_width
         target_height = client_height
 
+    left, top = get_absolute_position(w)
     left += (client_width - target_width) // 2
     top += (client_height - target_height) // 2
 
-    min_x, min_y, _, _ = get_virtual_screen_bounds()
-    p.WINDOW = (left - min_x, top - min_y, target_width, target_height)
+    p.WINDOW = (left, top, target_width, target_height)
     check_window()
 
     if int(client_width / 16) != int(client_height / 9):

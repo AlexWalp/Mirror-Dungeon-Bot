@@ -1421,7 +1421,7 @@ class MyApp(QWidget):
         msg.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg.exec()
 
-        self.window().close()
+        self.progress.hide()
 
     def handle_bot_warning(self, message):
         self.warn.raise_()
