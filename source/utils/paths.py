@@ -88,7 +88,7 @@ REG = {
     "Commence"       : (1539,  906,  316,  126),
     "Continue"       : (1539,  906,  316,  126),
     "CommenceBattle" : (1539,  906,  316,  126),
-    "probs"          : (  42,  876, 1427,   74),
+    "probs"          : (  42,  900, 1271,   50),
 
     # grab.py
     "encounterreward": ( 412,  165,  771,   72),

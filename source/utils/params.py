@@ -1,6 +1,6 @@
 import threading
 
-V = "3.1.2"
+V = "3.1.3"
 LIMBUS_NAME = "LimbusCompany"
 
 SELECTED = ["YISANG", "DONQUIXOTE" , "ISHMAEL", "RODION", "SINCLAIR", "GREGOR"]
@@ -13,6 +13,7 @@ LOG = True
 BONUS = False
 RESTART = True
 ALTF4 = False
+ALTF4_lux = False
 NETZACH = False
 SKIP = True
 WINRATE = False

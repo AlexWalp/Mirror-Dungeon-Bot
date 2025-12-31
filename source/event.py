@@ -12,7 +12,7 @@ def event():
         if time.time() - start_time > 100: return False
         if (win := gui.getActiveWindowTitle()) != p.LIMBUS_NAME: pause(win)
 
-        for _ in range(3): win_click(906, 465, delay=0.01)
+        for _ in range(3): win_click(906, 460, delay=0.01)
         
         if now.button("choices"):
             time.sleep(0.1)

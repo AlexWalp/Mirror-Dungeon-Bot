@@ -185,52 +185,7 @@ def clip_region_to_virtual(region):
         return None
 
     return x2, y2, w2, h2
-
-
-# def screenshot(imageFilename=None, region=None):
-#     """
-#     Capture screenshot using XGetImage via root.get_image.
-#     region: (x, y, width, height)
-#     allScreens flag is ignored here because X root includes all monitors in Xinerama/xrandr setups.
-#     Returns numpy array in RGB order (height, width, 3).
-#     """
-#     if region:
-#         region = clip_region_to_virtual(region)
-#         if region is None:
-#             raise RuntimeError("screenshot failed: region outside screen")
-
-#     if region:
-#         x, y, width, height = region
-#     else:
-#         width, height = get_screen_size()
-#         x = y = 0
-
-#     try:
-#         img = _root.get_image(
-#             x, y,
-#             width, height,
-#             X.ZPixmap,
-#             0xffffffff
-#         )
-
-#         # 32bpp: B, G, R, X
-#         raw = np.frombuffer(img.data, dtype=np.uint8)
-
-#         # Reshape to (H, W, 4)
-#         arr = raw.reshape((height, width, 4))
-
-#         # Drop X channel
-#         arr = arr[:, :, :3]
-
-#         if imageFilename:
-#             import cv2
-#             cv2.imwrite(imageFilename, arr)
-
-#         return arr
-
-#     except Exception as e:
-#         raise RuntimeError(f"screenshot failed: {e}")
-    
+  
 
 def screenshot(imageFilename=None, region=None):
     """
@@ -239,9 +194,6 @@ def screenshot(imageFilename=None, region=None):
     Returns numpy array in BGR order (height, width, 3) for cv2 compatibility.
     """
     with mss.mss() as sct:
-        full = sct.grab(sct.monitors[0])
-        img = np.array(full)[:, :, :3]
-
         if region:
             min_x, min_y, _, _ = get_virtual_screen_bounds()
             left, top, width, height = region
@@ -249,13 +201,19 @@ def screenshot(imageFilename=None, region=None):
             x0 = left - min_x
             y0 = top - min_y
 
-            img = img[y0:y0+height, x0:x0+width]
-        
+            monitor = {"left": x0, "top": y0, "width": width, "height": height}
+        else:
+            monitor = sct.monitors[0]
+
+        full = sct.grab(monitor)
+        img = np.array(full)[:, :, :3]
+
         if imageFilename:
             import cv2
             cv2.imwrite(imageFilename, img)
 
         return img
+
 
 # Map logical buttons to X button numbers
 _BUTTON_MAP = {'left': 1, 'middle': 2, 'right': 3}

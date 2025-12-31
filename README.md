@@ -93,7 +93,7 @@
 
 
 - ## Recommended Team
-  - **Normal MD:** Rupture is the fastest team with average time of 24 minutes per run.  
+  - **Normal MD:** Burn is the fastest team with average time of 22 minutes per run.  
   - **Hard MD:** Rupture is the best team with average time of 38 minutes per run.
   - **Extreme MD:** Both Rupture and Tremor are viable options.<br><br>
 

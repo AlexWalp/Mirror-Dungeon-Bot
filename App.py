@@ -294,7 +294,6 @@ class MyApp(QWidget):
 
         items_to_remove = set(self.priority) | set(self.avoid)
         self.available_items = [item for item in self.all if item not in items_to_remove]
-        self.all = self.available_items.copy()
 
         for i in range(2):
             combo = self.combo_boxes[i]
@@ -1327,7 +1326,7 @@ class MyApp(QWidget):
         self.settings = {
             'bonus'      : self.buttons['on0'].isChecked() if not self.is_lux else self.buttons['on10'].isChecked(),
             'restart'    : self.buttons['on1'].isChecked() if not self.is_lux else self.buttons['on7'].isChecked(),
-            'altf4'      : self.buttons['on2'].isChecked() if not self.is_lux else self.buttons['on8'].isChecked(),
+            'altf4'      : [self.buttons['on2'].isChecked(), self.buttons['on8'].isChecked()],
             'enkephalin' : self.buttons['on3'].isChecked() if not self.is_lux else self.buttons['on9'].isChecked(),
             'skip'       : self.buttons['on4'].isChecked(),
             'wishmaking' : self.buttons['on5'].isChecked(),

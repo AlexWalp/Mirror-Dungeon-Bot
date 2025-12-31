@@ -346,7 +346,7 @@ def execute_me(count, count_exp, count_thd, teams, settings, hard, app, warning)
     p.HARD = hard
     p.BONUS = settings['bonus']
     p.RESTART = settings['restart']
-    p.ALTF4 = settings['altf4']
+    p.ALTF4, p.ALTF4_lux = settings['altf4']
     p.NETZACH = settings['enkephalin']
     p.SKIP = settings['skip']
     p.BUFF = settings['buff']
@@ -365,10 +365,14 @@ def execute_me(count, count_exp, count_thd, teams, settings, hard, app, warning)
         gui.set_window()
         lux_keys = [key for key in teams.keys() if key >= 7]
         team_keys = [key for key in teams.keys() if key < 7]
+
         if lux_keys:
             print("Entering Lux!")
             grind_lux(count_exp, count_thd, teams)
             if team_keys and p.APP: QMetaObject.invokeMethod(p.APP, "lux_hide", Qt.ConnectionType.QueuedConnection)
+            elif p.ALTF4_lux:
+                close_limbus()
+            
         if team_keys:
             print("Entering MD!")
             rotator = cycle(team_keys)
@@ -384,8 +388,8 @@ def execute_me(count, count_exp, count_thd, teams, settings, hard, app, warning)
                     completed = main_loop()
                     if p.NETZACH: check_enkephalin()
 
-        if p.ALTF4:
-            close_limbus()
+            if p.ALTF4:
+                close_limbus()
     except StopExecution:
         return
     except ZeroDivisionError: # gotta launch the game
