@@ -75,7 +75,7 @@ def countdown(seconds): # no more than 99 seconds!
     print(" " * (len(f"Starting in: {seconds:2} [--------------------]")), end="\r")
     print("Grinding Time!")
 
-def pause(other_win):
+def pause(other_win=None):
     print(f"Switched to window: {other_win}")
     logging.info(f"Execution paused")
     if p.APP:
@@ -99,7 +99,7 @@ def close_limbus(error=None):
     else: raise error
 
 
-def wait_for_condition(condition, action=None, interval=0.5, timer=20):
+def wait_while_condition(condition, action=None, interval=0.5, timer=20):
     start_time = time.time()
     while condition():
         if time.time() - start_time > timer:
@@ -568,7 +568,7 @@ class LocatePreset:
                     condition = lambda: LocateGray.check(state0, image=screenshot(region=ver), wait=False, conf=0.98, method=1)
                     # print(LocateGray.get_conf(state0, image=gui.screenshot(region=ver)))
 
-                verified = wait_for_condition(condition, interval=0.1, timer=3)
+                verified = wait_while_condition(condition, interval=0.1, timer=3)
                 if not verified:
                     print(f"Verifier failed (attempt {i}), reclicking...")
                     # Reclick the original target
@@ -604,22 +604,22 @@ try_rgb   = loc_rgb(error=True)
 now_rgb   = loc_rgb(wait=False)
 
 def loading_halt():
-    wait_for_condition(
+    wait_while_condition(
         condition=lambda: not now.button("loading"),
         timer=3,
         interval=0.1
     )
-    wait_for_condition(
+    wait_while_condition(
         condition=lambda: now.button("loading"),
     )
 
 def connection():
-    wait_for_condition(
+    wait_while_condition(
         condition=lambda: not now.button("loading"),
         timer=0.5,
         interval=0.1
     )
-    wait_for_condition(
+    wait_while_condition(
         condition=lambda: now.button("connecting"),
     )
     

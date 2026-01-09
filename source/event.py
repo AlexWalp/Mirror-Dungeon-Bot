@@ -17,9 +17,9 @@ def event():
         if now.button("choices"):
             time.sleep(0.1)
             if now_click.button("textNew", "textEGO"): 
-                if wait_for_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
+                if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
             if now_click.button("textLvl", "textEGO"): 
-                if wait_for_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
+                if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
             if any(now_click.button(f"choice_{favorite}", "textEGO") for favorite in favorites): continue
 
             egos = LocateGray.locate_all(PTH["textEGO"], region=REG["textEGO"], conf=0.85)
@@ -27,7 +27,7 @@ def event():
             if not egos:
                 for choice in [316, 520, 730]:
                     win_click(1348, choice, delay=0)
-                    if wait_for_condition(lambda: now.button("choices"), interval=0.5, timer=2): continue
+                    if wait_while_condition(lambda: now.button("choices"), interval=0.5, timer=2): continue
                 else:
                     continue
             

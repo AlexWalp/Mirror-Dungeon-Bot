@@ -1,6 +1,6 @@
 import threading
 
-V = "3.1.3"
+V = "3.1.4"
 LIMBUS_NAME = "LimbusCompany"
 
 SELECTED = ["YISANG", "DONQUIXOTE" , "ISHMAEL", "RODION", "SINCLAIR", "GREGOR"]
@@ -31,6 +31,7 @@ PICK_ALL = {}
 
 WARNING = None
 WINDOW = (0, 0, 1920, 1080)
+SCREEN = None
 
 pause_event = threading.Event()
 stop_event = threading.Event()

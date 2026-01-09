@@ -188,7 +188,7 @@ def enter(wait=1):
         if p.SKIP: button = "skipEncounter"
         else: button = "secretEncounter"
     if button:
-        wait_for_condition(
+        wait_while_condition(
             condition= lambda: now.button(button),
             action=lambda: click.button(button)
         )
@@ -203,7 +203,7 @@ def move():
     is_move = now.button("Move")
 
     if is_move and p.MOVE_ANIMATION:
-        wait_for_condition(condition=lambda: now.button("Move"), interval=0.1)
+        wait_while_condition(condition=lambda: now.button("Move"), interval=0.1)
         p.MOVE_ANIMATION = False
         is_move = loc.button("Move", wait=2)
         time.sleep(0.5)

@@ -270,8 +270,8 @@ def actual_fuse(tier, coords):
 def perform_clicks(to_click):
     if p.WISHMAKING and not now_rgb.button("wishmaking"):
         time.sleep(0.1)
-        wait_for_condition(lambda: not now.button("Confirm.0"), lambda: win_click(410, 755), interval=0.2, timer=0.2)
-        wait_for_condition(lambda: now_click.button("Confirm.0"))
+        wait_while_condition(lambda: not now.button("Confirm.0"), lambda: win_click(410, 755), interval=0.2, timer=0.2)
+        wait_while_condition(lambda: now_click.button("Confirm.0"))
         win_moveTo(1194, 841)
         time.sleep(0.2)
 
@@ -295,7 +295,7 @@ def perform_clicks(to_click):
         Action("fuse", click=(1197, 876)),
         Action("Confirm.2", ver="Confirm"),
         # Action("Confirm", ver="fuseButton"),
-        lambda: wait_for_condition(lambda: now_click.button("Confirm"))
+        lambda: wait_while_condition(lambda: now_click.button("Confirm"))
     ])
     to_click.clear()
 
@@ -609,7 +609,7 @@ def apply_inflation(value):
 def conf_gift():
     connection()
     Action("purchase", ver="Confirm").execute(click)
-    wait_for_condition(
+    wait_while_condition(
         condition=lambda: now.button("Confirm"),
         action=lambda: now_click.button("Confirm"),
         interval=0.1
@@ -742,7 +742,7 @@ def buy_loop(missing, floor1=False, keyword_ref=True):
         try: 
             if keyword_ref and ((bal:= balance()) >= 300 or bal >= 200 and p.BUFF[5] > 0):
                 Action(p.SUPER, click=(1715, 176), ver="keywordRef").execute(shop_click)
-                wait_for_condition(
+                wait_while_condition(
                     condition=lambda: now.button("keywordRef") and not now.button("connecting"), 
                     action=confirm_affinity
                 )
@@ -781,10 +781,10 @@ def buy_skill3():
     ClickAction((929, 388), ver="replace").execute(click)
     win_click(1442, 497, duration=0.2)
     win_click(1187, 798, duration=0.2)
-    if not wait_for_condition(lambda: not now.button("connecting"), lambda: win_click(1187, 798), timer=1):
+    if not wait_while_condition(lambda: not now.button("connecting"), lambda: win_click(1187, 798), timer=1):
         win_click(953, 497, duration=0.2)
         win_click(1187, 798, duration=0.2)
-        if not wait_for_condition(lambda: not now.button("connecting"), lambda: win_click(1187, 798), timer=2):
+        if not wait_while_condition(lambda: not now.button("connecting"), lambda: win_click(1187, 798), timer=2):
             win_click(772, 800)
             return
     connection()
@@ -796,7 +796,7 @@ def revive_idiots():
     
     for _ in range(revivals):
         ClickAction((293, 705), ver="return").execute(click)
-        if not wait_for_condition(lambda: now.button("return"), lambda: win_click(1545, 690), timer=3):
+        if not wait_while_condition(lambda: now.button("return"), lambda: win_click(1545, 690), timer=3):
             Action("return", ver=p.SUPER).execute(click)
             return
         Action("no_hp", ver="select").execute(click_rgb)
@@ -833,7 +833,7 @@ def shop():
 
     time.sleep(0.2)
 
-    wait_for_condition(lambda: now_click.button("Confirm"))
+    wait_while_condition(lambda: now_click.button("Confirm"))
 
     if p.DEAD > 0 and p.HARD:
         revive_idiots()

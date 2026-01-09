@@ -121,7 +121,7 @@ REG = {
     # pack.py
     "lvl"            : ( 950,  151,   40,   52),
     "PackChoice"     : (1757,  126,  115,  116),
-    "PackCard"       : (  76,  799,  497,   85),
+    "PackPull"       : (  40,  440,  440,  200),
     "hardDifficulty" : ( 893,  207,  115,   44),
 
     # shop.py
@@ -253,7 +253,7 @@ PACKS = {
     'toClaimTheirBonesBokGak'     : ((), (4, 5)),
     'NocturnalSweeping'           : ((5,), (5,)),
     'Line5'                       : ((), (5, 15)),
-    'HatredandDespair'            : ((2, 3), (3, 4)),
+    'HatredandDespair'            : ((3, 4), (3, 4)),
     'TimekillingTimeBokGak'       : ((), (4, 5)),
     'SpringCultivation'           : ((5,), (5,)),
     'WARPExpressBokGak'           : ((), (4, 5)),

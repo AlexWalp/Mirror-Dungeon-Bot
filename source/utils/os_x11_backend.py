@@ -170,7 +170,7 @@ def get_virtual_screen_bounds():
 
 def clip_region_to_virtual(region):
     x, y, w, h = region
-    min_x, min_y, max_x, max_y = get_virtual_screen_bounds()
+    min_x, min_y, max_x, max_y = p.SCREEN
 
     x2 = max(x, min_x)
     y2 = max(y, min_y)
@@ -195,7 +195,7 @@ def screenshot(imageFilename=None, region=None):
     """
     with mss.mss() as sct:
         if region:
-            min_x, min_y, _, _ = get_virtual_screen_bounds()
+            min_x, min_y, _, _ = p.SCREEN
             left, top, width, height = region
 
             x0 = left - min_x
@@ -459,7 +459,7 @@ def get_absolute_position(win):
 
 
 def check_window():
-    min_x, min_y, max_x, max_y = get_virtual_screen_bounds()
+    min_x, min_y, max_x, max_y = p.SCREEN
     left, top, width, height = p.WINDOW
     in_bounds = (
         left >= min_x and
@@ -480,7 +480,12 @@ def set_window():
     if not w:
         raise WindowError(f"Window '{p.LIMBUS_NAME}' not found.")
 
-    geom = w.get_geometry()
+    _disp.sync()
+    try:
+        geom = w.get_geometry()
+    except Exception:
+        raise WindowError(f"Window '{p.LIMBUS_NAME}' not found.")
+
     client_width, client_height = geom.width, geom.height
 
     target_ratio = 16 / 9
@@ -499,6 +504,7 @@ def set_window():
     top += (client_height - target_height) // 2
 
     p.WINDOW = (left, top, target_width, target_height)
+    p.SCREEN = get_virtual_screen_bounds()
     check_window()
 
     if int(client_width / 16) != int(client_height / 9):

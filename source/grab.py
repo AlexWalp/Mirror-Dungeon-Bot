@@ -214,7 +214,7 @@ def grab_card():
     for i in p.CARD:
         if now.button(f"card{i}", "Card"):
             get_card(f"card{i}")
-            wait_for_condition(
+            wait_while_condition(
                 condition=lambda: now.button("encounterreward"), 
                 action=lambda: now_click.button("Confirm"), 
                 interval=0.1
@@ -241,5 +241,5 @@ def get_adversity():
         ClickAction((x, 550), ver="selectCount!").execute(click)
     time.sleep(0.3)
     win_click(1725, 1000)
-    wait_for_condition(lambda: now.button("adversity"), interval=0.2)
+    wait_while_condition(lambda: now.button("adversity"), interval=0.2)
     return True

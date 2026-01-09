@@ -51,7 +51,7 @@ def dungeon_start():
         lambda: try_click.button("ConfirmTeam"),
         lambda: time.sleep(0.5),
         lambda: now_click.button("ConfirmInvert"),
-        lambda: wait_for_condition(lambda: not now.button("enterBonus")),
+        lambda: wait_while_condition(lambda: not now.button("enterBonus")),
         lambda: time.sleep(0.2),
 
         select_grace,
@@ -99,7 +99,7 @@ def dungeon_start():
 
 # END RUN
 def collect_rewards():
-    wait_for_condition(
+    wait_while_condition(
         condition=lambda: not now.button("loading"),
         action=lambda: now_click.button("Confirm.0"),
         interval=0.1
@@ -123,7 +123,7 @@ def handle_bonus():
     if p.BONUS or now_rgb.button("bonus_off", conf=0.8): return
     if p.HARD and now_rgb.button("bonus_off", "hardbonus", conf=0.8): return
     time.sleep(0.2)
-    if not wait_for_condition(lambda: not click_bonus()):
+    if not wait_while_condition(lambda: not click_bonus()):
         raise RuntimeError
 
 TERMIN = [
@@ -147,6 +147,7 @@ end_locations = {
 }
 
 def dungeon_end():
+    pause()
     failed = 0
     while True:
         try:

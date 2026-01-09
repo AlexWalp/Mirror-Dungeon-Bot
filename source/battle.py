@@ -78,7 +78,7 @@ def ego_click(best_ego):
 def check_selection(button="winrate_on", st_clicks=3):
     gui.press("p", st_clicks, 0.5)
     time.sleep(0.5)
-    wait_for_condition(lambda: not loc.button(button, "winrate", wait=0.5, method=cv2.TM_SQDIFF_NORMED), lambda: gui.press("p"))
+    wait_while_condition(lambda: not loc.button(button, "winrate", wait=0.5, method=cv2.TM_SQDIFF_NORMED), lambda: gui.press("p"))
 
 def select_ego():
     loc.button("winrate_on", "winrate", wait=1, method=cv2.TM_SQDIFF_NORMED)
@@ -251,7 +251,7 @@ def select(sinners):
             to_click.append(gui.center(region))
     if len(selected) > correct or len(backup) > correct_back:
         ClickAction((1713, 712), ver="Confirm_alt").execute(click)
-        wait_for_condition(lambda: now_click.button("Confirm_alt"))
+        wait_while_condition(lambda: now_click.button("Confirm_alt"))
         time.sleep(0.5)
         for region in regions:
             win_click(gui.center(region))
@@ -262,6 +262,7 @@ def select(sinners):
             time.sleep(0.1)
 
     win_click(1728, 884) # to battle
+    win_moveTo(1714, 940)
     loading_halt()
 
 
@@ -308,6 +309,10 @@ def fight(lux=False):
         if lux: select_team()
         select(p.SELECTED)
 
+        # for lux with 6 sinners max
+        if lux and now.button("TOBATTLE"): 
+            select(p.SELECTED[:6])
+
     print("Entered Battle")
     last_error = 0
     attempts = 0
@@ -346,13 +351,13 @@ def fight(lux=False):
         if now.button("ego_warning"): # skip corrosion
             ck = True
             gui.mouseDown()
-            wait_for_condition(lambda: loc.button("ego_warning", wait=1), interval=0)
+            wait_while_condition(lambda: loc.button("ego_warning", wait=1), interval=0)
             gui.mouseUp()
 
         if (ego_image := is_ego()) is not None: # skip EGO animation
             ck = True
             gui.mouseDown()
-            wait_for_condition(lambda: LocateRGB.check(ego_image, region=REG["ego_usage"], wait=1), interval=0)
+            wait_while_condition(lambda: LocateRGB.check(ego_image, region=REG["ego_usage"], wait=1), interval=0)
             gui.mouseUp()
 
         if now.button("RetryStage"):
@@ -360,7 +365,7 @@ def fight(lux=False):
             if attempts >= 3:
                 logging.info("Got stuck in hard battle")
                 if not p.RESTART:
-                    wait_for_condition(lambda: not now.button("Confirm_retry", method=cv2.TM_SQDIFF_NORMED), lambda: win_click(1200, 400), interval=1, timer=3)
+                    wait_while_condition(lambda: not now.button("Confirm_retry", method=cv2.TM_SQDIFF_NORMED), lambda: win_click(1200, 400), interval=1, timer=3)
                     Action("Confirm_retry", ver="loading").execute(click)
                     loading_halt()
                     logging.info("Run stopped")
@@ -368,14 +373,14 @@ def fight(lux=False):
                     if p.ALTF4: close_limbus(error=err)
                     raise err
                 else:
-                    wait_for_condition(lambda: not now.button("Confirm_retry", method=cv2.TM_SQDIFF_NORMED), lambda: win_click(1200, 670), interval=1, timer=3)
+                    wait_while_condition(lambda: not now.button("Confirm_retry", method=cv2.TM_SQDIFF_NORMED), lambda: win_click(1200, 670), interval=1, timer=3)
                     Action("Confirm_retry", ver="loading").execute(click)
                     loading_halt()
                     print("Battle is over")
                     logging.info("Battle is over")
                     return True
             else:
-                wait_for_condition(lambda: not now.button("Confirm_retry", method=cv2.TM_SQDIFF_NORMED), lambda: win_click(1200, 530), interval=1, timer=3)
+                wait_while_condition(lambda: not now.button("Confirm_retry", method=cv2.TM_SQDIFF_NORMED), lambda: win_click(1200, 530), interval=1, timer=3)
                 Action("Confirm_retry", ver="loading").execute(click)
                 loading_halt()
                 logging.info(f"Re-attempting the battle (attempt {attempts + 1})")
