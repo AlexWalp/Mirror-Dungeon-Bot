@@ -147,7 +147,6 @@ end_locations = {
 }
 
 def dungeon_end():
-    pause()
     failed = 0
     while True:
         try:
