@@ -24,10 +24,13 @@ def check_enkephalin(shift=0): # 227
 
 
 def start_lux():
-    if now.button("Drive"):
-        Action("Drive", ver="Lux").execute(click)
-    if now.button("Lux"):
-        Action("Lux", ver="Exp").execute(click)
+    try:
+        if now.button("Drive"):
+            Action("Drive", ver="Lux").execute(click)
+        if now.button("Lux"):
+            Action("Lux", ver="Exp").execute(click)
+    except RuntimeError:
+        print("Lux init failed")
 
 
 def team_setup(teams, index):

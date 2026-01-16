@@ -107,23 +107,24 @@ def collect_rewards():
 
 def click_bonus():
     if p.HARD:
-        if now_rgb.button("bonus", "hardbonus", click=True):
-            time.sleep(0.2)
-            if not now_rgb.button("bonus", "hardbonus"):
-                return True
+        now_rgb.button("bonus", "hardbonus", click=True)
     else:
-        if now_rgb.button("bonus", click=True):
-            time.sleep(0.2)
-            if not now_rgb.button("bonus"):
-                return True
-    return False
+        now_rgb.button("bonus", click=True)
+
+def bonus_gone():
+    if p.HARD:
+        if not loc_rgb.button("bonus", "hardbonus", wait=1):
+            return now_rgb.button("bonus_off", "hardbonus", conf=0.8)
+        else: return False
+    elif not loc_rgb.button("bonus", wait=1):
+        return now_rgb.button("bonus_off", conf=0.8)
+    else: return False
 
 def handle_bonus():
-    time.sleep(0.2)
-    if p.BONUS or now_rgb.button("bonus_off", conf=0.8): return
-    if p.HARD and now_rgb.button("bonus_off", "hardbonus", conf=0.8): return
-    time.sleep(0.2)
-    if not wait_while_condition(lambda: not click_bonus()):
+    time.sleep(0.5)
+    if p.BONUS or bonus_gone(): return
+
+    if not wait_while_condition(lambda: not bonus_gone(), click_bonus):
         raise RuntimeError
 
 TERMIN = [

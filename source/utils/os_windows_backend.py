@@ -212,7 +212,7 @@ def mouseDown(button='left', delay=0.09):
             dx=0,
             dy=0,
             mouseData=0,
-            dwFlags=flags,
+            dwFlags=flags | MOUSEEVENTF_ABSOLUTE,
             time=0,
             dwExtraInfo=0
         )))
@@ -232,7 +232,7 @@ def mouseUp(button='left', delay=0.09):
             dx=0,
             dy=0,
             mouseData=0,
-            dwFlags=flags,
+            dwFlags=flags | MOUSEEVENTF_ABSOLUTE,
             time=0,
             dwExtraInfo=0
         )))
