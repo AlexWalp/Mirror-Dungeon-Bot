@@ -503,9 +503,10 @@ def search_sell(reg):
     for i in range(4, 0, -1):
         if coords[i] != []:
             chain_actions(click, [
-                ClickAction(coords[i][0][:2], ver="revenue!"),
+                lambda: win_click(coords[i][0][:2]),
+                lambda: time.sleep(0.2),
                 ClickAction((1182, 879)),
-                Action("ConfirmInvert", ver="connecting"),
+                Action("Confirm_retry.0", ver="connecting"),
                 connection,
                 Action("sell", click=(750, 879), ver=p.SUPER)
             ])
