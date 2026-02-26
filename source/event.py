@@ -10,7 +10,7 @@ def event():
     start_time = time.time()
     while True:
         if time.time() - start_time > 100: return False
-        if (win := gui.getActiveWindowTitle()) != p.LIMBUS_NAME: pause(win)
+        if p.LIMBUS_NAME not in (win := gui.getActiveWindowTitle()): pause(win)
 
         for _ in range(3): win_click(906, 460, delay=0.01)
         

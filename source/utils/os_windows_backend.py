@@ -100,6 +100,7 @@ MOUSEEVENTF_ABSOLUTE = 0x8000
 INPUT_MOUSE = 0
 INPUT_KEYBOARD = 1
 KEYEVENTF_KEYUP = 0x0002
+KEYEVENTF_SCANCODE = 0x0008
 
 if ctypes.sizeof(ctypes.c_void_p) == 8:  # 64-bit system
     ULONG_PTR = ctypes.c_ulonglong
@@ -264,11 +265,9 @@ def _fail_safe_check():
     if not FAILSAFE_ENABLED:
         return
     
-    x, y = get_position()
-    width, height = get_screen_size()
     name = getActiveWindowTitle()
     
-    if name != p.LIMBUS_NAME:
+    if p.LIMBUS_NAME not in name:
         raise PauseException(name)
 
 
@@ -422,8 +421,8 @@ def press(keys, presses=1, interval=0.1, delay=0.01):
                 inputs = [
                     INPUT(type=INPUT_KEYBOARD, union=INPUT_UNION(ki=KEYBDINPUT(
                         wVk=vk,
-                        wScan=0,
-                        dwFlags=0,
+                        wScan=user32.MapVirtualKeyW(vk, 0),
+                        dwFlags=KEYEVENTF_SCANCODE,
                         time=0,
                         dwExtraInfo=0
                     )))
@@ -438,8 +437,8 @@ def press(keys, presses=1, interval=0.1, delay=0.01):
                 inputs = [
                     INPUT(type=INPUT_KEYBOARD, union=INPUT_UNION(ki=KEYBDINPUT(
                         wVk=vk,
-                        wScan=0,
-                        dwFlags=KEYEVENTF_KEYUP,
+                        wScan=user32.MapVirtualKeyW(vk, 0),
+                        dwFlags=KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP,
                         time=0,
                         dwExtraInfo=0
                     )))

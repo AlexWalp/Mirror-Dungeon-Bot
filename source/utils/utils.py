@@ -91,7 +91,7 @@ def pause(other_win=None):
 
 
 def close_limbus(error=None):
-    if gui.getActiveWindowTitle() == p.LIMBUS_NAME:
+    if p.LIMBUS_NAME in gui.getActiveWindowTitle():
         gui.hotkey('alt', 'f4')
     if p.APP: QMetaObject.invokeMethod(p.APP, "stop_execution", Qt.ConnectionType.QueuedConnection)
     if error is None:
@@ -561,7 +561,7 @@ class LocatePreset:
                     raise AssertionError("Verification reqires action to verify")
                 params["wait"] = False
             for i in range(3):
-                if (win := gui.getActiveWindowTitle()) != p.LIMBUS_NAME: pause(win)
+                if p.LIMBUS_NAME not in (win := gui.getActiveWindowTitle()): pause(win)
                 if isinstance(ver, str):
                     condition = lambda: not self.button(ver, wait=False, click=False, error=False)
                 else:
@@ -680,7 +680,7 @@ def chain_actions(preset: LocatePreset, actions: list):
         curr.execute(preset, ver=ver)
 
 def handle_fuckup():
-    if gui.getActiveWindowTitle() == p.LIMBUS_NAME:
+    if p.LIMBUS_NAME in gui.getActiveWindowTitle():
         gui.set_window()
         win_click(1888, 901)
         gui.press("Esc")

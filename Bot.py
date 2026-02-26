@@ -34,11 +34,11 @@ start_locations = {
 def select_grace():
     for i in range(len(p.BUFF)):
         if p.BUFF[i]:
-            x = int(375 + 297*(i % 5))
-            y = int(375 + 333*(i // 5))
+            x = int(335 + 297*(i % 5))
+            y = int(375 + 357*(i // 5))
             ClickAction((x, y), ver="money!").execute(try_click)
             if p.BUFF[i] > 1:
-                ClickAction((x + 61*(1 - 2*(p.BUFF[i] < 3)), y + 140), ver="money!").execute(try_click)
+                ClickAction((x + 60*(1 - 2*(p.BUFF[i] < 3)), y + 155), ver="money!").execute(try_click)
 
 def dungeon_start():
     ACTIONS = [
@@ -241,7 +241,7 @@ def main_loop():
             time.sleep(0.2)
             win_click(967, 774)
 
-        if (win := gui.getActiveWindowTitle()) != p.LIMBUS_NAME: pause(win)
+        if p.LIMBUS_NAME not in (win := gui.getActiveWindowTitle()): pause(win)
 
         if p.HARD and now.button("suicide"):
             if not p.EXTREME:

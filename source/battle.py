@@ -341,8 +341,10 @@ def fight(lux=False):
                 if is_focused:
                     win_click(1385, 930, duration=0.1)
                 gui.press("p", 1, 0.1)
+                time.sleep(0.5)
                 if not lux and p.HARD: select_ego()
                 gui.press("enter", 1, 0.1)
+                time.sleep(1)
 
         if now.button("eventskip"):
             ck = True
@@ -396,7 +398,7 @@ def fight(lux=False):
             if now_rgb.button(f"end_{i}", "skip_yap"):
                 gui.press("space", 1, 0.1)
         
-        if (win := gui.getActiveWindowTitle()) != p.LIMBUS_NAME:
+        if p.LIMBUS_NAME not in (win := gui.getActiveWindowTitle()):
             ck = True
             pause(win)
         

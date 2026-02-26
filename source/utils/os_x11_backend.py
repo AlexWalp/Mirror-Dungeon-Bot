@@ -227,7 +227,7 @@ def _fail_safe_check():
     width, height = get_screen_size()
     name = getActiveWindowTitle()
 
-    if name != p.LIMBUS_NAME: 
+    if p.LIMBUS_NAME not in name: 
         raise PauseException(name)
     if (x == 0 or x == width - 1) and (y == 0 or y == height - 1):
         raise FailSafeException(f"Mouse out of screen bounds at ({x}, {y})")
