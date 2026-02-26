@@ -20,15 +20,14 @@ import source.utils.params as p
 # INIT RUN
 
 start_locations = {
-    "Drive": 0, 
-    "MD": 1, 
-    "Start": 2, 
-    "enterInvert": 4, 
-    "ConfirmTeam": 6, 
-    "enterBonus": 11, 
-    "Confirm.0": 14, 
-    "refuse": 16, 
-    "Confirm": 24
+    "MD": 0, 
+    "Start": 1, 
+    "enterInvert": 3, 
+    "ConfirmTeam": 5, 
+    "enterBonus": 10, 
+    "Confirm.0": 13, 
+    "refuse": 15, 
+    "Confirm": 23
 }
 
 def select_grace():
@@ -41,8 +40,10 @@ def select_grace():
                 ClickAction((x + 60*(1 - 2*(p.BUFF[i] < 3)), y + 155), ver="money!").execute(try_click)
 
 def dungeon_start():
+    # Execute resolution-aware click immediately, TEMPORARY FIX
+    win_click(976, 629) if p.WINDOW[2] == 1280 else win_click(1464, 944)
+    
     ACTIONS = [
-        Action("Drive"),
         Action("MD", ver="Start"),
         lambda: win_click(1588, 567) if p.EXTREME and now_rgb.button("infinite_off") else None,
         Action("Start"),
@@ -127,6 +128,7 @@ def handle_bonus():
     if not wait_while_condition(lambda: not bonus_gone(), click_bonus):
         raise RuntimeError
 
+
 TERMIN = [
     Action("victory", click=(1693, 841)),
     lambda: win_moveTo(1710, 982),
@@ -136,7 +138,8 @@ TERMIN = [
     Action("ConfirmInvert", ver="Confirm.0"),
     collect_rewards,
     loading_halt,
-    lambda: try_loc.button("Drive")
+    # lambda: try_loc.button("Drive"),
+    win_click(976, 629) if p.WINDOW[2] == 1280 else win_click(1464, 944)
 ]
 
 end_locations = {
@@ -182,7 +185,8 @@ FAIL = [
     Action("GiveUp"),
     Action("ConfirmInvert", ver="loading"),
     loading_halt,
-    lambda: try_loc.button("Drive")
+    # lambda: try_loc.button("Drive")
+    win_click(976, 629) if p.WINDOW[2] == 1280 else win_click(1464, 944)
 ]
 
 fail_locations = {
