@@ -302,8 +302,9 @@ def chain(gear_start, gear_end, background):
 
 def fight(lux=False):
     is_tobattle = now.button("TOBATTLE")
-    is_battle   = now.button("winrate")
+    is_battle   = now_rgb.button("winrate")
     if not is_tobattle and not is_battle: return False
+    print("battle check")
     if is_tobattle:
         win_moveTo(1714, 940)
         if lux: select_team()

@@ -23,12 +23,12 @@ start_locations = {
     "Drive": 0, 
     "MD": 1, 
     "Start": 2, 
-    "enterInvert": 4, 
-    "ConfirmTeam": 6, 
-    "enterBonus": 11, 
-    "Confirm.0": 14, 
-    "refuse": 16, 
-    "Confirm": 24
+    "enterInvert": 5, 
+    "ConfirmTeam": 7, 
+    "enterBonus": 12, 
+    "Confirm.0": 15, 
+    "refuse": 17, 
+    "Confirm": 25
 }
 
 def select_grace():
@@ -44,6 +44,7 @@ def dungeon_start():
     ACTIONS = [
         Action("Drive"),
         Action("MD", ver="Start"),
+        lambda: time.sleep(1.4),
         lambda: win_click(1588, 567) if p.EXTREME and now_rgb.button("infinite_off") else None,
         Action("Start"),
         Action("enterInvert", ver="ConfirmTeam"),

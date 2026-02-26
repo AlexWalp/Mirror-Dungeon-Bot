@@ -294,6 +294,7 @@ def perform_clicks(to_click):
     chain_actions(click, [
         Action("fuse", click=(1197, 876)),
         Action("Confirm.2", ver="Confirm"),
+        lambda: time.sleep(0.3),
         # Action("Confirm", ver="fuseButton"),
         lambda: wait_while_condition(lambda: now_click.button("Confirm"))
     ])
@@ -609,6 +610,7 @@ def apply_inflation(value):
 def conf_gift():
     connection()
     Action("purchase", ver="Confirm").execute(click)
+    time.sleep(0.3)
     wait_while_condition(
         condition=lambda: now.button("Confirm"),
         action=lambda: now_click.button("Confirm"),
@@ -830,7 +832,7 @@ def shop():
     if now.button("shop"): p.SUPER = "shop"
     elif not p.HARD or not now.button("supershop"): return False
     else: p.SUPER = "supershop"
-
+    print("shop check")
     time.sleep(0.2)
 
     wait_while_condition(lambda: now_click.button("Confirm"))

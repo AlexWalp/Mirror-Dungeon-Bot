@@ -34,7 +34,7 @@ else:
 # regions for some buttons
 REG = {
     # Bot.py
-    "Drive"          : (1229,  896,  156,  139),
+    "Drive"          : (1413,  909,  116,   94),
     "MD"             : ( 528,  354,  279,  196),
     "Start"          : (1473,  657,  315,  161),
     "resume"         : ( 794,  567,  336,   63),
@@ -236,6 +236,9 @@ PACKS = {
     'TheDreamEnding'              : ((), (5,)),
     'FourHousesandGreed'          : ((), (5,)),
     'TheSurrenderedWitnessing'    : ((), (5,)),
+    'BladeandArtwork'             : ((), (5,)),
+    'Textbook'                    : ((), (5,)),
+    'TheUnsevering'               : ((), (5,)),
     'HellsChicken'                : ((2,), (2,)),
     'SEA'                         : ((2,), (2,)),
     'MiracleinDistrict20'         : ((4,), (3,)),
@@ -257,6 +260,7 @@ PACKS = {
     'TimekillingTimeBokGak'       : ((), (4, 5)),
     'SpringCultivation'           : ((5,), (5,)),
     'WARPExpressBokGak'           : ((), (4, 5)),
+    'CharmWanderDoubt'            : ((4, 5), (3, 4)),
     'SlicersDicers'               : ((5,), (4,)),
     'TobeCleaved'                 : ((2, 3), (1, 2)),
     'PiercersPenetrators'         : ((5,), (4,)),

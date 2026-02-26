@@ -6,7 +6,7 @@ favorites = ["chicken", "factory"]
 
 def event():
     if not now.button("eventskip"): return False
-
+    print("event check")
     start_time = time.time()
     while True:
         if time.time() - start_time > 100: return False

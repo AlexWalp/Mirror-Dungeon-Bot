@@ -120,7 +120,11 @@ def get_connections():
             paths[j] = LocateGray.get_conf(PTH[direction], image=image)
         j = max(paths, key=paths.get)
         if paths[j] >= 0.87:
+            # direction = ["up", "down"][j]
+            # cv2.imwrite(f"data/{direction}/{time.time()}_{direction}.png", image)
             connections.append(((i % 2, (i//2) + 1 - j), (i % 2 + 1, (i//2) + j)))
+        # else:
+            # cv2.imwrite(f"data/none/{time.time()}_none.png", image)
     return connections
 
 def check_connections(connections):
@@ -188,6 +192,7 @@ def enter(wait=1):
         if p.SKIP: button = "skipEncounter"
         else: button = "secretEncounter"
     if button:
+        time.sleep(0.3)
         wait_while_condition(
             condition= lambda: now.button(button),
             action=lambda: click.button(button)
@@ -214,7 +219,7 @@ def move():
     if p.HARD:
         time.sleep(1.2) # node reveal animation
         if now.button("suicide"): return False
-
+    print("move check")
     # run fail detection
     p.DEAD = len([gui.center(box) for box in LocateRGB.locate_all(PTH["0"], region=REG["alldead"], conf=0.9, threshold=40)])
     print(f"{p.DEAD} dead sinners")

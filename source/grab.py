@@ -153,7 +153,7 @@ def grab_EGO():
     '''
     if not now.button("EGObin"): return False
     time.sleep(0.8)
-
+    print("grab ego check")
     owned_x = [p[0] + p[2] for p in LocateRGB.locate_all(PTH["Owned"], region=REG["Owned"])]
     image = screenshot(region=REG["EGO"])
 

@@ -141,7 +141,7 @@ def update_lvl(level):
 def pack():
     if not now.button("PackChoice"):
         return False
-    
+    print("pack check")
     p.LVL = update_lvl(p.LVL)
 
     if p.LVL == 6 or p.LVL == 11: time.sleep(2) # animation
