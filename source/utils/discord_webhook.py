@@ -49,6 +49,17 @@ _FOCUS_LABELS = {
     "ENVY": "Envy"
 }
 
+_CONTEXT_DEFAULT = {
+    "team": None,
+    "group": None,
+    "difficulty": None,
+    "floor": None,
+    "pack": None,
+    "runs_done": 0,
+    "start_announced": False,
+    "script_boot": False
+}
+
 
 def _trim(text, limit):
     text = str(text)
@@ -283,20 +294,11 @@ class WebhookLogHandler(logging.Handler):
         self.client = client
         self.client.start()
 
-        self.compact_mode = self._read_bool_env(COMPACT_ENV)
-        self.ping_on_finish = self._read_bool_env(PING_ON_FINISH_ENV)
-        self.ping_role_id = self._read_ping_role_id()
-        self.target_runs = self._read_target_runs()
-        self.context = {
-            "team": None,
-            "group": None,
-            "difficulty": None,
-            "floor": None,
-            "pack": None,
-            "runs_done": 0,
-            "start_announced": False,
-            "script_boot": False
-        }
+        self.compact_mode = False
+        self.ping_on_finish = False
+        self.ping_role_id = ""
+        self.target_runs = None
+        self.context = dict(_CONTEXT_DEFAULT)
         self.run_started_at = None
         self.floor_started_at = None
         self.room_started_at = None
@@ -304,6 +306,7 @@ class WebhookLogHandler(logging.Handler):
         self.last_floor_duration = None
         self.last_run_duration = None
         self._last_sent = {}
+        self._refresh_runtime_options()
 
     def _read_bool_env(self, env_name):
         value = os.environ.get(env_name, "").strip().lower()
@@ -339,6 +342,10 @@ class WebhookLogHandler(logging.Handler):
         self.context["floor"] = None
         self.context["pack"] = None
         self.context["start_announced"] = False
+
+    def _reset_script_context(self):
+        self.context.update(_CONTEXT_DEFAULT)
+        self._reset_run_timers()
 
     def _format_duration(self, seconds):
         if seconds is None:
@@ -397,6 +404,28 @@ class WebhookLogHandler(logging.Handler):
             "description": description,
             "extra_fields": extra_fields or []
         }
+
+    def _make_floor_event(self, floor_value, description, include_pack=False):
+        extra = [("Floor Time", self._format_duration(self.last_floor_duration), True)]
+        if include_pack:
+            extra.insert(0, ("Pack Group", self.context["pack"], False))
+        return self._make_event(
+            "Floor Cleared",
+            f"Floor {floor_value}",
+            description=description,
+            extra_fields=extra
+        )
+
+    def _finalize_run(self, now, result_value, description, floor_description):
+        self.last_run_duration = None if self.run_started_at is None else max(0.0, now - self.run_started_at)
+        self.last_floor_duration = None if self.floor_started_at is None else max(0.0, now - self.floor_started_at)
+        current_floor = self.context["floor"]
+        self.context["runs_done"] += 1
+
+        run_event = self._make_event("Run", f"{result_value} ({self._run_progress()})", description=description)
+        if self.compact_mode or current_floor is None:
+            return run_event
+        return [self._make_floor_event(current_floor, floor_description), run_event]
 
     def _normalize_events(self, event):
         if event is None:
@@ -503,15 +532,8 @@ class WebhookLogHandler(logging.Handler):
 
         if message == "Script started":
             self._refresh_runtime_options()
-            self.context["team"] = None
-            self.context["group"] = None
-            self.context["difficulty"] = None
-            self.context["floor"] = None
-            self.context["pack"] = None
-            self.context["runs_done"] = 0
-            self.context["start_announced"] = False
+            self._reset_script_context()
             self.context["script_boot"] = True
-            self._reset_run_timers()
             return None
 
         match = _RE_TEAM.match(message)
@@ -535,7 +557,6 @@ class WebhookLogHandler(logging.Handler):
         if match:
             floor_value = int(match.group(1))
             previous_floor = self.context["floor"]
-            previous_pack = self.context["pack"]
             floor_changed = previous_floor is not None and floor_value != previous_floor
 
             if floor_changed and self.floor_started_at is not None:
@@ -554,15 +575,7 @@ class WebhookLogHandler(logging.Handler):
                 return None
 
             if floor_changed:
-                return self._make_event(
-                    "Floor Cleared",
-                    f"Floor {previous_floor}",
-                    description=f"Floor {previous_floor} cleared.",
-                    extra_fields=[
-                        ("Pack Group", previous_pack, False),
-                        ("Floor Time", self._format_duration(self.last_floor_duration), True)
-                    ]
-                )
+                return self._make_floor_event(previous_floor, f"Floor {previous_floor} cleared.", include_pack=True)
             return None
 
         match = _RE_PACK.match(message)
@@ -591,46 +604,20 @@ class WebhookLogHandler(logging.Handler):
             return None
 
         if message == "Run Completed":
-            self.last_run_duration = None if self.run_started_at is None else max(0.0, now - self.run_started_at)
-            self.last_floor_duration = None if self.floor_started_at is None else max(0.0, now - self.floor_started_at)
-            current_floor = self.context["floor"]
-            current_pack = self.context["pack"]
-            self.context["runs_done"] += 1
-            run_event = self._make_event("Run", f"Completed ({self._run_progress()})", description="Run completed.")
-            if not self.compact_mode and current_floor is not None:
-                floor_event = self._make_event(
-                    "Floor Cleared",
-                    f"Floor {current_floor}",
-                    description=f"Floor {current_floor} cleared.",
-                    extra_fields=[
-                        ("Floor Time", self._format_duration(self.last_floor_duration), True)
-                    ]
-                )
-                return [floor_event, run_event]
-            return run_event
+            return self._finalize_run(
+                now,
+                "Completed",
+                "Run completed.",
+                f"Floor {self.context['floor']} cleared."
+            )
 
         if message == "Run Failed":
-            self.last_run_duration = None if self.run_started_at is None else max(0.0, now - self.run_started_at)
-            self.last_floor_duration = None if self.floor_started_at is None else max(0.0, now - self.floor_started_at)
-            current_floor = self.context["floor"]
-            current_pack = self.context["pack"]
-            self.context["runs_done"] += 1
-            run_event = self._make_event(
-                "Run",
-                f"Defeat - all sinners down ({self._run_progress()})",
-                description="Run failed: all selected sinners are dead."
+            return self._finalize_run(
+                now,
+                "Defeat - all sinners down",
+                "Run failed: all selected sinners are dead.",
+                f"Floor {self.context['floor']} ended by defeat."
             )
-            if not self.compact_mode and current_floor is not None:
-                floor_event = self._make_event(
-                    "Floor Cleared",
-                    f"Floor {current_floor}",
-                    description=f"Floor {current_floor} ended by defeat.",
-                    extra_fields=[
-                        ("Floor Time", self._format_duration(self.last_floor_duration), True)
-                    ]
-                )
-                return [floor_event, run_event]
-            return run_event
 
         if message in ("Execution paused", "Execution resumed"):
             return self._make_event(
