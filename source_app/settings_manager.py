@@ -63,6 +63,47 @@ class SettingsManager(QObject):
         config = self.data.get(self.config, {})
         return config.get(str(key), [] if key != 7 else {})
 
+    def get_webhook(self):
+        data = self.data.get("WEBHOOK", {})
+        if not isinstance(data, dict):
+            return {
+                "enabled": False,
+                "url": "",
+                "thread_id": "",
+                "compact_mode": False,
+                "ping_on_finish": False,
+                "ping_role_id": ""
+            }
+
+        enabled = data.get("enabled", False)
+        url = data.get("url", "")
+        thread_id = data.get("thread_id", "")
+        compact_mode = data.get("compact_mode", False)
+        ping_on_finish = data.get("ping_on_finish", False)
+        ping_role_id = data.get("ping_role_id", "")
+
+        if not isinstance(enabled, bool):
+            enabled = False
+        if not isinstance(url, str):
+            url = ""
+        if not isinstance(thread_id, str):
+            thread_id = ""
+        if not isinstance(compact_mode, bool):
+            compact_mode = False
+        if not isinstance(ping_on_finish, bool):
+            ping_on_finish = False
+        if not isinstance(ping_role_id, str):
+            ping_role_id = ""
+
+        return {
+            "enabled": enabled,
+            "url": url.strip(),
+            "thread_id": thread_id.strip(),
+            "compact_mode": compact_mode,
+            "ping_on_finish": ping_on_finish,
+            "ping_role_id": ping_role_id.strip()
+        }
+
     def save_settings(self):
         self._worker.save_requested.emit(self.data)
 
@@ -83,6 +124,39 @@ class SettingsManager(QObject):
             self.data[name] = {}
         self.data[name][str(key)] = value_list
 
+    def set_webhook(self, value):
+        if not isinstance(value, dict):
+            value = {}
+
+        enabled = value.get("enabled", False)
+        url = value.get("url", "")
+        thread_id = value.get("thread_id", "")
+        compact_mode = value.get("compact_mode", False)
+        ping_on_finish = value.get("ping_on_finish", False)
+        ping_role_id = value.get("ping_role_id", "")
+
+        if not isinstance(enabled, bool):
+            enabled = False
+        if not isinstance(url, str):
+            url = ""
+        if not isinstance(thread_id, str):
+            thread_id = ""
+        if not isinstance(compact_mode, bool):
+            compact_mode = False
+        if not isinstance(ping_on_finish, bool):
+            ping_on_finish = False
+        if not isinstance(ping_role_id, str):
+            ping_role_id = ""
+
+        self.data["WEBHOOK"] = {
+            "enabled": enabled,
+            "url": url.strip(),
+            "thread_id": thread_id.strip(),
+            "compact_mode": compact_mode,
+            "ping_on_finish": ping_on_finish,
+            "ping_role_id": ping_role_id.strip()
+        }
+
     def delete_config(self):
         name = self.config
         if name in self.data:
@@ -100,7 +174,7 @@ class SettingsManager(QObject):
     
     def verify_file_data(self, data):
         corrupted_data = set()
-        main_entries = {"CONFIG", "HARD", "TEAMS", "AFFINITY", "EXTRA"}
+        main_entries = {"CONFIG", "HARD", "TEAMS", "AFFINITY", "EXTRA", "WEBHOOK"}
         data = self.clean_entries(data, main_entries)
 
         configs = set(data.keys()) & {"CONFIG", "HARD"}
@@ -274,6 +348,47 @@ class SettingsManager(QObject):
         elif not is_valid_extra_structure(data["EXTRA"]):
             corrupted_data.add("lux settings")
             del data["EXTRA"]
+
+        def is_valid_webhook_structure(webhook_data):
+            if not isinstance(webhook_data, dict):
+                return False
+
+            allowed_keys = {"enabled", "url", "thread_id", "compact_mode", "ping_on_finish", "ping_role_id"}
+            webhook_data = self.clean_entries(webhook_data, allowed_keys)
+
+            enabled = webhook_data.get("enabled", False)
+            url = webhook_data.get("url", "")
+            thread_id = webhook_data.get("thread_id", "")
+            compact_mode = webhook_data.get("compact_mode", False)
+            ping_on_finish = webhook_data.get("ping_on_finish", False)
+            ping_role_id = webhook_data.get("ping_role_id", "")
+
+            return (
+                isinstance(enabled, bool) and
+                isinstance(url, str) and
+                isinstance(thread_id, str) and
+                isinstance(compact_mode, bool) and
+                isinstance(ping_on_finish, bool) and
+                isinstance(ping_role_id, str)
+            )
+
+        if "WEBHOOK" not in data:
+            pass
+        elif not is_valid_webhook_structure(data["WEBHOOK"]):
+            corrupted_data.add("discord webhook settings")
+            del data["WEBHOOK"]
+        else:
+            # keep only known keys and normalize trivial whitespace
+            data["WEBHOOK"] = self.clean_entries(
+                data["WEBHOOK"],
+                {"enabled", "url", "thread_id", "compact_mode", "ping_on_finish", "ping_role_id"}
+            )
+            data["WEBHOOK"]["url"] = data["WEBHOOK"].get("url", "").strip()
+            data["WEBHOOK"]["thread_id"] = data["WEBHOOK"].get("thread_id", "").strip()
+            data["WEBHOOK"]["enabled"] = data["WEBHOOK"].get("enabled", False)
+            data["WEBHOOK"]["compact_mode"] = data["WEBHOOK"].get("compact_mode", False)
+            data["WEBHOOK"]["ping_on_finish"] = data["WEBHOOK"].get("ping_on_finish", False)
+            data["WEBHOOK"]["ping_role_id"] = data["WEBHOOK"].get("ping_role_id", "").strip()
 
         return data, corrupted_data
     
