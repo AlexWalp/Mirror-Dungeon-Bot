@@ -3,9 +3,12 @@ from source_app.settings_manager import SettingsManager
 from source_app.widget import SelectizeWidget, IntField, AllIntField
 from source_app.button import CustomButton
 from source_app.run import VersionChecker, BotWorker
+import threading
 
 
 class MyApp(QWidget):
+    webhook_test_result = pyqtSignal(bool, str)
+
     # TODO: I need to decompose this shitty class a bit
     def __init__(self):
         super().__init__()
@@ -24,10 +27,21 @@ class MyApp(QWidget):
         self.team_lux = self._day()
         self.team_lux_buttons = [self.team_lux, 3 + self._day(sin=True)]
         self.keywordless = {}
+        self.webhook_settings = {
+            "enabled": False,
+            "url": "",
+            "thread_id": "",
+            "compact_mode": False,
+            "ping_on_finish": False,
+            "ping_role_id": ""
+        }
+        self.webhook_env_managed = False
+        self.webhook_test_running = False
 
         self.load_settings()
         self._init_ui()
         self._create_buttons()
+        self.webhook_test_result.connect(self._handle_webhook_test_result)
 
         self.setFocus()
     
@@ -43,14 +57,18 @@ class MyApp(QWidget):
     def load_settings(self):
         self.sm = SettingsManager(error_handler=self.show_error, hard=lambda: self.hard)
         self.sinner_selections = {i: self.sm.get_team(i) for i in range(17)}
+        self.webhook_settings = self.sm.get_webhook()
 
     def show_error(self, message):
-        QTimer.singleShot(0, lambda: self._show_blocking_error(message))
+        QTimer.singleShot(0, lambda: self._show_message("Bot Warning", message, QMessageBox.Icon.Critical))
 
-    def _show_blocking_error(self, message):
+    def show_info(self, message):
+        QTimer.singleShot(0, lambda: self._show_message("ChargeGrinder", message, QMessageBox.Icon.Information))
+
+    def _show_message(self, title, message, icon):
         msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Icon.Critical)
-        msg.setWindowTitle("Bot Warning")
+        msg.setIcon(icon)
+        msg.setWindowTitle(title)
         msg.setInformativeText(message)
         msg.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg.exec()
@@ -178,10 +196,136 @@ class MyApp(QWidget):
         self.thd.setGeometry(108, 78, 90, 50)
         self.thd.setText("3")
 
+        self._init_webhook_ui()
+
         # self.test = QPushButton(self)
         # self.test.setText("Test")
         # self.test.setGeometry(228, 514, 169, 26)
         # self.test.show()
+
+    def _init_webhook_ui(self):
+        btn_style = (
+            "QPushButton {"
+            "color: #EDD1AC;"
+            "background-color: rgba(0, 0, 0, 205);"
+            "border: 1px solid #7B6240;"
+            "border-radius: 4px;"
+            "padding: 2px 8px;"
+            "}"
+            "QPushButton:hover {"
+            "color: #5df2ff;"
+            "border: 1px solid #5df2ff;"
+            "}"
+            "QPushButton:checked {"
+            "color: #5df2ff;"
+            "background-color: rgba(17, 61, 70, 205);"
+            "border: 1px solid #5df2ff;"
+            "}"
+        )
+        lbl_style = "color: #EDD1AC; background: transparent; border: none;"
+        field_style = (
+            "QLineEdit {"
+            "color: #5df2ff;"
+            "background-color: rgba(0, 0, 0, 220);"
+            "border: 1px solid #d3c19b;"
+            "border-radius: 4px;"
+            "padding: 4px 10px;"
+            "selection-background-color: #1f7380;"
+            "}"
+            "QLineEdit:focus {"
+            "border: 1px solid #5df2ff;"
+            "}"
+        )
+        digit_validator = QRegularExpressionValidator(QRegularExpression("^\\d{0,20}$"))
+
+        def add_button(attr, text, parent, geometry, font_size, handler=None, checkable=False):
+            button = QPushButton(text, parent)
+            button.setGeometry(*geometry)
+            button.setFont(QFont(self.family, font_size))
+            button.setStyleSheet(btn_style)
+            if checkable:
+                button.setCheckable(True)
+            if handler:
+                button.clicked.connect(handler)
+            setattr(self, attr, button)
+            return button
+
+        def add_label(attr, text, geometry, font_size, *, parent=None, style=lbl_style, align=None, wrap=False):
+            label = QLabel(text, parent or self.webhook_panel)
+            label.setGeometry(*geometry)
+            label.setFont(QFont(self.family, font_size))
+            label.setStyleSheet(style)
+            if align is not None:
+                label.setAlignment(align)
+            label.setWordWrap(wrap)
+            setattr(self, attr, label)
+            return label
+
+        def add_field(attr, geometry, placeholder="", validator=None):
+            field = QLineEdit(self.webhook_panel)
+            field.setGeometry(*geometry)
+            field.setFont(QFont(self.family, 14))
+            field.setPlaceholderText(placeholder)
+            if validator:
+                field.setValidator(validator)
+            field.setStyleSheet(field_style)
+            setattr(self, attr, field)
+            return field
+
+        add_button("webhook_open", "Discord Webhook", self.config, (44, 82, 192, 28), 13, self.toggle_webhook_panel)
+
+        self.webhook_panel = QFrame(self.config)
+        self.webhook_panel.setGeometry(24, 104, 652, 560)
+        self.webhook_panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.webhook_panel.setStyleSheet(
+            "QFrame {"
+            "background-color: rgba(9, 9, 9, 236);"
+            "border: 1px solid #7B6240;"
+            "border-radius: 6px;"
+            "}"
+        )
+        self.webhook_panel.hide()
+
+        add_label(
+            "webhook_title", "Discord Webhook Settings", (28, 18, 596, 40), 24,
+            align=Qt.AlignmentFlag.AlignCenter
+        )
+
+        self.webhook_enabled = add_button(
+            "webhook_enabled", "", self.webhook_panel, (34, 78, 200, 42), 17, checkable=True,
+            handler=lambda: self._set_webhook_toggle_text(self.webhook_enabled, "Webhook")
+        )
+        add_label("webhook_lbl_url", "Webhook URL", (34, 138, 300, 28), 18)
+        add_field("webhook_url", (34, 168, 582, 38), "https://discord.com/api/webhooks/...")
+        add_label("webhook_lbl_thread", "Thread ID (optional)", (34, 224, 300, 28), 18)
+        add_field("webhook_thread", (34, 254, 582, 38), "123456789012345678", digit_validator)
+
+        self.webhook_compact = add_button(
+            "webhook_compact", "", self.webhook_panel, (34, 312, 190, 42), 16, checkable=True,
+            handler=lambda: self._set_webhook_toggle_text(self.webhook_compact, "Compact")
+        )
+        self.webhook_ping = add_button(
+            "webhook_ping", "", self.webhook_panel, (236, 312, 190, 42), 16, checkable=True,
+            handler=lambda: self._set_webhook_toggle_text(self.webhook_ping, "Ping")
+        )
+
+        add_label("webhook_lbl_role", "Ping Role ID", (34, 366, 300, 28), 18)
+        add_field("webhook_role", (34, 396, 582, 38), "123456789012345678", digit_validator)
+        add_label(
+            "webhook_hint",
+            "Webhook runs asynchronously and does not block the bot.\n"
+            "Compact mode shows only run start/finish updates. For Forum/Media use Thread ID.",
+            (34, 444, 582, 40),
+            13,
+            style="color: #bfa37e; background: transparent; border: none;",
+            align=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop,
+            wrap=True
+        )
+
+        add_button("webhook_test", "Test Message", self.webhook_panel, (34, 492, 185, 49), 17, self.send_webhook_test)
+        add_button("webhook_save", "Save", self.webhook_panel, (247, 492, 152, 49), 17, self.save_webhook_panel)
+        add_button("webhook_close", "Close", self.webhook_panel, (428, 492, 188, 49), 17, self.toggle_webhook_panel)
+        self.set_webhook_ui(self.webhook_settings)
 
     def set_priority(self, team=None):
         if team is None:
@@ -749,6 +893,7 @@ class MyApp(QWidget):
         for i in range(5):
             extra.append(self.buttons[f"on{i + 7}"].isChecked())
         self.sm.set_extra(extra)
+        self.sync_webhook_settings(show_message=False)
         self.sm.save_settings()
 
     def paintEvent(self, event):
@@ -798,6 +943,7 @@ class MyApp(QWidget):
         if self.ego_panel.isVisible():
             self.ego_panel.hide()
         else:
+            self.webhook_panel.hide()
             self.ego_panel.raise_()
             self.ego_panel.show()
 
@@ -805,10 +951,241 @@ class MyApp(QWidget):
         if self.grace_panel.isVisible():
             self.grace_panel.hide()
         else:
+            self.webhook_panel.hide()
             self.grace_panel.raise_()
             self.grace_panel.show()
             for i in range(4):
                 self.buttons[f'buff{i}'].raise_()
+
+    def toggle_webhook_panel(self):
+        if self.webhook_panel.isVisible():
+            self.webhook_panel.hide()
+        else:
+            self.ego_panel.hide()
+            self.grace_panel.hide()
+            self.webhook_panel.raise_()
+            self.webhook_panel.show()
+
+    def _set_webhook_toggle_text(self, button, name):
+        button.setText(f"{name} {'ON' if button.isChecked() else 'OFF'}")
+
+    def set_webhook_ui(self, data):
+        bool_fields = (
+            ("enabled", self.webhook_enabled),
+            ("compact_mode", self.webhook_compact),
+            ("ping_on_finish", self.webhook_ping)
+        )
+        text_fields = (
+            ("url", self.webhook_url),
+            ("thread_id", self.webhook_thread),
+            ("ping_role_id", self.webhook_role)
+        )
+        for key, widget in bool_fields:
+            widget.setChecked(bool(data.get(key, False)))
+        for key, widget in text_fields:
+            widget.setText(str(data.get(key, "")))
+        for button, name in (
+            (self.webhook_enabled, "Webhook"),
+            (self.webhook_compact, "Compact"),
+            (self.webhook_ping, "Ping")
+        ):
+            self._set_webhook_toggle_text(button, name)
+
+    def get_webhook_ui(self):
+        data = {}
+        for key, widget in (
+            ("enabled", self.webhook_enabled),
+            ("compact_mode", self.webhook_compact),
+            ("ping_on_finish", self.webhook_ping)
+        ):
+            data[key] = widget.isChecked()
+        for key, widget in (
+            ("url", self.webhook_url),
+            ("thread_id", self.webhook_thread),
+            ("ping_role_id", self.webhook_role)
+        ):
+            data[key] = widget.text().strip()
+        return data
+
+    def validate_webhook(self, data, show_message=False, require_url=False):
+        if not data["enabled"] and not require_url:
+            return True
+
+        if not data["url"]:
+            if show_message:
+                self.show_error("Discord webhook is enabled, but URL is empty." if data["enabled"] else "Webhook URL is empty.")
+            return False
+
+        checks = [
+            ("/api/webhooks/" not in data["url"], "Discord webhook URL looks invalid."),
+            (data["thread_id"] and not data["thread_id"].isdigit(), "Thread ID must contain only digits."),
+            (data["ping_role_id"] and not data["ping_role_id"].isdigit(), "Ping Role ID must contain only digits."),
+            (data["ping_on_finish"] and not data["ping_role_id"], "Ping is enabled, but Role ID is empty.")
+        ]
+        for failed, message in checks:
+            if failed:
+                if show_message:
+                    self.show_error(message)
+                return False
+
+        return True
+
+    def sync_webhook_settings(self, show_message=False):
+        data = self.get_webhook_ui()
+        if not self.validate_webhook(data, show_message=show_message):
+            return False
+
+        self.webhook_settings = data
+        self.sm.set_webhook(self.webhook_settings)
+        return True
+
+    def apply_webhook_env(self):
+        has_ui_url = bool(self.webhook_settings["url"])
+        enabled = self.webhook_settings["enabled"]
+        run_target = "ALL" if self.count == -1 else str(max(0, self.count))
+        env_values = {
+            "CGRINDER_DISCORD_WEBHOOK_URL": self.webhook_settings["url"],
+            "CGRINDER_DISCORD_TOTAL_RUNS": run_target,
+            "CGRINDER_DISCORD_COMPACT_MODE": "1" if self.webhook_settings["compact_mode"] else "0",
+            "CGRINDER_DISCORD_PING_ON_FINISH": "1" if self.webhook_settings["ping_on_finish"] else "0",
+            "CGRINDER_DISCORD_THREAD_ID": self.webhook_settings["thread_id"],
+            "CGRINDER_DISCORD_PING_ROLE_ID": self.webhook_settings["ping_role_id"]
+        }
+        managed_keys = tuple(env_values.keys())
+
+        if has_ui_url:
+            self.webhook_env_managed = True
+            if enabled:
+                for key, value in env_values.items():
+                    if value:
+                        os.environ[key] = value
+                    else:
+                        os.environ.pop(key, None)
+            else:
+                for key in managed_keys:
+                    os.environ.pop(key, None)
+            return
+
+        if self.webhook_env_managed:
+            for key in managed_keys:
+                os.environ.pop(key, None)
+            self.webhook_env_managed = False
+
+    def save_webhook_panel(self):
+        if not self.sync_webhook_settings(show_message=True):
+            return
+        self.sm.save_settings()
+        self.webhook_panel.hide()
+
+    def send_webhook_test(self):
+        data = self.get_webhook_ui()
+        if not self.validate_webhook(data, show_message=True, require_url=True):
+            return
+        if self.webhook_test_running:
+            return
+
+        self.webhook_test_running = True
+        self.webhook_test.setEnabled(False)
+        self.webhook_test.setText("Testing...")
+        threading.Thread(target=self._send_webhook_test_request, args=(data,), daemon=True).start()
+
+    def _build_webhook_test_request(self, data, include_thread=True):
+        payload = {
+            "username": "ChargeGrinder",
+            "embeds": [{
+                "title": "ChargeGrinder Test",
+                "description": "Webhook connection from app config panel.",
+                "color": 0x3498DB
+            }],
+            "allowed_mentions": {"parse": []}
+        }
+
+        params = {"wait": "true"}
+        if include_thread and data["thread_id"]:
+            params["thread_id"] = data["thread_id"]
+        sep = "&" if "?" in data["url"] else "?"
+        url = f"{data['url']}{sep}{urlencode(params)}"
+
+        return Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "User-Agent": f"ChargeGrinder/{p.V} DiscordWebhook"
+            },
+            method="POST"
+        )
+
+    def _format_webhook_error(self, error):
+        if not isinstance(error, HTTPError):
+            return str(error)
+
+        body_text = ""
+        try:
+            body_text = error.read().decode("utf-8", errors="ignore").strip()
+        except Exception:
+            pass
+
+        if body_text:
+            try:
+                data = json.loads(body_text)
+                message = data.get("message")
+                code = data.get("code")
+                if message is not None and code is not None:
+                    return f"HTTP {error.code}: {message} (code {code})"
+                if message is not None:
+                    return f"HTTP {error.code}: {message}"
+            except Exception:
+                body_text = " ".join(body_text.split())
+                return f"HTTP {error.code}: {error.reason} ({body_text[:160]})"
+        return f"HTTP {error.code}: {error.reason}"
+
+    def _send_webhook_test_request(self, data):
+        def send_once(include_thread):
+            request = self._build_webhook_test_request(data, include_thread=include_thread)
+            with urlopen(request, timeout=4):
+                pass
+
+        try:
+            send_once(include_thread=True)
+            self._emit_webhook_test_result(True, "Test message sent successfully.")
+            return
+        except HTTPError as error:
+            # Common pitfall: thread_id set for non-thread destination.
+            if data["thread_id"] and error.code in (400, 403, 404):
+                try:
+                    send_once(include_thread=False)
+                    self._emit_webhook_test_result(
+                        True,
+                        "Test message sent successfully without Thread ID. Leave Thread ID empty for regular channels."
+                    )
+                    return
+                except Exception as second_error:
+                    error = second_error
+            details = self._format_webhook_error(error)
+            self._emit_webhook_test_result(False, f"Failed to send test message: {details}")
+        except Exception as error:
+            details = self._format_webhook_error(error)
+            self._emit_webhook_test_result(False, f"Failed to send test message: {details}")
+
+    def _emit_webhook_test_result(self, success, message):
+        try:
+            self.webhook_test_result.emit(success, message)
+        except RuntimeError:
+            pass
+
+    @pyqtSlot(bool, str)
+    def _handle_webhook_test_result(self, success, message):
+        self.webhook_test_running = False
+        if not self.isVisible():
+            return
+        self.webhook_test.setEnabled(True)
+        self.webhook_test.setText("Test Message")
+        if success:
+            self.show_info(message)
+        else:
+            self.show_error(message)
 
     def save(self):
         if self.is_lux:
@@ -839,6 +1216,10 @@ class MyApp(QWidget):
                 self.buttons[f'card{i}'].set_glow_image(Bot.APP_PTH["warn_support"], frame)
             CustomButton.glow_multiple([self.buttons[f'card{i}'] for i in errors])
             return
+        if not self.sync_webhook_settings(show_message=True):
+            self.webhook_panel.raise_()
+            self.webhook_panel.show()
+            return
         
         self.sm.set_config(self.team, (self.priority, self.avoid, self.priority_floors, self.avoid_floors))
         self.sm.set_config(7, {str(id): state for id, state in self.keywordless.items()})
@@ -847,6 +1228,7 @@ class MyApp(QWidget):
         self.sm.save_settings()
         self.ego_panel.hide()
         self.grace_panel.hide()
+        self.webhook_panel.hide()
         self.config.hide()
 
     def update_sinners(self):
@@ -1273,13 +1655,6 @@ class MyApp(QWidget):
         return False
     
     def get_params(self):
-        # logging
-        try:
-            setup_logging(enable_logging=self.buttons['log'].isChecked())
-        except PermissionError:
-            print("No logging I guess")
-            setup_logging(enable_logging=False)
-
         # MD count
         text = self.inputField.text()
         if text != "ALL": self.count = int(text)
@@ -1292,6 +1667,17 @@ class MyApp(QWidget):
         text = self.thd.text()
         if text: self.count_thd = int(text)
         else: self.count_thd = 0
+
+        if not self.sync_webhook_settings(show_message=True):
+            return False
+        self.apply_webhook_env()
+
+        # logging
+        try:
+            setup_logging(enable_logging=self.buttons['log'].isChecked())
+        except PermissionError:
+            print("No logging I guess")
+            setup_logging(enable_logging=False)
 
         # selected teams
         self.teams = dict()
@@ -1336,9 +1722,11 @@ class MyApp(QWidget):
             'card'       : self.get_cards(),
             'keywordless': {Bot.WORDLESS[id]['name']: state for id, state in self.keywordless.items()}
         }
+        return True
 
     def start(self):
-        self.get_params()
+        if not self.get_params():
+            return
         if not self.check_inputs() or not self.check_sinners():
             self.buttons['guide_icon'].trigger_glow_once()
             return

@@ -3,6 +3,15 @@ from source.utils.paths import PACKS, WORDLESS
 
 class SettingsManager(QObject):
     import_error = pyqtSignal(str)
+    _WEBHOOK_DEFAULT = {
+        "enabled": False,
+        "url": "",
+        "thread_id": "",
+        "compact_mode": False,
+        "ping_on_finish": False,
+        "ping_role_id": ""
+    }
+    _WEBHOOK_KEYS = set(_WEBHOOK_DEFAULT.keys())
 
     def __init__(self, error_handler=None, hard=False):
         super().__init__()
@@ -63,6 +72,32 @@ class SettingsManager(QObject):
         config = self.data.get(self.config, {})
         return config.get(str(key), [] if key != 7 else {})
 
+    def _normalize_webhook(self, webhook_data, clean_unknown=False):
+        source = webhook_data if isinstance(webhook_data, dict) else {}
+        if clean_unknown:
+            source = self.clean_entries(dict(source), self._WEBHOOK_KEYS)
+
+        normalized = {}
+        for key, default in self._WEBHOOK_DEFAULT.items():
+            value = source.get(key, default)
+            if isinstance(default, bool):
+                normalized[key] = value if isinstance(value, bool) else default
+            else:
+                normalized[key] = value.strip() if isinstance(value, str) else default
+        return normalized
+
+    def _is_valid_webhook(self, webhook_data):
+        if not isinstance(webhook_data, dict):
+            return False
+        cleaned = self.clean_entries(dict(webhook_data), self._WEBHOOK_KEYS)
+        return all(
+            isinstance(cleaned.get(key, default), type(default))
+            for key, default in self._WEBHOOK_DEFAULT.items()
+        )
+
+    def get_webhook(self):
+        return self._normalize_webhook(self.data.get("WEBHOOK", {}))
+
     def save_settings(self):
         self._worker.save_requested.emit(self.data)
 
@@ -83,6 +118,9 @@ class SettingsManager(QObject):
             self.data[name] = {}
         self.data[name][str(key)] = value_list
 
+    def set_webhook(self, value):
+        self.data["WEBHOOK"] = self._normalize_webhook(value, clean_unknown=True)
+
     def delete_config(self):
         name = self.config
         if name in self.data:
@@ -100,7 +138,7 @@ class SettingsManager(QObject):
     
     def verify_file_data(self, data):
         corrupted_data = set()
-        main_entries = {"CONFIG", "HARD", "TEAMS", "AFFINITY", "EXTRA"}
+        main_entries = {"CONFIG", "HARD", "TEAMS", "AFFINITY", "EXTRA", "WEBHOOK"}
         data = self.clean_entries(data, main_entries)
 
         configs = set(data.keys()) & {"CONFIG", "HARD"}
@@ -274,6 +312,14 @@ class SettingsManager(QObject):
         elif not is_valid_extra_structure(data["EXTRA"]):
             corrupted_data.add("lux settings")
             del data["EXTRA"]
+
+        if "WEBHOOK" not in data:
+            pass
+        elif not self._is_valid_webhook(data["WEBHOOK"]):
+            corrupted_data.add("discord webhook settings")
+            del data["WEBHOOK"]
+        else:
+            data["WEBHOOK"] = self._normalize_webhook(data["WEBHOOK"], clean_unknown=True)
 
         return data, corrupted_data
     
