@@ -1230,8 +1230,8 @@ class MyApp(QWidget):
 
     def check_version(self):
         self.version_thread = VersionChecker()
-        self.version_thread.versionFetched.connect(self.on_version_checked)
-        self.version_thread.start()
+        self.version_thread.updateAvailable.connect(self.on_version_checked)
+        self.version_thread.check()
 
     def on_version_checked(self, up_to_date):
         if not up_to_date:

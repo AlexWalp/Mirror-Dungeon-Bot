@@ -1,29 +1,53 @@
 from source_app.utils import *
 from source_app.cache import CacheWorker
 
+from PyQt6.QtCore import QUrl
+from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 
-class VersionChecker(QThread):
-    versionFetched = pyqtSignal(bool)  # Emits True if current version is up to date
 
-    def run(self):
-        url = 'https://api.github.com/repos/AlexWalp/Mirror-Dungeon-Bot/releases/latest'
-        try:
-            with urlopen(url, timeout=5) as response:
-                data = response.read()
-                release_info = json.loads(data)
-                latest_version = str(release_info["tag_name"][1:])
-        except Exception:
-            self.versionFetched.emit(True)
+class VersionChecker(QObject):
+    updateAvailable = pyqtSignal(bool)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.manager = QNetworkAccessManager(self)
+        self.manager.finished.connect(self._on_finished)
+
+    def check(self):
+        req = QNetworkRequest(QUrl("https://api.github.com/repos/AlexWalp/Mirror-Dungeon-Bot/releases/latest"))
+        req.setRawHeader(b"User-Agent", b"MirrorDungeonBot-VersionChecker/1.0")
+        req.setRawHeader(b"Accept", b"application/vnd.github.v3+json")
+        self.manager.get(req)
+
+    def _on_finished(self, reply):
+        reply.deleteLater()
+
+        if reply.error() != QNetworkReply.NetworkError.NoError:
+            status_code = reply.attribute(QNetworkRequest.Attribute.HttpStatusCodeAttribute)
+            err_str = reply.errorString()
+            print("Network error:", err_str, "status:", status_code)
+            self.updateAvailable.emit(True)
             return
 
+        data = bytes(reply.readAll()).decode('utf-8')
         try:
-            v1 = list(map(int, latest_version.split('.')))
-            v2 = list(map(int, p.V.split('.')))
-            is_up_to_date = v1 <= v2
-        except Exception:
+            j = json.loads(data)
+            tag = j.get("tag_name", "").lstrip("vV")
+            is_up_to_date = self._compare_versions(tag, p.V)
+        except Exception as e:
+            print("Parse error:", e)
             is_up_to_date = True
+        self.updateAvailable.emit(is_up_to_date)
 
-        self.versionFetched.emit(is_up_to_date)
+    def _compare_versions(self, latest, current):
+        try:
+            a = [int(x) for x in latest.split(".") if x.isdigit()]
+            b = [int(x) for x in current.split(".") if x.isdigit()]
+            n = max(len(a), len(b))
+            a += [0] * (n - len(a)); b += [0] * (n - len(b))
+            return a <= b
+        except Exception:
+            return True
 
 # Handle bot proccess
 class BotWorker(QObject):

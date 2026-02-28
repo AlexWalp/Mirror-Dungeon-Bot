@@ -797,16 +797,18 @@ def revive_idiots():
     revivals = min(p.DEAD, balance()//100)
     if revivals < 1: return
     
+    ClickAction((293, 705), ver="return").execute(click)
     for _ in range(revivals):
-        ClickAction((293, 705), ver="return").execute(click)
         if not wait_while_condition(lambda: now.button("return"), lambda: win_click(1545, 690), timer=3):
             Action("return", ver=p.SUPER).execute(click)
             return
-        Action("no_hp", ver="select").execute(click_rgb)
+        Action("no_hp", ver="select").execute(click_rgb) # 1700 970
         Action("select", ver="connecting").execute(click)
         connection()
-        Action("return", ver=p.SUPER).execute(click)
+        ClickAction((1545, 500), ver="return").execute(click)
         time.sleep(0.2)
+    Action("return", ver=p.SUPER).execute(click)
+    time.sleep(0.2)
 
 def heal_all():
     if balance() < 100: return
@@ -814,8 +816,10 @@ def heal_all():
     ClickAction((293, 705), ver="return").execute(click)
     try:
         ClickAction((1545, 500), ver="connecting").execute(click)
-        time.sleep(1)
+        connection()
+        time.sleep(0.2)
     finally:
+        ClickAction((1545, 500), ver="return").execute(click)
         Action("return", ver=p.SUPER).execute(click)
         time.sleep(0.2)
 
@@ -837,7 +841,7 @@ def shop():
     time.sleep(0.2)
 
     wait_while_condition(lambda: now_click.button("Confirm"))
-
+    p.DEAD = 2
     if p.DEAD > 0 and p.HARD:
         revive_idiots()
         heal_all()
