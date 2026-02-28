@@ -841,7 +841,7 @@ def shop():
     time.sleep(0.2)
 
     wait_while_condition(lambda: now_click.button("Confirm"))
-    p.DEAD = 2
+
     if p.DEAD > 0 and p.HARD:
         revive_idiots()
         heal_all()
