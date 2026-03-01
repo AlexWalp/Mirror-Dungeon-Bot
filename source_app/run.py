@@ -17,6 +17,7 @@ class VersionChecker(QObject):
         req = QNetworkRequest(QUrl("https://api.github.com/repos/AlexWalp/Mirror-Dungeon-Bot/releases/latest"))
         req.setRawHeader(b"User-Agent", b"MirrorDungeonBot-VersionChecker/1.0")
         req.setRawHeader(b"Accept", b"application/vnd.github.v3+json")
+        req.setTransferTimeout(10000)
         self.manager.get(req)
 
     def _on_finished(self, reply):

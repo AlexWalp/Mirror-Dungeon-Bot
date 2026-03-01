@@ -14,3 +14,7 @@ from PyQt6.QtCore import Qt, QTimer, QEvent, QPropertyAnimation, QObject, pyqtSi
 
 import webbrowser
 from urllib.request import urlopen
+
+from PyQt6.QtNetwork import QSslSocket
+print("SSL Supported:", QSslSocket.supportsSsl())
+print("SSL Library Build Version:", QSslSocket.sslLibraryBuildVersionString())
