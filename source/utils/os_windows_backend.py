@@ -88,6 +88,7 @@ kernel32 = ctypes.windll.kernel32
 
 # Constants
 MOUSEEVENTF_MOVE = 0x0001
+SM_SWAPBUTTON = 23
 MOUSEEVENTF_LEFTDOWN = 0x0002
 MOUSEEVENTF_LEFTUP = 0x0004
 MOUSEEVENTF_RIGHTDOWN = 0x0008
@@ -202,9 +203,10 @@ def _human_delay(min_delay=0.01, max_delay=0.03):
     time.sleep(random.uniform(min_delay, max_delay))
 
 def mouseDown(button='left', delay=0.09):
+    swapped = user32.GetSystemMetrics(SM_SWAPBUTTON)
     flags = {
-        'left': MOUSEEVENTF_LEFTDOWN,
-        'right': MOUSEEVENTF_RIGHTDOWN,
+        'left': MOUSEEVENTF_LEFTDOWN if not swapped else MOUSEEVENTF_RIGHTDOWN,
+        'right': MOUSEEVENTF_RIGHTDOWN if not swapped else MOUSEEVENTF_LEFTDOWN,
         'middle': MOUSEEVENTF_MIDDLEDOWN
     }.get(button.lower(), MOUSEEVENTF_LEFTDOWN)
     
@@ -222,9 +224,10 @@ def mouseDown(button='left', delay=0.09):
     _human_delay(delay, delay + 0.02)
 
 def mouseUp(button='left', delay=0.09):
+    swapped = user32.GetSystemMetrics(SM_SWAPBUTTON)
     flags = {
-        'left': MOUSEEVENTF_LEFTUP,
-        'right': MOUSEEVENTF_RIGHTUP,
+        'left': MOUSEEVENTF_LEFTUP if not swapped else MOUSEEVENTF_RIGHTUP,
+        'right': MOUSEEVENTF_RIGHTUP if not swapped else MOUSEEVENTF_LEFTUP,
         'middle': MOUSEEVENTF_MIDDLEUP
     }.get(button.lower(), MOUSEEVENTF_LEFTUP)
     
