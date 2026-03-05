@@ -6,7 +6,7 @@ import Bot
 
 from stats import log_to_csv
 
-os.environ['QT_LOGGING_RULES'] = 'qt.qpa.*=false'
+# os.environ['QT_LOGGING_RULES'] = 'qt.qpa.*=false'
 
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QLabel, QGraphicsOpacityEffect, QMessageBox, QLayout, QHBoxLayout, QVBoxLayout, QScrollArea, QComboBox, QMainWindow, QFrame, QStyleFactory
 from PyQt6.QtGui import QIcon, QFont, QPixmap, QPainter, QIntValidator, QFontDatabase, QRegularExpressionValidator
@@ -14,7 +14,3 @@ from PyQt6.QtCore import Qt, QTimer, QEvent, QPropertyAnimation, QObject, pyqtSi
 
 import webbrowser
 from urllib.request import urlopen
-
-from PyQt6.QtNetwork import QSslSocket
-print("SSL Supported:", QSslSocket.supportsSsl())
-print("SSL Library Build Version:", QSslSocket.sslLibraryBuildVersionString())

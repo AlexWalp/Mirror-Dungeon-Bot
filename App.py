@@ -1235,6 +1235,7 @@ class MyApp(QWidget):
 
     def on_version_checked(self, up_to_date):
         if not up_to_date:
+            print("Update available!")
             self.buttons['update'].show()
             self.buttons['update'].start_flickering()
 
