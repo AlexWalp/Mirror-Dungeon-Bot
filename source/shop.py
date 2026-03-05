@@ -502,14 +502,17 @@ def search_sell(reg):
     coords, _, _, _ = inventory_check(reg, 0, uptie_det=True)
     for i in range(4, 0, -1):
         if coords[i] != []:
-            chain_actions(click, [
-                lambda: win_click(coords[i][0][:2]),
-                lambda: time.sleep(0.2),
-                ClickAction((1182, 879)),
-                Action("Confirm_retry.0", ver="connecting"),
-                connection,
-                Action("sell", click=(750, 879), ver=p.SUPER)
-            ])
+            try:
+                chain_actions(click, [
+                    lambda: win_click(coords[i][0][:2]),
+                    lambda: time.sleep(0.2),
+                    ClickAction((1182, 879)),
+                    Action("Confirm_retry.0", ver="connecting"),
+                    connection,
+                    Action("sell", click=(750, 879), ver=p.SUPER)
+                ])
+            except RuntimeError:
+                continue
             return True
     return False
 
@@ -774,14 +777,38 @@ def buy_loop(missing, floor1=False, keyword_ref=True):
 
 
 def buy_skill3():
-    if balance() <= 120 or now.button("purchased") or now.button("cost", "purchased"): return
+    if balance() <= 120: 
+        return
+    
+    if (p.SUPER == "shop" and 
+       (now.button("purchased") or 
+        now.button("cost", "purchased"))): 
+        return
+    
+    sold = []
+    if p.SUPER == "supershop":
+        sold = LocateGray.locate_all(PTH["purchased"], region=REG["purchased_sup!"])
+
+        if now.button("cost", "purchased_sup!") or len(sold) >= 2:
+            return
+
+    coord = None
     for sinner in p.SELECTED[:7]:
-        if now.button(f"{sinner.lower()}_s3", "buy_s3"):
+        box = LocateGray.locate(PTH[f"{sinner.lower()}_s3"], region=REG["buy_s3"], conf=0.85)
+        if box:
+            coord = gui.center(box)
+            if len(sold) > 0:
+                sold_coord = gui.center(sold[0])
+                if abs(coord[0] - sold_coord[0]) < 100:
+                    continue
             break
     else:
         return
+    
+    if coord == None or coord[1] - 120 < 0:
+        return
 
-    ClickAction((929, 388), ver="replace").execute(click)
+    ClickAction((coord[0], coord[1] - 120), ver="replace").execute(click)
     win_click(1442, 497, duration=0.2)
     win_click(1187, 798, duration=0.2)
     if not wait_while_condition(lambda: not now.button("connecting"), lambda: win_click(1187, 798), timer=1):

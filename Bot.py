@@ -246,9 +246,9 @@ def main_loop():
 
         if p.HARD and now.button("suicide"):
             if not p.EXTREME:
-                win_click(815, 681)
+                win_click(815, 700)
             else:
-                win_click(1117, 681)
+                win_click(1117, 700)
             connection()
         
         if now.button("victory"):
