@@ -94,6 +94,7 @@ def get_gift(image, owned_x):
                     break
             win_click(point)
             return rectangle(image, (int(point[0]-100), 0), (int(point[0]+100), 110), (0, 0, 0), -1)
+    return image
 
 
 def find_trial(trials_image):
