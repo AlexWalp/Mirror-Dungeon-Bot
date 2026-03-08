@@ -1,5 +1,11 @@
 import sys, os, json, hashlib, copy
 from datetime import datetime, timezone, timedelta
+
+if getattr(sys, "frozen", False):
+    base = sys._MEIPASS
+    os.add_dll_directory(base)
+    os.environ["PATH"] = base + os.pathsep + os.environ.get("PATH", "")
+
 import source.utils.params as p
 from source.utils.log_config import *
 import Bot
