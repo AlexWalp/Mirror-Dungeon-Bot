@@ -78,9 +78,15 @@ def pack_eval(level, regions, skip, skips):
     elif not filtered:
         # we have to pick S.H.I.T. -> select the first
         print("May Ayin save us all!")
+        default_key = 0
         if packs:
-            remove_pack(level, list(packs.keys())[0])
-        return 0
+            if len(packs) > 1: 
+                default_key = 1
+            
+            name = list(packs.keys())[default_key]
+            remove_pack(level, name)
+            logging.info(f"Pack: {name}")
+        return default_key
 
     # locating relevant ego gifts in floor rewards
     ego_coords = [gui.center(box) for box in LocateRGB.locate_all(PTH[p.GIFTS[0]["checks"][1]])]
