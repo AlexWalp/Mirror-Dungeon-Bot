@@ -79,7 +79,13 @@ def pack_eval(level, regions, skip, skips):
         # we have to pick S.H.I.T. -> select the first
         print("May Ayin save us all!")
         if packs:
-            remove_pack(level, list(packs.keys())[0])
+            packs_sorted = sorted(packs, key=packs.get)
+            default_key = 1 if len(packs) > 1 and 0 in packs.values() else 0
+            
+            name = packs_sorted[default_key]
+            remove_pack(level, name)
+            logging.info(f"Pack: {name}")
+            return packs[name]
         return 0
 
     # locating relevant ego gifts in floor rewards

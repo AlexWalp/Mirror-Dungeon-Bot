@@ -24,7 +24,7 @@ start_locations = {
     "MD": 1, 
     "Start": 2, 
     "enterInvert": 5, 
-    "ConfirmTeam": 7, 
+    "ConfirmTeam": 6, 
     "enterBonus": 12, 
     "Confirm.0": 15, 
     "refuse": 17, 

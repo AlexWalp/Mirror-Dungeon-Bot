@@ -1,4 +1,4 @@
-import datetime, csv, sys, os
+import datetime, csv, sys, os, statistics
 
 
 class Floor:
@@ -150,7 +150,7 @@ MODES = ["NORMAL", "HARD", "EXTREME"]
 
 def format_time(total_seconds):
     if total_seconds is None:
-        return "none"
+        return "no data"
     total_seconds = round(total_seconds)
     minutes = total_seconds // 60
     seconds = total_seconds % 60
@@ -191,12 +191,15 @@ def export_to_csv(data, filename):
                         total_times.append(run.time)
                 if total_times:
                     avg_total = sum(total_times) / len(total_times)
+                    med_total = statistics.median(total_times)
                     avg_total_str = format_time(avg_total)
+                    med_total_str = format_time(med_total)
                 else:
-                    avg_total_str = "none"
+                    avg_total_str = "no data"
+                    med_total_str = "no data"
                 
-                writer.writerow(["Avg Time", "Count"])
-                writer.writerow([avg_total_str, len(runs)])
+                writer.writerow(["Avg Time", "Median Time", "Count"])
+                writer.writerow([avg_total_str, med_total_str, len(runs)])
                 writer.writerow([])
                 
                 battle_types = ["Normal", "Focused", "Risky", "Miniboss", "Boss"]
@@ -220,7 +223,7 @@ def export_to_csv(data, filename):
                         avg_floor_total = sum(floor_total_times) / len(floor_total_times)
                         avg_floor_total_str = format_time(avg_floor_total)
                     else:
-                        avg_floor_total_str = "none"
+                        avg_floor_total_str = "no data"
                     
                     row = [f"Floor{floor_num}"]
                     for bt in battle_types:
@@ -229,31 +232,36 @@ def export_to_csv(data, filename):
                             avg_bt = sum(times) / len(times)
                             row.append(format_time(avg_bt))
                         else:
-                            row.append("none")
+                            row.append("no data")
                     row.append(avg_floor_total_str)
                     writer.writerow(row)
                 
                 writer.writerow([])
-                
-                pack_data = {}
-                for run in runs:
-                    for floor_num in range(1, 6 + 10*(mode == "EXTREME")):
+
+                for floor_num in range(1, 6 + 10 * (mode == "EXTREME")):
+                    pack_data = {}
+
+                    for run in runs:
                         if floor_num in run.floors:
                             floor = run.floors[floor_num]
                             if floor.pack is not None and floor.time is not None:
                                 pack_name = floor.pack
                                 pack_data.setdefault(pack_name, []).append(floor.time)
-                
-                if pack_data:
-                    pack_avg = {pack: sum(times)/len(times) for pack, times in pack_data.items()}
-                    sorted_packs = sorted(pack_avg.keys(), key=lambda x: pack_avg[x])
-                    writer.writerow(["Packs"] + sorted_packs)
-                    writer.writerow(["Avg Time"] + [format_time(pack_avg[pack]) for pack in sorted_packs])
-                    writer.writerow(["Count"] + [len(pack_data[pack]) for pack in sorted_packs])
-                else:
-                    writer.writerow(["Packs"])
-                    writer.writerow(["Avg Time"])
-                    writer.writerow(["Count"])
+
+                    if pack_data:
+                        pack_avg = {pack: sum(times)/len(times) for pack, times in pack_data.items()}
+                        pack_med = {pack: statistics.median(times) for pack, times in pack_data.items()}
+                        sorted_packs = sorted(pack_avg.keys(), key=lambda x: pack_avg[x])
+
+                        writer.writerow([f"Floor {floor_num} packs"] + sorted_packs)
+                        writer.writerow(["Avg Time"] + [format_time(pack_avg[pack]) for pack in sorted_packs])
+                        writer.writerow(["Median Time"] + [format_time(pack_med[pack]) for pack in sorted_packs])
+                        writer.writerow(["Count"] + [len(pack_data[pack]) for pack in sorted_packs])
+                    else:
+                        writer.writerow([f"Floor {floor_num} packs"])
+                        writer.writerow(["Avg Time"])
+                        writer.writerow(["Median Time"])
+                        writer.writerow(["Count"])
                 
                 writer.writerow([])
 
