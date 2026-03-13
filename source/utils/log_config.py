@@ -1,9 +1,34 @@
 import logging, sys, os
 
+from source.utils.discord_webhook import WebhookLogHandler, create_handler_from_env
+
+
+def _detach_webhook_handlers():
+    root_logger = logging.getLogger()
+    for handler in list(root_logger.handlers):
+        if isinstance(handler, WebhookLogHandler):
+            root_logger.removeHandler(handler)
+            handler.close()
+
+
+def _attach_webhook_handler():
+    handler, error_message = create_handler_from_env()
+    if error_message:
+        logging.warning(error_message)
+        return
+
+    if handler:
+        logging.info("Discord webhook notifications enabled.")
+        logging.getLogger().addHandler(handler)
+
 def setup_logging(enable_logging: bool = True, log_file: str = "game.log", log_level=logging.INFO):
+    _detach_webhook_handlers()
+
     if not enable_logging:
         logging.disable(logging.CRITICAL)
         return
+
+    logging.disable(logging.NOTSET)
     
     appimage_path = os.environ.get("APPIMAGE")
     if appimage_path:
@@ -23,6 +48,7 @@ def setup_logging(enable_logging: bool = True, log_file: str = "game.log", log_l
         level=log_level,
         format="%(asctime)s - %(levelname)s - %(message)s"
     )
+    _attach_webhook_handler()
 
     original_excepthook = sys.excepthook
 
