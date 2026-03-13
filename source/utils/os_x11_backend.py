@@ -1,9 +1,10 @@
 # Linux (X11) port
 # Extra dependencies: python-xlib, mss
 
+import atexit
 import mss
-from Xlib import X, XK, display
-from Xlib.ext import xtest
+from evdev import UInput, ecodes as e
+from Xlib import X, display
 import numpy as np, time, math, random
 import source.utils.params as p
 
@@ -215,22 +216,60 @@ def screenshot(imageFilename=None, region=None):
         return img
 
 
-# Map logical buttons to X button numbers
-_BUTTON_MAP = {'left': 1, 'middle': 2, 'right': 3}
+# --- UINPUT VIRTUAL DEVICE SETUP ---
+_EVDEV_KEYSYM_MAP = {
+    'enter': e.KEY_ENTER, 'esc': e.KEY_ESC, 'space': e.KEY_SPACE,
+    'tab': e.KEY_TAB, 'backspace': e.KEY_BACKSPACE, 'delete': e.KEY_DELETE,
+    'insert': e.KEY_INSERT, 'home': e.KEY_HOME, 'end': e.KEY_END,
+    'pageup': e.KEY_PAGEUP, 'pagedown': e.KEY_PAGEDOWN, 'shift': e.KEY_LEFTSHIFT,
+    'ctrl': e.KEY_LEFTCTRL, 'alt': e.KEY_LEFTALT, 'win': e.KEY_LEFTMETA,
+    'up': e.KEY_UP, 'down': e.KEY_DOWN, 'left': e.KEY_LEFT, 'right': e.KEY_RIGHT,
+    'f1': e.KEY_F1, 'f2': e.KEY_F2, 'f3': e.KEY_F3, 'f4': e.KEY_F4,
+    'f5': e.KEY_F5, 'f6': e.KEY_F6, 'f7': e.KEY_F7, 'f8': e.KEY_F8,
+    'f9': e.KEY_F9, 'f10': e.KEY_F10, 'f11': e.KEY_F11, 'f12': e.KEY_F12,
+}
+
+for char in "abcdefghijklmnopqrstuvwxyz":
+    _EVDEV_KEYSYM_MAP[char] = getattr(e, f"KEY_{char.upper()}")
+for num in "0123456789":
+    _EVDEV_KEYSYM_MAP[num] = getattr(e, f"KEY_{num}")
+
+_safe_keys = list(set(_EVDEV_KEYSYM_MAP.values()))
+
+_events = {
+    e.EV_KEY: [e.BTN_LEFT, e.BTN_RIGHT, e.BTN_MIDDLE] + _safe_keys,
+    e.EV_REL: [e.REL_X, e.REL_Y, e.REL_WHEEL]
+}
+
+try:
+    _ui = UInput(_events, name="Virtual_Index_Device")
+except Exception as ex:
+    print("ERROR: Cannot create uinput device. Run script with sudo.")
+    raise ex
+
+# Map logical buttons
+_BUTTON_MAP = {'left': e.BTN_LEFT, 'middle': e.BTN_MIDDLE, 'right': e.BTN_RIGHT}
+
+def release_all():
+    for btn in _BUTTON_MAP.values():
+        _ui.write(e.EV_KEY, btn, 0)
+    
+    for key_code in _safe_keys:
+        _ui.write(e.EV_KEY, key_code, 0)
+    _ui.syn()
+
+atexit.register(release_all)
 
 def _fail_safe_check():
     """Check fail-safe"""
     if not FAILSAFE_ENABLED:
         return
 
-    x, y = get_position()
-    width, height = get_screen_size()
     name = getActiveWindowTitle()
 
-    if p.LIMBUS_NAME not in name: 
+    if p.LIMBUS_NAME not in name:
+        release_all()
         raise PauseException(name)
-    if (x == 0 or x == width - 1) and (y == 0 or y == height - 1):
-        raise FailSafeException(f"Mouse out of screen bounds at ({x}, {y})")
 
 class WindowError(Exception): pass
 class FailSafeException(Exception): pass
@@ -240,17 +279,17 @@ class PauseException(Exception):
         super().__init__(name)
         self.window = name
 
-# Mouse functions using XTest
+
 def mouseDown(button='left', delay=0.09):
-    _button = _BUTTON_MAP.get(button.lower(), 1)
-    xtest.fake_input(_disp, X.ButtonPress, _button)
-    _disp.sync()
+    _btn = _BUTTON_MAP.get(button.lower(), e.BTN_LEFT)
+    _ui.write(e.EV_KEY, _btn, 1)
+    _ui.syn()
     time.sleep(delay)
 
 def mouseUp(button='left', delay=0.09):
-    _button = _BUTTON_MAP.get(button.lower(), 1)
-    xtest.fake_input(_disp, X.ButtonRelease, _button)
-    _disp.sync()
+    _btn = _BUTTON_MAP.get(button.lower(), e.BTN_LEFT)
+    _ui.write(e.EV_KEY, _btn, 0)
+    _ui.syn()
     time.sleep(delay)
 
 def _to_absolute(x, y):
@@ -299,9 +338,17 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True):
         current_x = min(max(current_x, min(start_x, x)), max(start_x, x))
         current_y = min(max(current_y, min(start_y, y)), max(start_y, y))
 
-        abs_x, abs_y = _to_absolute(current_x, current_y)
-        xtest.fake_input(_disp, X.MotionNotify, x=abs_x, y=abs_y)
-        _disp.sync()
+        target_abs_x, target_abs_y = _to_absolute(current_x, current_y)
+        actual_x, actual_y = get_position() 
+        
+        dx = target_abs_x - actual_x
+        dy = target_abs_y - actual_y
+        
+        if dx != 0 or dy != 0:
+            _ui.write(e.EV_REL, e.REL_X, dx)
+            _ui.write(e.EV_REL, e.REL_Y, dy)
+            _ui.syn()
+            time.sleep(0.002)
 
         if i < steps - 1:
             if humanize:
@@ -309,6 +356,21 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True):
                 time.sleep(max(0.001, sleep_time))
             else:
                 time.sleep(duration / steps)
+
+    timeout_start = time.time()
+    while time.time() - timeout_start < 0.5:
+        actual_x, actual_y = get_position()
+        if (actual_x, actual_y) == (x, y):
+            break
+            
+        dx = x - actual_x
+        dy = y - actual_y
+        
+        _ui.write(e.EV_REL, e.REL_X, dx)
+        _ui.write(e.EV_REL, e.REL_Y, dy)
+        _ui.syn()
+        
+        time.sleep(0.005)
 
     final_delay = random.uniform(0.02, 0.05) if humanize else 0.03
     time.sleep(final_delay)
@@ -345,87 +407,38 @@ def scroll(clicks, x=None, y=None):
     """Scroll vertically: positive clicks -> up, negative -> down."""
     if x is not None and y is not None:
         moveTo(x, y)
-
-    button_up = 4   # wheel up
-    button_down = 5 # wheel down
+    direction = 1 if clicks > 0 else -1
     count = abs(int(clicks))
-    if clicks > 0:
-        for _ in range(count):
-            xtest.fake_input(_disp, X.ButtonPress, button_up)
-            xtest.fake_input(_disp, X.ButtonRelease, button_up)
-    elif clicks < 0:
-        for _ in range(count):
-            xtest.fake_input(_disp, X.ButtonPress, button_down)
-            xtest.fake_input(_disp, X.ButtonRelease, button_down)
-    _disp.sync()
+    
+    for _ in range(count):
+        _ui.write(e.EV_REL, e.REL_WHEEL, direction)
+        _ui.syn()
+        time.sleep(0.02)
+        
     _human_delay()
 
 # Keyboard functions
-_BASIC_KEYSYM_MAP = {
-    'enter': 'Return',
-    'esc': 'Escape',
-    'space': 'space',
-    'tab': 'Tab',
-    'backspace': 'BackSpace',
-    'delete': 'Delete',
-    'insert': 'Insert',
-    'home': 'Home',
-    'end': 'End',
-    'pageup': 'Page_Up',
-    'pagedown': 'Page_Down',
-    'shift': 'Shift_L',
-    'ctrl': 'Control_L',
-    'alt': 'Alt_L',
-    'win': 'Super_L',
-    'up': 'Up',
-    'down': 'Down',
-    'left': 'Left',
-    'right': 'Right',
-    'f1': 'F1', 'f2': 'F2', 'f3': 'F3', 'f4': 'F4',
-    'f5': 'F5', 'f6': 'F6', 'f7': 'F7', 'f8': 'F8',
-    'f9': 'F9', 'f10': 'F10', 'f11': 'F11', 'f12': 'F12',
-}
-
-def _key_to_keycode(key):
-    """Convert a logical key (like 'a', 'enter') to an X keycode."""
-    # letters and digits: use the character directly
-    if len(key) == 1:
-        ks = XK.string_to_keysym(key)
-    else:
-        mapped = _BASIC_KEYSYM_MAP.get(key.lower(), None)
-        if mapped:
-            ks = XK.string_to_keysym(mapped)
-        else:
-            # try raw
-            ks = XK.string_to_keysym(key)
-    if ks == 0:
-        return None
-    return _disp.keysym_to_keycode(ks)
+def _key_to_ecode(key):
+    return _EVDEV_KEYSYM_MAP.get(key.lower(), None)
 
 def press(keys, presses=1, interval=0.1, delay=0.01):
-    """
-    Press keys. keys may be a string or list of strings.
-    For multi-key combos pass list e.g. ['ctrl', 'c']
-    """
     for _p in range(presses):
         if isinstance(keys, str):
             keys = [keys]
 
-        # Press down
-        keycodes = []
+        ecodes = []
         for key in keys:
-            kc = _key_to_keycode(key)
+            kc = _key_to_ecode(key)
             if not kc:
                 continue
-            keycodes.append(kc)
-            xtest.fake_input(_disp, X.KeyPress, kc)
-            _disp.sync()
+            ecodes.append(kc)
+            _ui.write(e.EV_KEY, kc, 1) # Press
+            _ui.syn()
             time.sleep(delay)
 
-        # Release in reverse order
-        for kc in reversed(keycodes):
-            xtest.fake_input(_disp, X.KeyRelease, kc)
-            _disp.sync()
+        for kc in reversed(ecodes):
+            _ui.write(e.EV_KEY, kc, 0) # Release
+            _ui.syn()
             time.sleep(delay)
 
         if interval > 0 and _p < presses - 1:

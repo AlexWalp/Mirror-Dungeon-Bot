@@ -300,8 +300,10 @@ class Locate(): # if inputing np.ndarray, convert to BGR first!
                 if any((abs(x - fx) <= threshold and abs(y - fy) <= threshold) for fx, fy, _, _ in positions):
                     continue
                 positions.append((x, y, w, h))
-        finally: 
-            return positions
+        finally:
+            pass
+        
+        return positions
     
     @classmethod
     def check(cls, template, image=None, region=None, conf=None, click=False, wait=5, error=False, **kwargs):

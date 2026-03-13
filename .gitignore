@@ -12,3 +12,4 @@ game.csv
 testing.py
 convert_ego.py
 os_wayland_backend.py
+coords.sh
