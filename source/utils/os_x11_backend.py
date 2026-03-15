@@ -242,7 +242,7 @@ _events = {
 }
 
 try:
-    _ui = UInput(_events, name="Virtual_Index_Device")
+    _ui = UInput(_events, name="USB Mouse")
 except Exception as ex:
     print("ERROR: Cannot create uinput device. Run script with sudo.")
     raise ex
