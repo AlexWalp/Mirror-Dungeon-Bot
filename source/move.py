@@ -28,7 +28,7 @@ def find_bus(): # looks for low resolution Dante
 
 
 def zoom(direction):
-    for i in range(6):
+    for _ in range(6):
         Danteh = find_danteh()
         if Danteh:
             return Danteh
@@ -47,6 +47,9 @@ def hook():
     Bus = find_bus()
     if Bus is None : return False
     position(Bus)
+    Bus = find_bus()
+    if Bus:
+        win_moveTo(Bus[0], Bus[1] + 30)
     return True
 
 

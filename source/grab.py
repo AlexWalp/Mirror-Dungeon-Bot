@@ -239,7 +239,7 @@ def get_adversity():
     x_coords = [box[0] for box in LocateRGB.locate_all(PTH["projection"], region=REG["projection"], threshold=100)]
     sorted(x_coords)
     for x in x_coords:
-        ClickAction((x, 550), ver="selectCount!").execute(click)
+        ClickAction((x + 90, 550), ver="selectCount!").execute(click)
     time.sleep(0.3)
     win_click(1725, 1000)
     wait_while_condition(lambda: now.button("adversity"), interval=0.2)

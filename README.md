@@ -1,7 +1,7 @@
 <div align="center">
-<a href="https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/latest/download/app.exe">
+<!-- <a href="https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/latest/download/app.exe">
   <img alt="Download" src="https://img.shields.io/badge/app.exe-Download-blue.svg">
-</a>
+</a> -->
 <img alt="version" src="https://img.shields.io/github/v/release/AlexWalp/Mirror-Dungeon-Bot">
 <img alt="download" src="https://img.shields.io/github/downloads/AlexWalp/Mirror-Dungeon-Bot/total">
 <img alt="language" src="https://img.shields.io/badge/Language-Python-blue">
@@ -189,10 +189,10 @@ This tool does not modify or access any game files and relies solely on the disp
 # Installation
 ### 📦 Option 1: Run the Prebuilt Executable 
 - ## Windows
-  [![Download](https://img.shields.io/badge/app.exe-Download-blue.svg?style=for-the-badge)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/latest/download/app.exe) <p>
+  <!-- [![Download](https://img.shields.io/badge/app.exe-Download-blue.svg?style=for-the-badge)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/latest/download/app.exe) <p> -->
   - Launch **app.exe** from [the latest release](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/latest) - no additional files required.
 - ## Linux (X11)
-  [![Download](https://img.shields.io/badge/CGrinder.AppImage-Download-yellow.svg?style=for-the-badge)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/latest/download/CGrinder-x86_64.AppImage) <p>
+  <!-- [![Download](https://img.shields.io/badge/CGrinder.AppImage-Download-yellow.svg?style=for-the-badge)](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/latest/download/CGrinder-x86_64.AppImage) <p> -->
   - Wayland is currently not suppored, so you would need to run X11 session.
   - Download AppImage from [the latest release](https://github.com/AlexWalp/Mirror-Dungeon-Bot/releases/latest).
   - Make it executable with `chmod +x CGrinder-x86_64.AppImage`.
@@ -212,6 +212,7 @@ or manually install:
 - `PyQt6`
 - `python-xlib` _(Linux only)_
 - `mss` _(Linux only)_
+- `evdev` _(Linux only)_
 
 Then you can run `App.py` to launch the application.
 

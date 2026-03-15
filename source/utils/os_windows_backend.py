@@ -6,7 +6,6 @@ import math
 import random
 import source.utils.params as p
 
-ctypes.windll.user32.SetProcessDPIAware()
 
 class BITMAPINFOHEADER(ctypes.Structure):
     _fields_ = [

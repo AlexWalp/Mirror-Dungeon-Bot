@@ -2,4 +2,5 @@ numpy
 opencv-python-headless  
 PyQt6
 python-xlib
+evdev
 mss

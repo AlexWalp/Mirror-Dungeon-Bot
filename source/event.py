@@ -20,42 +20,46 @@ def event():
                 if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
             if now_click.button("textLvl", "textEGO"): 
                 if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
-            if any(now_click.button(f"choice_{favorite}", "textEGO") for favorite in favorites): continue
+            if any(now_click.button(f"choice_{favorite}", "textEGO") for favorite in favorites): 
+                if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
 
             egos = LocateGray.locate_all(PTH["textEGO"], region=REG["textEGO"], conf=0.85)
 
-            if not egos:
-                for choice in [316, 520, 730]:
-                    win_click(1348, choice, delay=0)
-                    if wait_while_condition(lambda: now.button("choices"), interval=0.5, timer=2): continue
+            if egos:
+                affinity = []
+                for aff in p.TEAM:
+                    affinity += LocateGray.locate_all(PTH[f"{aff.lower()}_choice"], region=REG["textEGO"], conf=0.85)
+                win = LocateGray.locate(PTH["textWIN"], region=REG["textEGO"], conf=0.85)
+
+                filtered = []
+                priority = []
+                for box in egos:
+                    if not win or abs(box[1] - win[1]) > 80:
+                        filtered.append(box)
+
+                        for aff in affinity:
+                            if abs(box[1] - aff[1]) < 80:
+                                priority.append(box)
+                
+                if priority:
+                    sorted(priority, key=lambda x: x[1])            
+                    win_click(gui.center(priority[0]), delay=0)
+                    if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
+                
+                if filtered:
+                    sorted(priority, key=lambda x: x[1])            
+                    win_click(gui.center(filtered[0]), delay=0)
+                    if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
                 else:
-                    continue
+                    win_click(1356, 498, delay=0)
+                    if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
             
-            affinity = []
-            for aff in p.TEAM:
-                affinity += LocateGray.locate_all(PTH[f"{aff.lower()}_choice"], region=REG["textEGO"], conf=0.85)
-            win = LocateGray.locate(PTH["textWIN"], region=REG["textEGO"], conf=0.85)
-
-            filtered = []
-            priority = []
-            for box in egos:
-                if not win or abs(box[1] - win[1]) > 80:
-                    filtered.append(box)
-
-                    for aff in affinity:
-                        if abs(box[1] - aff[1]) < 80:
-                            priority.append(box)
-            
-            if priority:
-                sorted(priority, key=lambda x: x[1])            
-                win_click(gui.center(priority[0]), delay=0)
-                continue
-            
-            if filtered:
-                sorted(priority, key=lambda x: x[1])            
-                win_click(gui.center(filtered[0]), delay=0)
+            for choice in [316, 520, 730]:
+                win_click(1348, choice, delay=0)
+                if wait_while_condition(lambda: now.button("choices"), interval=0.5, timer=2): continue
             else:
-                win_click(1356, 498, delay=0)
+                raise RuntimeError
+
 
         now_click.button("Proceed")
         now_click.button("CommenceBattle")
