@@ -1,5 +1,5 @@
-numpy
-opencv-python-headless  
+numpy==2.3.0
+opencv-python-headless
 PyQt6
 interception-python
 pywin32

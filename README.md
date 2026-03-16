@@ -210,7 +210,7 @@ Linux: <br>
 
 or manually install:
 - `opencv-python-headless`
-- `numpy`
+- `numpy==2.3.0`
 - `PyQt6`
 - `pywin32` _(Windows only)_
 - `interception-python` _(Windows only)_
