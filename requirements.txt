@@ -1,3 +1,6 @@
 numpy
 opencv-python-headless  
 PyQt6
+interception-python
+pywin32
+pathgenerator

@@ -400,6 +400,7 @@ def click_gifts(gifts, reg, chain=None, is_fuse=False):
         win_click(coord)
         if chain is not None and callable(chain):
             chain()
+            # time.sleep(0.5)
         time.sleep(0.2)
         if is_fuse and LocateGray.check(PTH["gifts_owned"], region=REG["fuse_shelf_top"], wait=False):
             return True

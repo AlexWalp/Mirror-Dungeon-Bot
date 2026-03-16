@@ -2,5 +2,6 @@ numpy
 opencv-python-headless  
 PyQt6
 python-xlib
+pathgenerator
 evdev
 mss

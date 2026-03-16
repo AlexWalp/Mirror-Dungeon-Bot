@@ -3,6 +3,7 @@ from source_app.settings_manager import SettingsManager
 from source_app.widget import SelectizeWidget, IntField, AllIntField
 from source_app.button import CustomButton
 from source_app.run import VersionChecker, BotWorker
+from source_app.check_interception import ensure_interception_driver
 
 
 class MyApp(QWidget):
@@ -30,6 +31,9 @@ class MyApp(QWidget):
         self._create_buttons()
 
         self.setFocus()
+
+        if not ensure_interception_driver():
+            sys.exit(0)
     
     #     self.debug_timer = QTimer()
     #     self.debug_timer.timeout.connect(self.print_state)

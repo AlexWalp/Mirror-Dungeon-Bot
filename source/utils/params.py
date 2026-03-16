@@ -1,6 +1,6 @@
 import threading
 
-V = "3.1.8"
+V = "3.2.0"
 LIMBUS_NAME = "LimbusCompany"
 
 SELECTED = ["YISANG", "DONQUIXOTE" , "ISHMAEL", "RODION", "SINCLAIR", "GREGOR"]
@@ -42,3 +42,7 @@ DEAD = 0
 IDX = 0
 TO_UPTIE = {}
 MOVE_ANIMATION = False
+
+# Macro behavior configuration.
+MACRO_PROFILE = "SAFE"
+MACRO_RHYTHM = True

@@ -12,16 +12,16 @@ def event():
         if time.time() - start_time > 100: return False
         if p.LIMBUS_NAME not in (win := gui.getActiveWindowTitle()): pause(win)
 
-        for _ in range(3): win_click(906, 460, delay=0.01)
+        win_click(906, 460, clicks=3, interval=0.04)
         
         if now.button("choices"):
             time.sleep(0.1)
             if now_click.button("textNew", "textEGO"): 
-                if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
+                if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=2): continue
             if now_click.button("textLvl", "textEGO"): 
-                if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
+                if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=2): continue
             if any(now_click.button(f"choice_{favorite}", "textEGO") for favorite in favorites): 
-                if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
+                if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=2): continue
 
             egos = LocateGray.locate_all(PTH["textEGO"], region=REG["textEGO"], conf=0.85)
 
@@ -44,19 +44,19 @@ def event():
                 if priority:
                     sorted(priority, key=lambda x: x[1])            
                     win_click(gui.center(priority[0]), delay=0)
-                    if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
+                    if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=2): continue
                 
                 if filtered:
                     sorted(priority, key=lambda x: x[1])            
                     win_click(gui.center(filtered[0]), delay=0)
-                    if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
+                    if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=2): continue
                 else:
                     win_click(1356, 498, delay=0)
-                    if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=1): continue
+                    if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=2): continue
             
             for choice in [316, 520, 730]:
                 win_click(1348, choice, delay=0)
-                if wait_while_condition(lambda: now.button("choices"), interval=0.5, timer=2): continue
+                if wait_while_condition(lambda: now.button("choices"), interval=0.5, timer=3): continue
             else:
                 raise RuntimeError
 
