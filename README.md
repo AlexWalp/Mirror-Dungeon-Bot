@@ -201,15 +201,19 @@ This tool does not modify or access any game files and relies solely on the disp
 Make sure you have **Python 3** installed. Then either:
 
 Windows: <br>
-`pip install -r requirements.txt` 
+`pip install -r requirements.txt`
+
++ install interception driver
 
 Linux: <br>
 `pip install -r requirements_linux.txt`
 
 or manually install:
 - `opencv-python-headless`
-- `numpy`
+- `numpy==2.3.0`
 - `PyQt6`
+- `pywin32` _(Windows only)_
+- `interception-python` _(Windows only)_
 - `python-xlib` _(Linux only)_
 - `mss` _(Linux only)_
 - `evdev` _(Linux only)_

@@ -251,7 +251,8 @@ def select(sinners):
             to_click.append(gui.center(region))
     if len(selected) > correct or len(backup) > correct_back:
         ClickAction((1713, 712), ver="Confirm_alt").execute(click)
-        wait_while_condition(lambda: now_click.button("Confirm_alt"))
+        time.sleep(0.21)
+        click.button("Confirm_alt")
         time.sleep(0.5)
         for region in regions:
             win_click(gui.center(region))

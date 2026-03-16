@@ -5,7 +5,144 @@ import time
 import math
 import random
 import source.utils.params as p
+from source.utils.profiles import get_macro_profile, maybe_rhythm_jitter, randomize_with_profile
 
+import interception
+from interception.strokes import MouseStroke
+from interception.constants import MouseFlag
+from pathgenerator import PDPathGenerator
+
+
+FIXED_VK_MAP = {
+    'a': 0x41, 'b': 0x42, 'c': 0x43, 'd': 0x44, 'e': 0x45, 'f': 0x46,
+    'g': 0x47, 'h': 0x48, 'i': 0x49, 'j': 0x4A, 'k': 0x4B, 'l': 0x4C,
+    'm': 0x4D, 'n': 0x4E, 'o': 0x4F, 'p': 0x50, 'q': 0x51, 'r': 0x52,
+    's': 0x53, 't': 0x54, 'u': 0x55, 'v': 0x56, 'w': 0x57, 'x': 0x58,
+    'y': 0x59, 'z': 0x5A,
+    '0': 0x30, '1': 0x31, '2': 0x32, '3': 0x33, '4': 0x34, '5': 0x35,
+    '6': 0x36, '7': 0x37, '8': 0x38, '9': 0x39,
+    'f1': 0x70, 'f2': 0x71, 'f3': 0x72, 'f4': 0x73, 'f5': 0x74, 'f6': 0x75,
+    'f7': 0x76, 'f8': 0x77, 'f9': 0x78, 'f10': 0x79, 'f11': 0x7A, 'f12': 0x7B,
+    'esc': 0x1B, 'escape': 0x1B,
+    'enter': 0x0D, 'return': 0x0D,
+    'tab': 0x09,
+    'space': 0x20, ' ': 0x20,
+    'backspace': 0x08, '\b': 0x08,
+    'delete': 0x2E, 'del': 0x2E,
+    'insert': 0x2D,
+    'home': 0x24, 'end': 0x23,
+    'pageup': 0x21, 'pgup': 0x21,
+    'pagedown': 0x22, 'pgdn': 0x22,
+    'shift': 0x10, 'ctrl': 0x11, 'alt': 0x12,
+    'win': 0x5B, 'winleft': 0x5B, 'winright': 0x5C,
+    'up': 0x26, 'down': 0x28, 'left': 0x25, 'right': 0x27,
+}
+
+
+def _force_layout_independent_vk_mapping():
+    keycodes_module = getattr(interception, "_keycodes", None)
+    if keycodes_module is None:
+        return
+
+    keycodes_module._MAPPING.update(FIXED_VK_MAP)
+    keycodes_module.get_key_information.cache_clear()
+
+
+_force_layout_independent_vk_mapping()
+
+
+def _initialize_interception_devices():
+    try:
+        interception.auto_capture_devices(keyboard=True, mouse=True, verbose=False)
+    except Exception:
+        # Keep defaults if probing fails; diagnostics can still be collected later.
+        pass
+
+
+def get_interception_diagnostics():
+    report = {
+        "context_valid": False,
+        "device_count": 0,
+        "mouse_device": None,
+        "keyboard_device": None,
+        "mouse_hwid": None,
+        "keyboard_hwid": None,
+        "mouse_write_ok": False,
+        "errors": [],
+    }
+
+    try:
+        context = interception.inputs._g_context
+        report["context_valid"] = bool(context.valid)
+        report["device_count"] = len(context.devices)
+    except Exception as exc:
+        report["errors"].append(f"context_access_failed: {exc}")
+        return report
+
+    if not report["context_valid"]:
+        report["errors"].append("driver_not_valid")
+        return report
+
+    try:
+        report["mouse_device"] = context.mouse
+        report["keyboard_device"] = context.keyboard
+    except Exception as exc:
+        report["errors"].append(f"device_selection_failed: {exc}")
+
+    try:
+        report["mouse_hwid"] = context.devices[context.mouse].get_HWID()
+    except Exception as exc:
+        report["errors"].append(f"mouse_hwid_failed: {exc}")
+
+    try:
+        report["keyboard_hwid"] = context.devices[context.keyboard].get_HWID()
+    except Exception as exc:
+        report["errors"].append(f"keyboard_hwid_failed: {exc}")
+
+    try:
+        # No-op relative move verifies IOCTL write path without visible movement.
+        stroke = MouseStroke(MouseFlag.MOUSE_MOVE_RELATIVE, 0, 0, 0, 0)
+        result = context.send(context.mouse, stroke)
+        report["mouse_write_ok"] = bool(result.succeeded)
+        if not result.succeeded:
+            report["errors"].append("mouse_write_failed")
+    except Exception as exc:
+        report["errors"].append(f"mouse_write_exception: {exc}")
+
+    return report
+
+
+def format_interception_diagnostics(report=None):
+    if report is None:
+        report = get_interception_diagnostics()
+
+    lines = [
+        "Interception Diagnostics",
+        f"  context_valid : {report.get('context_valid')}",
+        f"  device_count  : {report.get('device_count')}",
+        f"  mouse_device  : {report.get('mouse_device')}",
+        f"  keyboard_device: {report.get('keyboard_device')}",
+        f"  mouse_write_ok: {report.get('mouse_write_ok')}",
+    ]
+
+    mouse_hwid = report.get('mouse_hwid')
+    keyboard_hwid = report.get('keyboard_hwid')
+    lines.append(f"  mouse_hwid    : {mouse_hwid if mouse_hwid else 'None'}")
+    lines.append(f"  keyboard_hwid : {keyboard_hwid if keyboard_hwid else 'None'}")
+
+    errors = report.get('errors') or []
+    if errors:
+        lines.append("  errors:")
+        for err in errors:
+            lines.append(f"    - {err}")
+    else:
+        lines.append("  errors        : none")
+
+    return "\n".join(lines)
+
+_initialize_interception_devices()
+
+print(format_interception_diagnostics())
 
 class BITMAPINFOHEADER(ctypes.Structure):
     _fields_ = [
@@ -85,60 +222,6 @@ def screenshot(imageFilename=None, region=None, allScreens=False):
 user32 = ctypes.windll.user32
 kernel32 = ctypes.windll.kernel32
 
-# Constants
-MOUSEEVENTF_MOVE = 0x0001
-SM_SWAPBUTTON = 23
-MOUSEEVENTF_LEFTDOWN = 0x0002
-MOUSEEVENTF_LEFTUP = 0x0004
-MOUSEEVENTF_RIGHTDOWN = 0x0008
-MOUSEEVENTF_RIGHTUP = 0x0010
-MOUSEEVENTF_MIDDLEDOWN = 0x0020
-MOUSEEVENTF_MIDDLEUP = 0x0040
-MOUSEEVENTF_WHEEL = 0x0800
-MOUSEEVENTF_ABSOLUTE = 0x8000
-
-INPUT_MOUSE = 0
-INPUT_KEYBOARD = 1
-KEYEVENTF_KEYUP = 0x0002
-KEYEVENTF_SCANCODE = 0x0008
-
-if ctypes.sizeof(ctypes.c_void_p) == 8:  # 64-bit system
-    ULONG_PTR = ctypes.c_ulonglong
-else:  # 32-bit system
-    ULONG_PTR = ctypes.c_ulong
-
-# Structures
-class MOUSEINPUT(ctypes.Structure):
-    _fields_ = [
-        ("dx", wintypes.LONG),
-        ("dy", wintypes.LONG),
-        ("mouseData", wintypes.DWORD),
-        ("dwFlags", wintypes.DWORD),
-        ("time", wintypes.DWORD),
-        ("dwExtraInfo", ULONG_PTR)
-    ]
-
-class KEYBDINPUT(ctypes.Structure):
-    _fields_ = [
-        ("wVk", wintypes.WORD),
-        ("wScan", wintypes.WORD),
-        ("dwFlags", wintypes.DWORD),
-        ("time", wintypes.DWORD),
-        ("dwExtraInfo", ULONG_PTR)
-    ]
-
-class INPUT_UNION(ctypes.Union):
-    _fields_ = [
-        ("mi", MOUSEINPUT),
-        ("ki", KEYBDINPUT)
-    ]
-
-class INPUT(ctypes.Structure):
-    _fields_ = [
-        ("type", wintypes.DWORD),
-        ("union", INPUT_UNION)
-    ]
-
 # Tweening functions
 def linear(t):
     return t
@@ -194,53 +277,15 @@ def center(target=None):
         width, height = get_screen_size()
         return (width // 2, height // 2)
 
-def _to_absolute(x, y):
-    width, height = get_screen_size()
-    return int((x * 65535) / width), int((y * 65535) / height)
-
 def _human_delay(min_delay=0.01, max_delay=0.03):
     time.sleep(random.uniform(min_delay, max_delay))
 
 def mouseDown(button='left', delay=0.09):
-    swapped = user32.GetSystemMetrics(SM_SWAPBUTTON)
-    flags = {
-        'left': MOUSEEVENTF_LEFTDOWN if not swapped else MOUSEEVENTF_RIGHTDOWN,
-        'right': MOUSEEVENTF_RIGHTDOWN if not swapped else MOUSEEVENTF_LEFTDOWN,
-        'middle': MOUSEEVENTF_MIDDLEDOWN
-    }.get(button.lower(), MOUSEEVENTF_LEFTDOWN)
-    
-    inputs = [
-        INPUT(type=INPUT_MOUSE, union=INPUT_UNION(mi=MOUSEINPUT(
-            dx=0,
-            dy=0,
-            mouseData=0,
-            dwFlags=flags | MOUSEEVENTF_ABSOLUTE,
-            time=0,
-            dwExtraInfo=0
-        )))
-    ]
-    user32.SendInput(1, ctypes.byref(inputs[0]), ctypes.sizeof(INPUT))
+    interception.mouse_down(button=button, delay=delay)
     _human_delay(delay, delay + 0.02)
 
 def mouseUp(button='left', delay=0.09):
-    swapped = user32.GetSystemMetrics(SM_SWAPBUTTON)
-    flags = {
-        'left': MOUSEEVENTF_LEFTUP if not swapped else MOUSEEVENTF_RIGHTUP,
-        'right': MOUSEEVENTF_RIGHTUP if not swapped else MOUSEEVENTF_LEFTUP,
-        'middle': MOUSEEVENTF_MIDDLEUP
-    }.get(button.lower(), MOUSEEVENTF_LEFTUP)
-    
-    inputs = [
-        INPUT(type=INPUT_MOUSE, union=INPUT_UNION(mi=MOUSEINPUT(
-            dx=0,
-            dy=0,
-            mouseData=0,
-            dwFlags=flags | MOUSEEVENTF_ABSOLUTE,
-            time=0,
-            dwExtraInfo=0
-        )))
-    ]
-    user32.SendInput(1, ctypes.byref(inputs[0]), ctypes.sizeof(INPUT))
+    interception.mouse_up(button=button, delay=delay)
     _human_delay(delay, delay + 0.02)
 
 
@@ -255,6 +300,23 @@ class PauseException(Exception):
 # Global fail-safe settings
 FAILSAFE = True
 FAILSAFE_ENABLED = True
+
+def randomize_delay(base_delay):
+    """Add randomness to timing patterns"""
+    return randomize_with_profile(base_delay)
+
+
+def _apply_macro_rhythm(profile=None):
+    profile = profile or get_macro_profile()
+    pause, (dx, dy) = maybe_rhythm_jitter(profile)
+
+    if dx != 0 or dy != 0:
+        cur_x, cur_y = get_position()
+        interception.move_to(cur_x + dx, cur_y + dy, allow_global_params=False)
+        _human_delay(0.004, 0.012)
+
+    if pause > 0:
+        time.sleep(pause)
 
 def set_failsafe(state=True):
     """Enable or disable the fail-safe feature"""
@@ -273,78 +335,84 @@ def _fail_safe_check():
         raise PauseException(name)
 
 
-def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True):
+def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.11, humanize=True,
+           mouse_velocity=0.65, noise=2.6, offset_x=0, offset_y=0):
     _fail_safe_check()
-    
-    duration += delay  # Emulating pyautogui delay
-    start_x, start_y = get_position()
-    steps = max(2, int(duration * 100))
-    
-    # Human-like movement parameters
+
+    profile = get_macro_profile()
     if humanize:
-        curve_intensity = random.uniform(0.3, 0.7)  # How much the path curves
-        jitter_frequency = random.randint(3, 7)     # How many small deviations
-        jitter_magnitude = random.uniform(0.5, 2.0) # How strong the deviations are
+        delay = randomize_with_profile(delay, profile=profile, key="delay_jitter")
     
-    for i in range(steps):
-        progress = tween(i / (steps - 1))
-        
-        # Base linear movement
-        linear_x = start_x + (x - start_x) * progress
-        linear_y = start_y + (y - start_y) * progress
-        
-        if humanize and duration > 0.1:  # Only humanize longer movements
-            # Add curved path deviation
-            curve_progress = math.sin(progress * math.pi)
-            curve_offset_x = (y - start_y) * curve_intensity * curve_progress * 0.3
-            curve_offset_y = (x - start_x) * curve_intensity * curve_progress * -0.3
-            
-            # Add small random jitters
-            jitter_x = (math.sin(i * jitter_frequency) * 
-                       (x - start_x) * 0.01 * jitter_magnitude)
-            jitter_y = (math.cos(i * jitter_frequency) * 
-                       (y - start_y) * 0.01 * jitter_magnitude)
-            
-            current_x = linear_x + curve_offset_x + jitter_x
-            current_y = linear_y + curve_offset_y + jitter_y
-        else:
-            current_x = linear_x
-            current_y = linear_y
-        
-        # Ensure we don't overshoot the target
-        current_x = min(max(current_x, min(start_x, x)), max(start_x, x))
-        current_y = min(max(current_y, min(start_y, y)), max(start_y, y))
-        
-        abs_x, abs_y = _to_absolute(current_x, current_y)
-        inputs = [
-            INPUT(type=INPUT_MOUSE, union=INPUT_UNION(mi=MOUSEINPUT(
-                dx=abs_x,
-                dy=abs_y,
-                mouseData=0,
-                dwFlags=MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE,
-                time=0,
-                dwExtraInfo=0
-            )))
-        ]
-        user32.SendInput(1, ctypes.byref(inputs[0]), ctypes.sizeof(INPUT))
-        
-        if i < steps - 1:
-            # Variable speed during movement
-            if humanize:
-                # Randomize sleep time slightly
-                sleep_time = duration / steps * random.uniform(0.8, 1.2)
+    duration += delay
+    start_x, start_y = get_position()
+
+    if mouse_velocity == 0.65:
+        mouse_velocity = profile["mouse_velocity"]
+    if noise == 2.6:
+        noise = profile["noise"]
+
+    if humanize:
+        endpoint_jitter = profile["endpoint_jitter_px"]
+        x += random.randint(-endpoint_jitter, endpoint_jitter)
+        y += random.randint(-endpoint_jitter, endpoint_jitter)
+
+        gen = PDPathGenerator()
+        path, progress, steps, params = gen.generate_path(
+            start_x=start_x, start_y=start_y,
+            end_x=x, end_y=y,
+            mouse_velocity=mouse_velocity,
+            noise=noise,
+            offset_x=offset_x, offset_y=offset_y
+        )
+
+        total_duration = params.get('duration', duration)
+        step_delay = total_duration / steps if steps > 0 else 0.01
+        step_jitter_min, step_jitter_max = profile["step_sleep_jitter"]
+
+        for i, (cur_x, cur_y) in enumerate(path):
+            interception.move_to(cur_x, cur_y, allow_global_params=False)
+
+            if i < steps - 1:
+                sleep_time = step_delay * random.uniform(step_jitter_min, step_jitter_max)
                 time.sleep(max(0.001, sleep_time))
-            else:
-                time.sleep(duration / steps)
-    
-    # Final small delay with randomization
-    final_delay = random.uniform(0.02, 0.05) if humanize else 0.03
+
+    else:
+        distance = math.hypot(x - start_x, y - start_y)
+        time_steps = max(2, int(duration * 400))
+        distance_steps = int(distance / 1)
+        steps = max(3, min(max(time_steps, distance_steps), 1000))
+
+        for i in range(steps):
+            progress = tween(i / (steps - 1))
+            current_x = start_x + (x - start_x) * progress
+            current_y = start_y + (y - start_y) * progress
+
+            # Clamp to avoid overshoot
+            current_x = min(max(current_x, min(start_x, x)), max(start_x, x))
+            current_y = min(max(current_y, min(start_y, y)), max(start_y, y))
+
+            interception.move_to(current_x, current_y, allow_global_params=False)
+
+            step_sleep = duration / (steps - 1)
+            if i < steps - 1 and step_sleep > 0:
+                time.sleep(step_sleep)
+
+    human_final_min, human_final_max = profile["final_delay_human"]
+    nonhuman_final_min, nonhuman_final_max = profile["final_delay_nonhuman"]
+    final_delay = (
+        random.uniform(human_final_min, human_final_max)
+        if humanize
+        else random.uniform(nonhuman_final_min, nonhuman_final_max)
+    )
     time.sleep(final_delay)
-    _fail_safe_check()  
+    _fail_safe_check()
 
 
 def click(x=None, y=None, button='left', clicks=1, interval=0.1, duration=0.0, tween=easeInOutQuad, delay=0.03):
     _fail_safe_check()
+    profile = get_macro_profile()
+    _apply_macro_rhythm(profile)
+    delay = randomize_with_profile(delay, profile=profile, key="delay_jitter")
     
     if x is not None and y is not None:
         moveTo(x, y, duration, tween, delay=delay+0.02)
@@ -362,12 +430,13 @@ def click(x=None, y=None, button='left', clicks=1, interval=0.1, duration=0.0, t
         mouseUp(button, delay=delay)
         
         if interval > 0 and i < clicks - 1:
-            time.sleep(interval)
+            time.sleep(randomize_with_profile(interval, profile=profile, key="click_interval_jitter"))
             _fail_safe_check()
 
 
 def dragTo(x, y, duration=0.1, tween=easeInOutQuad, button='left', start_x=None, start_y=None):
-    _fail_safe_check() 
+    _fail_safe_check()
+    _apply_macro_rhythm()
     
     if start_x is not None and start_y is not None:
         moveTo(start_x, start_y)
@@ -378,92 +447,24 @@ def dragTo(x, y, duration=0.1, tween=easeInOutQuad, button='left', start_x=None,
     _fail_safe_check()
 
 def scroll(clicks, x=None, y=None):
+    _apply_macro_rhythm()
     if x is not None and y is not None:
         moveTo(x, y)
     
-    inputs = [
-        INPUT(type=INPUT_MOUSE, union=INPUT_UNION(mi=MOUSEINPUT(
-            dx=0,
-            dy=0,
-            mouseData=clicks * 120,
-            dwFlags=MOUSEEVENTF_WHEEL,
-            time=0,
-            dwExtraInfo=0
-        )))
-    ]
-    user32.SendInput(1, ctypes.byref(inputs[0]), ctypes.sizeof(INPUT))
+    direction = "up" if clicks > 0 else "down"
+    interception.scroll(direction)
     _human_delay()
 
-# Keyboard functions
-VK_MAP = {
-    'a': 0x41, 'b': 0x42, 'c': 0x43, 'd': 0x44, 'e': 0x45, 'f': 0x46,
-    'g': 0x47, 'h': 0x48, 'i': 0x49, 'j': 0x4A, 'k': 0x4B, 'l': 0x4C,
-    'm': 0x4D, 'n': 0x4E, 'o': 0x4F, 'p': 0x50, 'q': 0x51, 'r': 0x52,
-    's': 0x53, 't': 0x54, 'u': 0x55, 'v': 0x56, 'w': 0x57, 'x': 0x58,
-    'y': 0x59, 'z': 0x5A,
-    '0': 0x30, '1': 0x31, '2': 0x32, '3': 0x33, '4': 0x34, '5': 0x35,
-    '6': 0x36, '7': 0x37, '8': 0x38, '9': 0x39,
-    'f1': 0x70, 'f2': 0x71, 'f3': 0x72, 'f4': 0x73, 'f5': 0x74, 'f6': 0x75,
-    'f7': 0x76, 'f8': 0x77, 'f9': 0x78, 'f10': 0x79, 'f11': 0x7A, 'f12': 0x7B,
-    'esc': 0x1B, 'enter': 0x0D, 'tab': 0x09, 'space': 0x20, 'backspace': 0x08,
-    'delete': 0x2E, 'insert': 0x2D, 'home': 0x24, 'end': 0x23, 'pageup': 0x21,
-    'pagedown': 0x22, 'shift': 0x10, 'ctrl': 0x11, 'alt': 0x12, 'win': 0x5B,
-    'up': 0x26, 'down': 0x28, 'left': 0x25, 'right': 0x27
-}
 
 def press(keys, presses=1, interval=0.1, delay=0.01):
-    for _ in range(presses):
-        if isinstance(keys, str):
-            keys = [keys]
-        
-        # Press down
-        for key in keys:
-            vk = VK_MAP.get(key.lower(), 0)
-            if vk:
-                inputs = [
-                    INPUT(type=INPUT_KEYBOARD, union=INPUT_UNION(ki=KEYBDINPUT(
-                        wVk=vk,
-                        wScan=user32.MapVirtualKeyW(vk, 0),
-                        dwFlags=KEYEVENTF_SCANCODE,
-                        time=0,
-                        dwExtraInfo=0
-                    )))
-                ]
-                user32.SendInput(1, ctypes.byref(inputs[0]), ctypes.sizeof(INPUT))
-                time.sleep(delay)
-        
-        # Release keys in reverse order
-        for key in reversed(keys):
-            vk = VK_MAP.get(key.lower(), 0)
-            if vk:
-                inputs = [
-                    INPUT(type=INPUT_KEYBOARD, union=INPUT_UNION(ki=KEYBDINPUT(
-                        wVk=vk,
-                        wScan=user32.MapVirtualKeyW(vk, 0),
-                        dwFlags=KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP,
-                        time=0,
-                        dwExtraInfo=0
-                    )))
-                ]
-                user32.SendInput(1, ctypes.byref(inputs[0]), ctypes.sizeof(INPUT))
-                time.sleep(delay)
-        
-        if interval > 0 and _ < presses - 1:
-            time.sleep(interval)
+    profile = get_macro_profile()
+    _apply_macro_rhythm(profile)
+    time.sleep(randomize_with_profile(delay, profile=profile, key="delay_jitter"))
+    interval = randomize_with_profile(interval, profile=profile, key="key_interval_jitter")
+    interception.press(keys, presses=presses, interval=interval)
 
 def hotkey(*args, **kwargs):
     press(list(args), **kwargs)
-
-# Anti-cheat enhancements
-def add_mouse_jitter(max_offset=5):
-    """Add small random movement to avoid perfect straight lines"""
-    x, y = get_position()
-    jitter = random.randint(-max_offset, max_offset)
-    moveTo(x + jitter, y + jitter, duration=0.05)
-
-def randomize_delay(base_delay):
-    """Add randomness to timing patterns"""
-    return base_delay * random.uniform(0.8, 1.2)
 
 
 def check_window():
