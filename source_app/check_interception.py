@@ -6,15 +6,7 @@ DRIVER_INSTALLER = os.path.join(Bot.BASE_PATH, "drivers/install-interception.exe
 def _is_interception_driver_installed():
     try:
         import interception
-
-        context = getattr(interception, "_g_context", None)
-        if context is None:
-            interception_cls = getattr(interception, "Interception", None)
-            if interception_cls is None:
-                return False
-            context = interception_cls()
-
-        return bool(getattr(context, "valid", False))
+        return interception.inputs._g_context.valid
     except Exception:
         return False
 

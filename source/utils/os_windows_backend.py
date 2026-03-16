@@ -8,8 +8,141 @@ import source.utils.params as p
 from source.utils.profiles import get_macro_profile, maybe_rhythm_jitter, randomize_with_profile
 
 import interception
+from interception.strokes import MouseStroke
+from interception.constants import MouseFlag
 from pathgenerator import PDPathGenerator
 
+
+FIXED_VK_MAP = {
+    'a': 0x41, 'b': 0x42, 'c': 0x43, 'd': 0x44, 'e': 0x45, 'f': 0x46,
+    'g': 0x47, 'h': 0x48, 'i': 0x49, 'j': 0x4A, 'k': 0x4B, 'l': 0x4C,
+    'm': 0x4D, 'n': 0x4E, 'o': 0x4F, 'p': 0x50, 'q': 0x51, 'r': 0x52,
+    's': 0x53, 't': 0x54, 'u': 0x55, 'v': 0x56, 'w': 0x57, 'x': 0x58,
+    'y': 0x59, 'z': 0x5A,
+    '0': 0x30, '1': 0x31, '2': 0x32, '3': 0x33, '4': 0x34, '5': 0x35,
+    '6': 0x36, '7': 0x37, '8': 0x38, '9': 0x39,
+    'f1': 0x70, 'f2': 0x71, 'f3': 0x72, 'f4': 0x73, 'f5': 0x74, 'f6': 0x75,
+    'f7': 0x76, 'f8': 0x77, 'f9': 0x78, 'f10': 0x79, 'f11': 0x7A, 'f12': 0x7B,
+    'esc': 0x1B, 'escape': 0x1B,
+    'enter': 0x0D, 'return': 0x0D,
+    'tab': 0x09,
+    'space': 0x20, ' ': 0x20,
+    'backspace': 0x08, '\b': 0x08,
+    'delete': 0x2E, 'del': 0x2E,
+    'insert': 0x2D,
+    'home': 0x24, 'end': 0x23,
+    'pageup': 0x21, 'pgup': 0x21,
+    'pagedown': 0x22, 'pgdn': 0x22,
+    'shift': 0x10, 'ctrl': 0x11, 'alt': 0x12,
+    'win': 0x5B, 'winleft': 0x5B, 'winright': 0x5C,
+    'up': 0x26, 'down': 0x28, 'left': 0x25, 'right': 0x27,
+}
+
+
+def _force_layout_independent_vk_mapping():
+    keycodes_module = getattr(interception, "_keycodes", None)
+    if keycodes_module is None:
+        return
+
+    keycodes_module._MAPPING.update(FIXED_VK_MAP)
+    keycodes_module.get_key_information.cache_clear()
+
+
+_force_layout_independent_vk_mapping()
+
+
+def _initialize_interception_devices():
+    try:
+        interception.auto_capture_devices(keyboard=True, mouse=True, verbose=False)
+    except Exception:
+        # Keep defaults if probing fails; diagnostics can still be collected later.
+        pass
+
+
+def get_interception_diagnostics():
+    report = {
+        "context_valid": False,
+        "device_count": 0,
+        "mouse_device": None,
+        "keyboard_device": None,
+        "mouse_hwid": None,
+        "keyboard_hwid": None,
+        "mouse_write_ok": False,
+        "errors": [],
+    }
+
+    try:
+        context = interception.inputs._g_context
+        report["context_valid"] = bool(context.valid)
+        report["device_count"] = len(context.devices)
+    except Exception as exc:
+        report["errors"].append(f"context_access_failed: {exc}")
+        return report
+
+    if not report["context_valid"]:
+        report["errors"].append("driver_not_valid")
+        return report
+
+    try:
+        report["mouse_device"] = context.mouse
+        report["keyboard_device"] = context.keyboard
+    except Exception as exc:
+        report["errors"].append(f"device_selection_failed: {exc}")
+
+    try:
+        report["mouse_hwid"] = context.devices[context.mouse].get_HWID()
+    except Exception as exc:
+        report["errors"].append(f"mouse_hwid_failed: {exc}")
+
+    try:
+        report["keyboard_hwid"] = context.devices[context.keyboard].get_HWID()
+    except Exception as exc:
+        report["errors"].append(f"keyboard_hwid_failed: {exc}")
+
+    try:
+        # No-op relative move verifies IOCTL write path without visible movement.
+        stroke = MouseStroke(MouseFlag.MOUSE_MOVE_RELATIVE, 0, 0, 0, 0)
+        result = context.send(context.mouse, stroke)
+        report["mouse_write_ok"] = bool(result.succeeded)
+        if not result.succeeded:
+            report["errors"].append("mouse_write_failed")
+    except Exception as exc:
+        report["errors"].append(f"mouse_write_exception: {exc}")
+
+    return report
+
+
+def format_interception_diagnostics(report=None):
+    if report is None:
+        report = get_interception_diagnostics()
+
+    lines = [
+        "Interception Diagnostics",
+        f"  context_valid : {report.get('context_valid')}",
+        f"  device_count  : {report.get('device_count')}",
+        f"  mouse_device  : {report.get('mouse_device')}",
+        f"  keyboard_device: {report.get('keyboard_device')}",
+        f"  mouse_write_ok: {report.get('mouse_write_ok')}",
+    ]
+
+    mouse_hwid = report.get('mouse_hwid')
+    keyboard_hwid = report.get('keyboard_hwid')
+    lines.append(f"  mouse_hwid    : {mouse_hwid if mouse_hwid else 'None'}")
+    lines.append(f"  keyboard_hwid : {keyboard_hwid if keyboard_hwid else 'None'}")
+
+    errors = report.get('errors') or []
+    if errors:
+        lines.append("  errors:")
+        for err in errors:
+            lines.append(f"    - {err}")
+    else:
+        lines.append("  errors        : none")
+
+    return "\n".join(lines)
+
+_initialize_interception_devices()
+
+print(format_interception_diagnostics())
 
 class BITMAPINFOHEADER(ctypes.Structure):
     _fields_ = [
