@@ -227,7 +227,7 @@ def move():
     p.DEAD = len([gui.center(box) for box in LocateRGB.locate_all(PTH["0"], region=REG["alldead"], conf=0.9, threshold=40)])
     print(f"{p.DEAD} dead sinners")
     if p.DEAD >= len(p.SELECTED):
-        gui.press("Esc")
+        gui.press("esc")
         time.sleep(0.5)
         chain_actions(click, [
             Action("forfeit"),
@@ -244,7 +244,10 @@ def move():
         Dante = zoom(-1)
         comp = 0.86 # image compression is on
         if Dante is None and find_bus(): hook()
-        if Dante is None: Dante = zoom(1)
+        if Dante is None: 
+            x, y = random.choice([(205, 201), (1710, 205), (201, 875), (1714, 881)])
+            win_moveTo(x, y)
+            Dante = zoom(1)
         if Dante is None: return False
     
     position(Dante)

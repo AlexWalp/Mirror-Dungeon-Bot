@@ -685,7 +685,7 @@ def handle_fuckup():
     if p.LIMBUS_NAME in gui.getActiveWindowTitle():
         gui.set_window()
         win_click(1888, 901)
-        gui.press("Esc")
-        gui.press("Esc")
+        gui.press("esc")
+        gui.press("esc")
         if loc.button("forfeit", wait=1):
-            gui.press("Esc")
+            gui.press("esc")

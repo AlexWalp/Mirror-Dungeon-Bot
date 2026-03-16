@@ -64,14 +64,14 @@ def grind_lux(count_exp, count_thd, teams):
 
             if now.button("victory"):
                 time.sleep(0.5)
-                gui.press("Esc")
+                gui.press("esc")
                 if loc.button("Exp"):
                     count_exp-= 1
             elif now.button("defeat"):
                 time.sleep(0.5)
                 if not p.RESTART:
                     raise RuntimeError("Luxcavation failed!")
-                gui.press("Enter")
+                gui.press("enter")
         except gui.PauseException as e:
             pause(e.window)
 
@@ -102,20 +102,20 @@ def grind_lux(count_exp, count_thd, teams):
 
             if now.button("victory"):
                 time.sleep(0.5)
-                gui.press("Esc")
+                gui.press("esc")
                 if loc.button("Exp"):
                     count_thd -= 1
             elif now.button("defeat"):
                 time.sleep(0.5)
                 if not p.RESTART:
                     raise RuntimeError("Luxcavation failed!")
-                gui.press("Enter")
+                gui.press("enter")
         except gui.PauseException as e:
             pause(e.window)
 
     wait_while_condition(lambda: not now.button("Exp"))
     time.sleep(1)
-    gui.press("Esc")
+    gui.press("esc")
     if p.BONUS: collect_dailies()
     logging.info("Done with Luxcavation!")
 
@@ -128,7 +128,7 @@ def collect_dailies():
         lambda: 0 < len(LocateRGB.locate_all(PTH["collect"], region=REG["collect"], threshold=50)),
         click_collect
     )
-    gui.press("Esc")
+    gui.press("esc")
 
 def click_collect():
     now_click.button("collect")

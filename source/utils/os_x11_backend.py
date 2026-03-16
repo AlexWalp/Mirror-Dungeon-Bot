@@ -6,7 +6,9 @@ import mss
 from evdev import UInput, ecodes as e
 from Xlib import X, display
 import numpy as np, time, math, random
+from pathgenerator import PDPathGenerator
 import source.utils.params as p
+from source.utils.profiles import get_macro_profile, maybe_rhythm_jitter, randomize_with_profile
 
 # Tweening functions
 def linear(t):
@@ -284,13 +286,13 @@ def mouseDown(button='left', delay=0.09):
     _btn = _BUTTON_MAP.get(button.lower(), e.BTN_LEFT)
     _ui.write(e.EV_KEY, _btn, 1)
     _ui.syn()
-    time.sleep(delay)
+    _human_delay(delay, delay + 0.02)
 
 def mouseUp(button='left', delay=0.09):
     _btn = _BUTTON_MAP.get(button.lower(), e.BTN_LEFT)
     _ui.write(e.EV_KEY, _btn, 0)
     _ui.syn()
-    time.sleep(delay)
+    _human_delay(delay, delay + 0.02)
 
 def _to_absolute(x, y):
     """For X, absolute coords are pixel coordinates (no 0..65535 scaling)."""
@@ -299,63 +301,98 @@ def _to_absolute(x, y):
 def _human_delay(min_delay=0.01, max_delay=0.03):
     time.sleep(random.uniform(min_delay, max_delay))
 
-def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True):
+
+def _apply_macro_rhythm(profile=None):
+    profile = profile or get_macro_profile()
+    pause, (dx, dy) = maybe_rhythm_jitter(profile)
+
+    if dx != 0 or dy != 0:
+        _ui.write(e.EV_REL, e.REL_X, dx)
+        _ui.write(e.EV_REL, e.REL_Y, dy)
+        _ui.syn()
+        _human_delay(0.004, 0.012)
+
+    if pause > 0:
+        time.sleep(pause)
+
+def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True,
+           mouse_velocity=0.65, noise=2.6, offset_x=0, offset_y=0):
     _fail_safe_check()
 
-    duration += delay  # emulate pyautogui delay
-    start_x, start_y = get_position()
-    steps = max(2, int(duration * 100))
-
-    # Human-like movement parameters
+    profile = get_macro_profile()
     if humanize:
-        curve_intensity = random.uniform(0.3, 0.7)
-        jitter_frequency = random.randint(3, 7)
-        jitter_magnitude = random.uniform(0.5, 2.0)
+        delay = randomize_with_profile(delay, profile=profile, key="delay_jitter")
+    
+    duration += delay
+    start_x, start_y = get_position()
 
-    for i in range(steps):
-        progress = tween(i / (steps - 1))
+    if mouse_velocity == 0.65:
+        mouse_velocity = profile["mouse_velocity"]
+    if noise == 2.6:
+        noise = profile["noise"]
 
-        linear_x = start_x + (x - start_x) * progress
-        linear_y = start_y + (y - start_y) * progress
+    if humanize:
+        endpoint_jitter = profile["endpoint_jitter_px"]
+        x += random.randint(-endpoint_jitter, endpoint_jitter)
+        y += random.randint(-endpoint_jitter, endpoint_jitter)
 
-        if humanize and duration > 0.1:
-            curve_progress = math.sin(progress * math.pi)
-            curve_offset_x = (y - start_y) * curve_intensity * curve_progress * 0.3
-            curve_offset_y = (x - start_x) * curve_intensity * curve_progress * -0.3
+        gen = PDPathGenerator()
+        path, progress, steps, params = gen.generate_path(
+            start_x=start_x, start_y=start_y,
+            end_x=x, end_y=y,
+            mouse_velocity=mouse_velocity,
+            noise=noise,
+            offset_x=offset_x, offset_y=offset_y
+        )
 
-            jitter_x = (math.sin(i * jitter_frequency) *
-                       (x - start_x) * 0.01 * jitter_magnitude)
-            jitter_y = (math.cos(i * jitter_frequency) *
-                       (y - start_y) * 0.01 * jitter_magnitude)
+        total_duration = params.get('duration', duration)
+        step_delay = total_duration / steps if steps > 0 else 0.01
+        step_jitter_min, step_jitter_max = profile["step_sleep_jitter"]
 
-            current_x = linear_x + curve_offset_x + jitter_x
-            current_y = linear_y + curve_offset_y + jitter_y
-        else:
-            current_x = linear_x
-            current_y = linear_y
+        for i, (cur_x, cur_y) in enumerate(path):
+            target_abs_x, target_abs_y = _to_absolute(cur_x, cur_y)
+            actual_x, actual_y = get_position()
 
-        # clamp
-        current_x = min(max(current_x, min(start_x, x)), max(start_x, x))
-        current_y = min(max(current_y, min(start_y, y)), max(start_y, y))
+            dx = target_abs_x - actual_x
+            dy = target_abs_y - actual_y
 
-        target_abs_x, target_abs_y = _to_absolute(current_x, current_y)
-        actual_x, actual_y = get_position() 
-        
-        dx = target_abs_x - actual_x
-        dy = target_abs_y - actual_y
-        
-        if dx != 0 or dy != 0:
-            _ui.write(e.EV_REL, e.REL_X, dx)
-            _ui.write(e.EV_REL, e.REL_Y, dy)
-            _ui.syn()
-            time.sleep(0.002)
+            if dx != 0 or dy != 0:
+                _ui.write(e.EV_REL, e.REL_X, dx)
+                _ui.write(e.EV_REL, e.REL_Y, dy)
+                _ui.syn()
 
-        if i < steps - 1:
-            if humanize:
-                sleep_time = duration / steps * random.uniform(0.8, 1.2)
+            if i < steps - 1:
+                sleep_time = step_delay * random.uniform(step_jitter_min, step_jitter_max)
                 time.sleep(max(0.001, sleep_time))
-            else:
-                time.sleep(duration / steps)
+    else:
+        distance = math.hypot(x - start_x, y - start_y)
+        time_steps = max(2, int(duration * 400))
+        distance_steps = int(distance / 1)
+        steps = max(3, min(max(time_steps, distance_steps), 1000))
+
+        for i in range(steps):
+            progress = tween(i / (steps - 1))
+            current_x = start_x + (x - start_x) * progress
+            current_y = start_y + (y - start_y) * progress
+
+            # Clamp to avoid overshoot.
+            current_x = min(max(current_x, min(start_x, x)), max(start_x, x))
+            current_y = min(max(current_y, min(start_y, y)), max(start_y, y))
+
+            target_abs_x, target_abs_y = _to_absolute(current_x, current_y)
+            actual_x, actual_y = get_position()
+
+            dx = target_abs_x - actual_x
+            dy = target_abs_y - actual_y
+
+            if dx != 0 or dy != 0:
+                _ui.write(e.EV_REL, e.REL_X, dx)
+                _ui.write(e.EV_REL, e.REL_Y, dy)
+                _ui.syn()
+
+            step_sleep = duration / (steps - 1)
+            if i < steps - 1 and step_sleep > 0:
+                time.sleep(step_sleep)
 
     timeout_start = time.time()
     while time.time() - timeout_start < 0.5:
@@ -372,12 +409,22 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True):
         
         time.sleep(0.005)
 
-    final_delay = random.uniform(0.02, 0.05) if humanize else 0.03
+    human_final_min, human_final_max = profile["final_delay_human"]
+    nonhuman_final_min, nonhuman_final_max = profile["final_delay_nonhuman"]
+    final_delay = (
+        random.uniform(human_final_min, human_final_max)
+        if humanize
+        else random.uniform(nonhuman_final_min, nonhuman_final_max)
+    )
     time.sleep(final_delay)
     _fail_safe_check()
 
 def click(x=None, y=None, button='left', clicks=1, interval=0.1, duration=0.0, tween=easeInOutQuad, delay=0.03):
     _fail_safe_check()
+    profile = get_macro_profile()
+    _apply_macro_rhythm(profile)
+    delay = randomize_with_profile(delay, profile=profile, key="delay_jitter")
+
     if x is not None and y is not None:
         moveTo(x, y, duration, tween, delay=delay+0.02)
     elif duration > 0:
@@ -391,11 +438,12 @@ def click(x=None, y=None, button='left', clicks=1, interval=0.1, duration=0.0, t
         mouseDown(button, delay=delay)
         mouseUp(button, delay=delay)
         if interval > 0 and i < clicks - 1:
-            time.sleep(interval)
+            time.sleep(randomize_with_profile(interval, profile=profile, key="click_interval_jitter"))
             _fail_safe_check()
 
 def dragTo(x, y, duration=0.1, tween=easeInOutQuad, button='left', start_x=None, start_y=None):
     _fail_safe_check()
+    _apply_macro_rhythm()
     if start_x is not None and start_y is not None:
         moveTo(start_x, start_y)
     mouseDown(button, delay=0.03)
@@ -405,6 +453,7 @@ def dragTo(x, y, duration=0.1, tween=easeInOutQuad, button='left', start_x=None,
 
 def scroll(clicks, x=None, y=None):
     """Scroll vertically: positive clicks -> up, negative -> down."""
+    _apply_macro_rhythm()
     if x is not None and y is not None:
         moveTo(x, y)
     direction = 1 if clicks > 0 else -1
@@ -422,6 +471,12 @@ def _key_to_ecode(key):
     return _EVDEV_KEYSYM_MAP.get(key.lower(), None)
 
 def press(keys, presses=1, interval=0.1, delay=0.01):
+    profile = get_macro_profile()
+    _apply_macro_rhythm(profile)
+    time.sleep(randomize_with_profile(delay, profile=profile, key="delay_jitter"))
+    delay = randomize_with_profile(delay, profile=profile, key="delay_jitter")
+    interval = randomize_with_profile(interval, profile=profile, key="key_interval_jitter")
+
     for _p in range(presses):
         if isinstance(keys, str):
             keys = [keys]
@@ -455,7 +510,7 @@ def add_mouse_jitter(max_offset=5):
     moveTo(x + jitter_x, y + jitter_y, duration=0.05)
 
 def randomize_delay(base_delay):
-    return base_delay * random.uniform(0.8, 1.2)
+    return randomize_with_profile(base_delay)
 
 
 def get_absolute_position(win):

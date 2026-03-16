@@ -131,6 +131,7 @@ REG = {
     "fusion_available":( 928,  304,  300,   82),
     "fuse_shelf_top" : ( 920,  364,  790,  150),
     "fuse_shelf_peak": ( 920,  304,  790,  150),
+    "gifts_owned"    : ( 920,  304,  790,  210),
     "fuse_shelf"     : ( 920,  295,  790,  482),
     "fuse_shelf_low" : ( 920,  591,  790,  150),
     "buy_shelf"      : ( 809,  300,  942,  402),
