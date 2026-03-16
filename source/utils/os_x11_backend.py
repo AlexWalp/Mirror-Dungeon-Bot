@@ -9,6 +9,7 @@ import numpy as np, time, math, random
 from pathgenerator import PDPathGenerator
 import source.utils.params as p
 from source.utils.profiles import get_macro_profile, maybe_rhythm_jitter, randomize_with_profile
+import subprocess, re
 
 # Tweening functions
 def linear(t):
