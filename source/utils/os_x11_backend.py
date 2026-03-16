@@ -320,7 +320,9 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True,
     _fail_safe_check()
 
     profile = get_macro_profile()
-    delay = randomize_with_profile(delay, profile=profile, key="delay_jitter")
+    if humanize:
+        delay = randomize_with_profile(delay, profile=profile, key="delay_jitter")
+    
     duration += delay
     start_x, start_y = get_position()
 
@@ -363,7 +365,11 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True,
                 sleep_time = step_delay * random.uniform(step_jitter_min, step_jitter_max)
                 time.sleep(max(0.001, sleep_time))
     else:
-        steps = max(2, int(duration * 100))
+        distance = math.hypot(x - start_x, y - start_y)
+        time_steps = max(2, int(duration * 400))
+        distance_steps = int(distance / 1)
+        steps = max(3, min(max(time_steps, distance_steps), 1000))
+
         for i in range(steps):
             progress = tween(i / (steps - 1))
             current_x = start_x + (x - start_x) * progress
@@ -384,8 +390,9 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True,
                 _ui.write(e.EV_REL, e.REL_Y, dy)
                 _ui.syn()
 
-            if i < steps - 1:
-                time.sleep(duration / steps)
+            step_sleep = duration / (steps - 1)
+            if i < steps - 1 and step_sleep > 0:
+                time.sleep(step_sleep)
 
     timeout_start = time.time()
     while time.time() - timeout_start < 0.5:

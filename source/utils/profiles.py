@@ -10,7 +10,7 @@ PROFILES = {
     "SAFE": {
         "mouse_velocity": 0.58,
         "noise": 3.2,
-        "endpoint_jitter_px": 6,
+        "endpoint_jitter_px": 3,
         "delay_jitter": (0.9, 1.1),
         "step_sleep_jitter": (0.9, 1.15),
         "click_interval_jitter": (0.9, 1.2),
@@ -40,7 +40,7 @@ PROFILES = {
     "CHAOTIC": {
         "mouse_velocity": 0.5,
         "noise": 4.2,
-        "endpoint_jitter_px": 9,
+        "endpoint_jitter_px": 5,
         "delay_jitter": (0.82, 1.25),
         "step_sleep_jitter": (0.8, 1.25),
         "click_interval_jitter": (0.82, 1.3),

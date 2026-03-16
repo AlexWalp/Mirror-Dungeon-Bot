@@ -202,12 +202,14 @@ def _fail_safe_check():
         raise PauseException(name)
 
 
-def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True,
+def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.11, humanize=True,
            mouse_velocity=0.65, noise=2.6, offset_x=0, offset_y=0):
     _fail_safe_check()
 
     profile = get_macro_profile()
-    delay = randomize_with_profile(delay, profile=profile, key="delay_jitter")
+    if humanize:
+        delay = randomize_with_profile(delay, profile=profile, key="delay_jitter")
+    
     duration += delay
     start_x, start_y = get_position()
 
@@ -243,8 +245,8 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True,
 
     else:
         distance = math.hypot(x - start_x, y - start_y)
-        time_steps = max(2, int(duration * 220))
-        distance_steps = int(distance / 1.8)
+        time_steps = max(2, int(duration * 400))
+        distance_steps = int(distance / 1)
         steps = max(3, min(max(time_steps, distance_steps), 1000))
 
         for i in range(steps):
@@ -316,7 +318,8 @@ def scroll(clicks, x=None, y=None):
     if x is not None and y is not None:
         moveTo(x, y)
     
-    interception.scroll(clicks)
+    direction = "up" if clicks > 0 else "down"
+    interception.scroll(direction)
     _human_delay()
 
 

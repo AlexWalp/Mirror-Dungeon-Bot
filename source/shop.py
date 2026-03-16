@@ -216,12 +216,12 @@ def inventory_check(reg, h, uptie_det=True):
     return coords, coords_agg, have, uptie
 
 def browse(step=128, adj=0, dur=0.3, pr_end=True):
-    win_moveTo(1227, 480)
+    win_moveTo(1229, 480)
     gui.mouseDown()
-    win_moveTo(1227, 480 - step + adj, duration=dur)
+    win_moveTo(1227, 480 - step + adj, duration=dur, humanize=False)
     gui.mouseUp()
     if pr_end:
-        win_click(1227, 480)
+        win_click(1229, 480)
 
 def concat(dict1, dict2):
     for key in dict2:
@@ -392,17 +392,23 @@ def get_gifts(gifts, reg, is_fuse=False):
             continue
 
 def click_gifts(gifts, reg, chain=None, is_fuse=False):
-    if is_fuse and LocateGray.check(PTH["gifts_owned"], region=REG["fuse_shelf_top"], wait=False):
+    if is_fuse and LocateGray.check(PTH["gifts_owned"], region=REG["gifts_owned"], wait=False):
         return True
     
     gift_searcher = get_gifts(gifts, reg, is_fuse=is_fuse)
     for coord in gift_searcher:
+        ignore = LocateRGB.locate_all(PTH["cannot_fuse"], region=reg, threshold=80)
+        print(ignore)
+        if any(abs(gui.center(res)[0] - coord[0]) < 50 for res in ignore):
+            continue
+
+        print("got a gift for fusion!")
         win_click(coord)
         if chain is not None and callable(chain):
             chain()
-            # time.sleep(0.5)
         time.sleep(0.2)
-        if is_fuse and LocateGray.check(PTH["gifts_owned"], region=REG["fuse_shelf_top"], wait=False):
+        if is_fuse and LocateGray.check(PTH["gifts_owned"], region=REG["gifts_owned"], wait=False):
+            print("all fused!")
             return True
     return False
 
@@ -421,6 +427,7 @@ def get_fuse_list():
     return gift_list    
 
 def handle_available_fusion():
+    print("checking available fusion...")
     is_scrollable = now_rgb.button("scroll")
     if not now_rgb.button("fusion_available"):
         return is_scrollable
