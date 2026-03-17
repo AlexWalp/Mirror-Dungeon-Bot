@@ -1,6 +1,6 @@
-numpy==2.3.0
-opencv-python-headless  
-PyQt6
+numpy==2.2.4
+opencv-python-headless==4.10.0.84
+PyQt6==6.7.1
 python-xlib
 pathgenerator
 evdev

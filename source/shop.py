@@ -235,7 +235,7 @@ def get_inventory():
     if now_rgb.button("scroll.0"):
         h = 0
         adj = 0
-        while not now_rgb.button("scroll"):
+        while not now_rgb.button("scroll") and now_rgb.button("scroll", "scroll_full"):
             if h == 0:
                 box = LocateGray.locate(PTH["gifts_owned"], region=REG["fuse_shelf"])
                 region = REG["fuse_shelf"]
@@ -250,7 +250,7 @@ def get_inventory():
             else:
                 browse(step=-128, adj=adj)
 
-                if LocateGray.check(PTH["gifts_owned"], region=REG["fuse_shelf_peak"], wait=False):
+                if LocateGray.check(PTH["gifts_owned"], region=REG["fuse_shelf"], wait=False):
                     break
                 
                 new_coords, new_coords_agg, new_have, new_uptie = inventory_check(REG["fuse_shelf_peak"], h)
@@ -264,7 +264,7 @@ def get_inventory():
             print(adj)
             h += 1
 
-        while not now_rgb.button("scroll"):
+        while not now_rgb.button("scroll") and now_rgb.button("scroll", "scroll_full"):
             browse(step=-300, dur=0.05, pr_end=False)
             time.sleep(0.5)
     else:
@@ -309,11 +309,10 @@ def perform_clicks(to_click):
         time.sleep(0.2)
 
     scrollable = False
-    if now_rgb.button("scroll"):
+    while not now_rgb.button("scroll.0") and now_rgb.button("scroll", "scroll_full"):
+        browse(step=300, dur=0.1, pr_end=False)
+        time.sleep(0.5)
         scrollable = True
-        while not now_rgb.button("scroll.0"):
-            browse(step=300, dur=0.1, pr_end=False)
-            time.sleep(0.5)
 
     to_click = sorted(to_click, key=lambda x: x[2])
     h = 0
@@ -329,7 +328,7 @@ def perform_clicks(to_click):
         ClickAction(pos[:2], ver="forecast!").execute(click_rgb)
     
     if scrollable:
-        while not now_rgb.button("scroll"):
+        while not now_rgb.button("scroll") and now_rgb.button("scroll", "scroll_full"):
             browse(step=-300, dur=0.1, pr_end=False)
             time.sleep(0.5)
 
@@ -428,26 +427,25 @@ def get_fuse_list():
 
 def handle_available_fusion():
     print("checking available fusion...")
-    is_scrollable = now_rgb.button("scroll")
     if not now_rgb.button("fusion_available"):
-        return is_scrollable
+        return now_rgb.button("scroll", "scroll_full")
     
     gift_list = get_fuse_list()
-    if not gift_list: return is_scrollable
+    print(f"gifts to fuse: {gift_list}")
+    if not gift_list: return now_rgb.button("scroll", "scroll_full")
     
     if click_gifts(gift_list, REG["fuse_shelf_top"], chain=fuse_selected, is_fuse=True):
-        return is_scrollable
+        return now_rgb.button("scroll", "scroll_full")
     
-    if is_scrollable:
+    if now_rgb.button("scroll", "scroll_full"):
         h = 1
         adj = 0
-        while not now_rgb.button("scroll.0"):
+        while not now_rgb.button("scroll.0") and now_rgb.button("scroll", "scroll_full"):
             browse(adj=adj)
             if click_gifts(gift_list, REG["fuse_shelf_top"], chain=fuse_selected, is_fuse=True):
-                return True
+                return now_rgb.button("scroll", "scroll_full")
             ck = LocateRGB.locate(PTH["height_ck"], region=REG["fuse_shelf_top"])
             adj = 607 - ck[1] if ck else 0
-            print("avail", adj)
             h += 1
     return False
 
@@ -456,12 +454,12 @@ def fuse():
     time.sleep(0.2)
 
     if handle_available_fusion():
-        while not now_rgb.button("scroll.0"):
+        while not now_rgb.button("scroll.0") and now_rgb.button("scroll", "scroll_full"):
             browse(step=300, dur=0.1, pr_end=False)
             time.sleep(0.5)
     
     coords, coords_agg, have = get_inventory()
-    # to_click = []
+    to_click = []
     fuse_type = 0
     got_all = False
     advanced_fusing = fuse_search(have)
@@ -504,7 +502,7 @@ def fuse():
                     set_affinity(i, teams=teams)
                     missing = actual_fuse(4, coords)
                     return missing
-                # to_click.append(have[list(teams[i]["uptie2"].keys())[0]])
+                to_click.append(have[list(teams[i]["uptie2"].keys())[0]])
             stones_have = list(set([f"stone{i}" for i in range(7)]) & set(have.keys()))
             if len(stones_have) < 2:
                 for i in range(7):
@@ -512,10 +510,10 @@ def fuse():
                         set_affinity(i, teams=teams)
                         missing = actual_fuse(4, coords)
                         return missing
-            # for i in range(2):
-            #     to_click.append(have[stones_have[i]])
-            # if p.SUPER == "supershop":
-            #     perform_clicks(to_click)
+            for i in range(2):
+                to_click.append(have[stones_have[i]])
+            if p.SUPER == "supershop":
+                perform_clicks(to_click)
             return None
         raise NotImplementedError
     else:
@@ -532,11 +530,11 @@ def fuse():
                         if not name in have.keys():
                             missing = actual_fuse(tier, coords)
                             return missing
-                    #     to_click.append(have[name])
-                    # perform_clicks(to_click)
+                        to_click.append(have[name])
+                    perform_clicks(to_click)
                     return None
-        #     to_click.append(have[name])
-        # perform_clicks(to_click)
+            to_click.append(have[name])
+        perform_clicks(to_click)
 
     return None
 
@@ -599,10 +597,10 @@ def power_up():
 
 def get_uptie_inventory(gift_list):
     click_gifts(gift_list, REG["fuse_shelf"], chain=power_up)
-    if now_rgb.button("scroll"):
+    if now_rgb.button("scroll", "scroll_full"):
         h = 1
         adj = 0
-        while not now_rgb.button("scroll.0"):
+        while not now_rgb.button("scroll.0") and now_rgb.button("scroll", "scroll_full"):
             browse(adj=adj)
             click_gifts(gift_list, REG["fuse_shelf_low"], chain=power_up)
             ck = LocateRGB.locate(PTH["height_ck"], region=REG["fuse_shelf_low"])
@@ -632,12 +630,12 @@ def sell(gifts):
         if balance() < sum(gifts.values()):
             Action(p.SUPER, click=(600, 585), ver="sell").execute(click)
             found_flag = False
-            if now_rgb.button("scroll"):
-                while not now_rgb.button("scroll.0"):
+            if now_rgb.button("scroll", "scroll_full"):
+                while not now_rgb.button("scroll.0") and now_rgb.button("scroll", "scroll_full"):
                     browse(step=300, dur=0.1, pr_end=False)
                     time.sleep(0.5)
                 adj = 0
-                while not now_rgb.button("scroll"):
+                while not now_rgb.button("scroll") and now_rgb.button("scroll", "scroll_full"):
                     if search_sell((920, 585, 790, 165)):
                         found_flag = True
                         break

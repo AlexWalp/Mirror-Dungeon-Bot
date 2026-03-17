@@ -1,8 +1,9 @@
 # Linux (X11) port
 # Extra dependencies: python-xlib, mss
 
-import atexit
+import atexit, signal, threading
 import mss
+import evdev
 from evdev import UInput, ecodes as e
 from Xlib import X, display
 import numpy as np, time, math, random
@@ -220,6 +221,20 @@ def screenshot(imageFilename=None, region=None):
 
 
 # --- UINPUT VIRTUAL DEVICE SETUP ---
+MOUSE_FALLBACK = {
+    'name': 'Logitech USB Receiver',
+    'vendor': 0x046d,
+    'product': 0xc52b,
+    'version': 0x0111,
+    'bustype': 0x03,
+    'events': {
+        e.EV_KEY: [e.BTN_LEFT, e.BTN_RIGHT, e.BTN_MIDDLE,
+                   e.BTN_SIDE, e.BTN_EXTRA],
+        e.EV_REL: [e.REL_X, e.REL_Y, e.REL_WHEEL, e.REL_HWHEEL]
+    },
+    'input_props': []
+}
+
 _EVDEV_KEYSYM_MAP = {
     'enter': e.KEY_ENTER, 'esc': e.KEY_ESC, 'space': e.KEY_SPACE,
     'tab': e.KEY_TAB, 'backspace': e.KEY_BACKSPACE, 'delete': e.KEY_DELETE,
@@ -239,11 +254,19 @@ for num in "0123456789":
 
 _safe_keys = list(set(_EVDEV_KEYSYM_MAP.values()))
 
-_events = {
-    e.EV_KEY: [e.BTN_LEFT, e.BTN_RIGHT, e.BTN_MIDDLE] + _safe_keys,
-    e.EV_REL: [e.REL_X, e.REL_Y, e.REL_WHEEL]
+KEYBOARD_FALLBACK = {
+    'name': 'Dell USB Keyboard',
+    'vendor': 0x413c,
+    'product': 0x2003,
+    'version': 0x0111,
+    'bustype': 0x03,
+    'events': {
+        e.EV_KEY: _safe_keys,
+    },
+    'input_props': []
 }
 
+<<<<<<< fix/x11-virtual-device-acceleration
 try:
     _ui = UInput(_events, name="ChargeGrinder_Input")
 
@@ -266,19 +289,82 @@ try:
 except Exception as ex:
     print("ERROR: Cannot create uinput device. Run script with sudo.")
     raise ex
+=======
+mouse = None
+keyboard = None
+_uinput_error = None
+_uinput_init_started = False
+_uinput_ready = threading.Event()
+_uinput_lock = threading.Lock()
+
+
+def _init_uinput_devices():
+    """Initialize uinput devices once and publish result to globals."""
+    global mouse, keyboard, _uinput_error
+    try:
+        local_mouse = UInput(**MOUSE_FALLBACK)
+        local_keyboard = UInput(**KEYBOARD_FALLBACK)
+        with _uinput_lock:
+            mouse = local_mouse
+            keyboard = local_keyboard
+    except Exception as ex:
+        _uinput_error = ex
+    finally:
+        _uinput_ready.set()
+
+def _prewarm_uinput_async():
+    """Start async uinput init so startup can continue immediately."""
+    global _uinput_init_started
+    with _uinput_lock:
+        if _uinput_init_started:
+            return
+        _uinput_init_started = True
+    threading.Thread(target=_init_uinput_devices, name="uinput-init", daemon=True).start()
+
+def _ensure_uinput_ready():
+    _prewarm_uinput_async()
+    _uinput_ready.wait()
+    if _uinput_error is not None:
+        raise _uinput_error
+
+
+def _get_mouse():
+    _ensure_uinput_ready()
+    return mouse
+
+def _get_keyboard():
+    _ensure_uinput_ready()
+    return keyboard
+>>>>>>> main
 
 # Map logical buttons
 _BUTTON_MAP = {'left': e.BTN_LEFT, 'middle': e.BTN_MIDDLE, 'right': e.BTN_RIGHT}
 
-def release_all():
-    for btn in _BUTTON_MAP.values():
-        _ui.write(e.EV_KEY, btn, 0)
-    
-    for key_code in _safe_keys:
-        _ui.write(e.EV_KEY, key_code, 0)
-    _ui.syn()
+def release_all(signum=None, frame=None):
+    for dev in (mouse, keyboard):
+        if dev is None:
+            continue
+        for btn in  _BUTTON_MAP.values():
+            try:
+                dev.write(e.EV_KEY, btn, 0)
+            except Exception:
+                pass
+        for key in _safe_keys:
+            try:
+                dev.write(e.EV_KEY, key, 0)
+            except Exception:
+                pass
+        try:
+            dev.syn()
+        except Exception:
+            pass
 
+signal.signal(signal.SIGINT, release_all)
+signal.signal(signal.SIGTERM, release_all)
 atexit.register(release_all)
+
+# Kick off async init immediately; first input call blocks only if still warming up.
+_prewarm_uinput_async()
 
 def _fail_safe_check():
     """Check fail-safe"""
@@ -301,16 +387,22 @@ class PauseException(Exception):
 
 
 def mouseDown(button='left', delay=0.09):
+    _fail_safe_check()
+    dev = _get_mouse()
     _btn = _BUTTON_MAP.get(button.lower(), e.BTN_LEFT)
-    _ui.write(e.EV_KEY, _btn, 1)
-    _ui.syn()
+    dev.write(e.EV_KEY, _btn, 1)
+    dev.syn()
     _human_delay(delay, delay + 0.02)
+    _fail_safe_check()
 
 def mouseUp(button='left', delay=0.09):
+    _fail_safe_check()
+    dev = _get_mouse()
     _btn = _BUTTON_MAP.get(button.lower(), e.BTN_LEFT)
-    _ui.write(e.EV_KEY, _btn, 0)
-    _ui.syn()
+    dev.write(e.EV_KEY, _btn, 0)
+    dev.syn()
     _human_delay(delay, delay + 0.02)
+    _fail_safe_check()
 
 def _to_absolute(x, y):
     """For X, absolute coords are pixel coordinates (no 0..65535 scaling)."""
@@ -321,21 +413,25 @@ def _human_delay(min_delay=0.01, max_delay=0.03):
 
 
 def _apply_macro_rhythm(profile=None):
+    _fail_safe_check()
     profile = profile or get_macro_profile()
     pause, (dx, dy) = maybe_rhythm_jitter(profile)
+    dev = _get_mouse()
 
     if dx != 0 or dy != 0:
-        _ui.write(e.EV_REL, e.REL_X, dx)
-        _ui.write(e.EV_REL, e.REL_Y, dy)
-        _ui.syn()
+        dev.write(e.EV_REL, e.REL_X, dx)
+        dev.write(e.EV_REL, e.REL_Y, dy)
+        dev.syn()
         _human_delay(0.004, 0.012)
 
     if pause > 0:
         time.sleep(pause)
+    _fail_safe_check()
 
 def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True,
            mouse_velocity=0.65, noise=2.6, offset_x=0, offset_y=0):
     _fail_safe_check()
+    dev = _get_mouse()
 
     profile = get_macro_profile()
     if humanize:
@@ -375,9 +471,9 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True,
             dy = target_abs_y - actual_y
 
             if dx != 0 or dy != 0:
-                _ui.write(e.EV_REL, e.REL_X, dx)
-                _ui.write(e.EV_REL, e.REL_Y, dy)
-                _ui.syn()
+                dev.write(e.EV_REL, e.REL_X, dx)
+                dev.write(e.EV_REL, e.REL_Y, dy)
+                dev.syn()
 
             if i < steps - 1:
                 sleep_time = step_delay * random.uniform(step_jitter_min, step_jitter_max)
@@ -404,9 +500,9 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True,
             dy = target_abs_y - actual_y
 
             if dx != 0 or dy != 0:
-                _ui.write(e.EV_REL, e.REL_X, dx)
-                _ui.write(e.EV_REL, e.REL_Y, dy)
-                _ui.syn()
+                dev.write(e.EV_REL, e.REL_X, dx)
+                dev.write(e.EV_REL, e.REL_Y, dy)
+                dev.syn()
 
             step_sleep = duration / (steps - 1)
             if i < steps - 1 and step_sleep > 0:
@@ -421,9 +517,9 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True,
         dx = x - actual_x
         dy = y - actual_y
         
-        _ui.write(e.EV_REL, e.REL_X, dx)
-        _ui.write(e.EV_REL, e.REL_Y, dy)
-        _ui.syn()
+        dev.write(e.EV_REL, e.REL_X, dx)
+        dev.write(e.EV_REL, e.REL_Y, dy)
+        dev.syn()
         
         time.sleep(0.005)
 
@@ -471,6 +567,8 @@ def dragTo(x, y, duration=0.1, tween=easeInOutQuad, button='left', start_x=None,
 
 def scroll(clicks, x=None, y=None):
     """Scroll vertically: positive clicks -> up, negative -> down."""
+    _fail_safe_check()
+    dev = _get_mouse()
     _apply_macro_rhythm()
     if x is not None and y is not None:
         moveTo(x, y)
@@ -478,8 +576,9 @@ def scroll(clicks, x=None, y=None):
     count = abs(int(clicks))
     
     for _ in range(count):
-        _ui.write(e.EV_REL, e.REL_WHEEL, direction)
-        _ui.syn()
+        _fail_safe_check()
+        dev.write(e.EV_REL, e.REL_WHEEL, direction)
+        dev.syn()
         time.sleep(0.02)
         
     _human_delay()
@@ -489,6 +588,8 @@ def _key_to_ecode(key):
     return _EVDEV_KEYSYM_MAP.get(key.lower(), None)
 
 def press(keys, presses=1, interval=0.1, delay=0.01):
+    _fail_safe_check()
+    dev = _get_keyboard()
     profile = get_macro_profile()
     _apply_macro_rhythm(profile)
     time.sleep(randomize_with_profile(delay, profile=profile, key="delay_jitter"))
@@ -501,21 +602,24 @@ def press(keys, presses=1, interval=0.1, delay=0.01):
 
         ecodes = []
         for key in keys:
+            _fail_safe_check()
             kc = _key_to_ecode(key)
             if not kc:
                 continue
             ecodes.append(kc)
-            _ui.write(e.EV_KEY, kc, 1) # Press
-            _ui.syn()
+            dev.write(e.EV_KEY, kc, 1) # Press
+            dev.syn()
             time.sleep(delay)
 
         for kc in reversed(ecodes):
-            _ui.write(e.EV_KEY, kc, 0) # Release
-            _ui.syn()
+            _fail_safe_check()
+            dev.write(e.EV_KEY, kc, 0) # Release
+            dev.syn()
             time.sleep(delay)
 
         if interval > 0 and _p < presses - 1:
             time.sleep(interval)
+            _fail_safe_check()
 
 def hotkey(*args, **kwargs):
     press(list(args), **kwargs)
