@@ -222,7 +222,7 @@ def screenshot(imageFilename=None, region=None):
 
 # --- UINPUT VIRTUAL DEVICE SETUP ---
 MOUSE_FALLBACK = {
-    'name': 'Logitech USB Receiver',
+    'name': 'ChargeGrinder_Mouse',
     'vendor': 0x046d,
     'product': 0xc52b,
     'version': 0x0111,
@@ -266,30 +266,6 @@ KEYBOARD_FALLBACK = {
     'input_props': []
 }
 
-<<<<<<< fix/x11-virtual-device-acceleration
-try:
-    _ui = UInput(_events, name="ChargeGrinder_Input")
-
-    time.sleep(0.5)  # wait for device to register in X11
-    
-    result = subprocess.run(['xinput', 'list'], capture_output=True, text=True)
-    for line in result.stdout.split('\n'):
-        if 'ChargeGrinder_Input' in line and 'pointer' in line.lower():
-            match = re.search(r'id=(\d+)', line)
-            if match:
-                dev_id = match.group(1)
-                subprocess.run(['xinput', 'set-prop', dev_id,
-                                'libinput Accel Profile Enabled', '0', '1'])
-                subprocess.run(['xinput', 'set-prop', dev_id,
-                                'libinput Accel Speed', '0'])
-                break
-    else:
-        print("WARNING: Could not find virtual device to disable acceleration")
-
-except Exception as ex:
-    print("ERROR: Cannot create uinput device. Run script with sudo.")
-    raise ex
-=======
 mouse = None
 keyboard = None
 _uinput_error = None
@@ -304,6 +280,16 @@ def _init_uinput_devices():
     try:
         local_mouse = UInput(**MOUSE_FALLBACK)
         local_keyboard = UInput(**KEYBOARD_FALLBACK)
+
+        # Disable libinput acceleration for virtual mouse
+        time.sleep(0.5) # wait for device to register in X11
+        subprocess.run(['xinput', 'set-prop', MOUSE_FALLBACK['name'],
+                        'libinput Accel Profile Enabled', '0', '1'],
+                       capture_output=True)
+        subprocess.run(['xinput', 'set-prop', MOUSE_FALLBACK['name'],
+                        'libinput Accel Speed', '0'],
+                       capture_output=True)
+
         with _uinput_lock:
             mouse = local_mouse
             keyboard = local_keyboard
@@ -335,7 +321,6 @@ def _get_mouse():
 def _get_keyboard():
     _ensure_uinput_ready()
     return keyboard
->>>>>>> main
 
 # Map logical buttons
 _BUTTON_MAP = {'left': e.BTN_LEFT, 'middle': e.BTN_MIDDLE, 'right': e.BTN_RIGHT}
