@@ -8,7 +8,13 @@ if platform.system() == "Windows":
     import source.utils.os_windows_backend as gui
 elif platform.system() == "Linux":
     if os.environ.get("XDG_SESSION_TYPE") == "x11":
-        import source.utils.os_x11_backend as gui
+        try:
+            import source.utils.os_x11_backend as gui
+        except PermissionError as ex:
+            raise RuntimeError(
+                "Input device access denied on Linux. "
+                "Add your user to the 'input' group and re-login, or run with sufficient permissions."
+            ) from ex
     else:
         raise RuntimeError("Wayland is not supported. Use Plasma (X11).")
 else:

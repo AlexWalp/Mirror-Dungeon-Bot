@@ -83,13 +83,19 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=None)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
+    exclude_binaries=True,
     name='app',
     debug=False,
     strip=True,
     upx=False,
     console=False,
     icon='AppDir/app.png',
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    name='app',
 )
