@@ -4,6 +4,10 @@ PROBS = ["VeryHigh", "High", "Normal", "Low", "VeryLow"]
 
 favorites = ["chicken", "factory"]
 
+def is_choice_made():
+    connection()
+    return wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=1.5)
+
 def event():
     if not now.button("eventskip"): return False
     print("event check")
@@ -16,12 +20,9 @@ def event():
         
         if now.button("choices"):
             time.sleep(0.1)
-            if now_click.button("textNew", "textEGO"): 
-                if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=2): continue
-            if now_click.button("textLvl", "textEGO"): 
-                if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=2): continue
-            if any(now_click.button(f"choice_{favorite}", "textEGO") for favorite in favorites): 
-                if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=2): continue
+            if now_click.button("textNew", "textEGO") and is_choice_made(): continue
+            if now_click.button("textLvl", "textEGO") and is_choice_made(): continue
+            if any(now_click.button(f"choice_{favorite}", "textEGO") for favorite in favorites) and is_choice_made(): continue
 
             egos = LocateGray.locate_all(PTH["textEGO"], region=REG["textEGO"], conf=0.85)
 
@@ -44,21 +45,22 @@ def event():
                 if priority:
                     sorted(priority, key=lambda x: x[1])            
                     win_click(gui.center(priority[0]), delay=0)
-                    if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=2): continue
+                    if is_choice_made(): continue
                 
                 if filtered:
                     sorted(priority, key=lambda x: x[1])            
                     win_click(gui.center(filtered[0]), delay=0)
-                    if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=2): continue
+                    if is_choice_made(): continue
                 else:
                     win_click(1356, 498, delay=0)
-                    if wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=2): continue
+                    if is_choice_made(): continue
             
             for choice in [316, 520, 730]:
                 win_click(1348, choice, delay=0)
-                if wait_while_condition(lambda: now.button("choices"), interval=0.5, timer=3): continue
+                if is_choice_made(): break
             else:
-                raise RuntimeError
+                if not is_choice_made():
+                    raise RuntimeError
 
 
         now_click.button("Proceed")
