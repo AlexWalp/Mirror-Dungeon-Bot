@@ -431,6 +431,7 @@ def handle_available_fusion():
         return now_rgb.button("scroll", "scroll_full")
     
     gift_list = get_fuse_list()
+    print(f"gifts to fuse: {gift_list}")
     if not gift_list: return now_rgb.button("scroll", "scroll_full")
     
     if click_gifts(gift_list, REG["fuse_shelf_top"], chain=fuse_selected, is_fuse=True):
