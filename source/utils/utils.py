@@ -405,6 +405,12 @@ def create_mask(image, target_hsv, tolerance):
     mask = cv2.inRange(hsv, lower, upper)
     return mask
 
+def is_grayscale(img, threshold=20):
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    saturation = hsv[:, :, 1]
+    print(f"Average saturation: {saturation.mean():.2f}")
+    return saturation.mean() < threshold
+
 
 class SIFTMatcher: # unlike other modules, this works only with 1920x1080
     def __init__(self, image=None, region=(0, 0, 1920, 1080), **sift_params):

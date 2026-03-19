@@ -5,6 +5,14 @@ priority = {"Event": 0, "Normal": 52, "Miniboss": 67, "Risky": 87, "Focused": 77
 v_list = [0.8, 0.9, 1]
 d_list = [None, -0.1, -0.19]
 
+lost_rangs = [
+    (( 201, 1714), (201, 244)), 
+    (( 201, 1714), (844, 881)), 
+    (( 201,  524), (244, 844)), 
+    ((1404, 1714), (244, 844))
+]
+lost_weights = [(x[1]-x[0]) * (y[1]-y[0]) for x, y in lost_rangs]
+
 def find_danteh(): # looks for high resolution Dante
     for i in range(2):
         try:
@@ -19,7 +27,7 @@ def find_danteh(): # looks for high resolution Dante
 
 def find_bus(): # looks for low resolution Dante
     try:
-        Bus = LocateRGB.try_locate(PTH["Bus"])
+        Bus = LocateRGB.try_locate(PTH["Bus"], conf=0.8)
         print("Danteh found")
         x, y = gui.center(Bus)
         return x, y
@@ -245,10 +253,18 @@ def move():
         comp = 0.86 # image compression is on
         if Dante is None and find_bus(): hook()
         if Dante is None: 
-            x, y = random.choice([(205, 201), (1710, 205), (201, 875), (1714, 881)])
-            win_moveTo(x, y)
+            if Bus:= find_bus(): # zoom on bus
+                win_moveTo(Bus[0], Bus[1] + 30)
+            else: # zoom randomly
+                rang = random.choices(lost_rangs, weights=lost_weights, k=1)[0]
+                x, y = random.randint(*rang[0]), random.randint(*rang[1])
+                win_moveTo(x, y)         
             Dante = zoom(1)
-        if Dante is None: return False
+        if Dante is None:
+            rang = random.choices(lost_rangs, weights=lost_weights, k=1)[0]
+            x, y = random.randint(*rang[0]), random.randint(*rang[1])
+            win_moveTo(x, y) 
+            return False
     
     position(Dante)
     

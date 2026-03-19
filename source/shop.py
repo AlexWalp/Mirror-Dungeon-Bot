@@ -310,12 +310,10 @@ def perform_clicks(to_click):
         win_moveTo(1194, 841)
         time.sleep(0.2)
 
-    scrollable = False
     while not now_rgb.button("scroll.0") and now_rgb.button("scroll", "scroll_full"):
         print("scroll down for inventory click alignment")
         browse(step=300, dur=0.1, pr_end=False)
         time.sleep(0.5)
-        scrollable = True
 
     to_click = sorted(to_click, key=lambda x: x[2])
     h = 0
@@ -331,14 +329,13 @@ def perform_clicks(to_click):
             time.sleep(0.2)
         ClickAction(pos[:2], ver="forecast!").execute(click_rgb)
     
-    if scrollable:
-        while not now_rgb.button("scroll") and now_rgb.button("scroll", "scroll_full"):
-            print("scroll up for alignment")
-            browse(step=-300, dur=0.1, pr_end=False)
-            time.sleep(0.5)
-
     fuse_selected()
     to_click.clear()
+
+    while not now_rgb.button("scroll") and now_rgb.button("scroll", "scroll_full"):
+        print("scroll up for alignment")
+        browse(step=-300, dur=0.1, pr_end=False)
+        time.sleep(0.5)
 
 
 def set_affinity(i, teams=None):

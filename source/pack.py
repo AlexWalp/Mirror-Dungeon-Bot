@@ -32,7 +32,7 @@ def pack_eval(level, regions, skip, skips):
 
     attempts = 2
     while len(packs.keys()) < len(regions) and attempts > 0:
-        sift = SIFTMatcher(region=(161, 630, 1632, 140), nfeatures=2000, contrastThreshold=0)
+        sift = SIFTMatcher(region=(161, 630, 1632, 140), nfeatures=3000, contrastThreshold=0.00)
         for pack in pack_list:
             if len(packs.keys()) >= len(regions): break
             box = sift.locate(PTH[pack])
