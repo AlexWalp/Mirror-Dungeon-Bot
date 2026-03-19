@@ -332,6 +332,7 @@ def set_team(team, teams, keywordless):
     print(p.PICK, p.IGNORE, p.PICK_ALL)
 
     logging.info(f'Team: {p.TEAM[0]}')
+    logging.info(f'Group: {p.TEAM[0]}#{p.NAME_ORDER + 1}')
     
     difficulty = "HARD" if p.HARD else "NORMAL"
     if p.EXTREME: 
@@ -380,10 +381,9 @@ def execute_me(count, count_exp, count_thd, teams, settings, hard, app, warning)
             rotator = cycle(team_keys)
             keywordless = settings['keywordless']
 
-            for i in range(count):
+            for _ in range(count):
                 team = next(rotator)
 
-                logging.info(f'Iteration {i}')
                 completed = False
                 while not completed:
                     set_team(team, teams, keywordless)
