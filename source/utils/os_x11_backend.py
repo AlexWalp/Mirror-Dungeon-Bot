@@ -1,7 +1,7 @@
 # Linux (X11) port
 # Extra dependencies: python-xlib, mss
 
-import atexit, signal, threading
+import atexit, signal, threading, subprocess
 import mss
 import evdev
 from evdev import UInput, ecodes as e
@@ -226,6 +226,7 @@ MOUSE_FALLBACK = {
     'product': 0xc52b,
     'version': 0x0111,
     'bustype': 0x03,
+    'phys': 'usb-0000:00:14.0-1.2/input0',
     'events': {
         e.EV_KEY: [e.BTN_LEFT, e.BTN_RIGHT, e.BTN_MIDDLE,
                    e.BTN_SIDE, e.BTN_EXTRA],
@@ -259,6 +260,7 @@ KEYBOARD_FALLBACK = {
     'product': 0x2003,
     'version': 0x0111,
     'bustype': 0x03,
+    'phys': 'usb-0000:00:14.0-1.3/input0',
     'events': {
         e.EV_KEY: _safe_keys,
     },
@@ -273,12 +275,137 @@ _uinput_ready = threading.Event()
 _uinput_lock = threading.Lock()
 
 
+def clone_device(path: str) -> UInput:
+    """Clone a real evdev device into a uinput virtual device."""
+    real = evdev.InputDevice(path)
+    kwargs = {
+        "name": real.name,
+        "vendor": real.info.vendor,
+        "product": real.info.product,
+        "version": real.info.version,
+        "bustype": real.info.bustype,
+        "phys": real.phys,
+        "input_props": real.input_props(),
+    }
+    print(kwargs)
+
+    try:
+        return UInput.from_device(real, **kwargs)
+    except OSError as ex:
+        # Some devices expose event types that can trigger EINVAL in uinput.
+        if ex.errno != 22:
+            raise
+        filtered = (e.EV_SYN, e.EV_FF, e.EV_MSC)
+        return UInput.from_device(real, filtered_types=filtered, **kwargs)
+
+
+def _pick_device_paths():
+    paths = list(evdev.list_devices())
+    mouse_path = None
+    keyboard_path = None
+
+    # We'll store potential candidates to pick the "best" one
+    kbd_candidates = []
+
+    for path in paths:
+        try:
+            dev = evdev.InputDevice(path)
+            caps = dev.capabilities()
+            key_caps = set(caps.get(e.EV_KEY, []))
+            rel_caps = set(caps.get(e.EV_REL, []))
+            
+            # 1. Is it a Mouse? 
+            # It MUST have relative X/Y movement.
+            if e.REL_X in rel_caps and e.REL_Y in rel_caps:
+                if mouse_path is None:
+                    mouse_path = path
+                continue # If it moves like a mouse, don't even consider it for a keyboard
+
+            # 2. Is it a Keyboard?
+            # It should have a significant number of keys (usually > 50).
+            # Ignore anything that has relative movement (already handled above).
+            if len(key_caps) > 50:
+                # We prioritize devices with "keyboard" in the name
+                name = (dev.name or "").lower()
+                score = 0
+                if "keyboard" in name or "kbd" in name:
+                    score += 10
+                
+                kbd_candidates.append((score, path))
+
+        except Exception:
+            continue
+
+    # Pick the highest-scoring keyboard candidate
+    if kbd_candidates:
+        kbd_candidates.sort(key=lambda x: x[0], reverse=True)
+        keyboard_path = kbd_candidates[0][1]
+
+    return mouse_path, keyboard_path
+
+
+def _disable_mouse_accel_x11(device_name):
+    """Best-effort: set flat accel profile for matching XInput devices."""
+    if not device_name:
+        return
+
+    try:
+        out = subprocess.check_output(
+            ["xinput", "list", "--id-only", device_name],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception:
+        return
+
+    ids = [line.strip() for line in out.splitlines() if line.strip().isdigit()]
+    for dev_id in ids:
+        subprocess.run(
+            ["xinput", "set-prop", dev_id, "libinput Accel Profile Enabled", "0", "1"],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        subprocess.run(
+            ["xinput", "set-prop", dev_id, "libinput Accel Speed", "0"],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+
 def _init_uinput_devices():
     """Initialize uinput devices once and publish result to globals."""
     global mouse, keyboard, _uinput_error
     try:
-        local_mouse = UInput(**MOUSE_FALLBACK)
-        local_keyboard = UInput(**KEYBOARD_FALLBACK)
+        mouse_path, keyboard_path = _pick_device_paths()
+
+        if mouse_path:
+            try:
+                local_mouse = clone_device(mouse_path)
+                print(f"Cloning mouse from {mouse_path}")
+            except Exception as ex:
+                print(f"[!] Mouse clone failed ({mouse_path}): {ex}")
+                print("No mouse found – using fallback.")
+                local_mouse = UInput(**MOUSE_FALLBACK)
+        else:
+            print("No mouse found – using fallback.")
+            local_mouse = UInput(**MOUSE_FALLBACK)
+
+        _disable_mouse_accel_x11(getattr(local_mouse, "name", None))
+
+        if keyboard_path:
+            try:
+                local_keyboard = clone_device(keyboard_path)
+                print(f"Cloning keyboard from {keyboard_path}")
+            except Exception as ex:
+                print(f"[!] Keyboard clone failed ({keyboard_path}): {ex}")
+                print("No keyboard found – using fallback.")
+                local_keyboard = UInput(**KEYBOARD_FALLBACK)
+        else:
+            print("No keyboard found – using fallback.")
+            local_keyboard = UInput(**KEYBOARD_FALLBACK)
+
         with _uinput_lock:
             mouse = local_mouse
             keyboard = local_keyboard
