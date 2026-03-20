@@ -1,6 +1,0 @@
-numpy==1.26.4  # Wine compatibility: avoid ucrtbase.dll.crealf issue seen with newer wheels
-opencv-python-headless
-PyQt6
-interception-python
-pywin32
-pathgenerator
