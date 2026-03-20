@@ -509,6 +509,13 @@ def _to_absolute(x, y):
     """For X, absolute coords are pixel coordinates (no 0..65535 scaling)."""
     return int(round(x)), int(round(y))
 
+
+def _cap_rel_delta(dx, dy, max_step=22):
+    """Limit a single relative write to avoid visible jumpy corrections."""
+    capped_dx = max(-max_step, min(max_step, dx))
+    capped_dy = max(-max_step, min(max_step, dy))
+    return capped_dx, capped_dy
+
 def _human_delay(min_delay=0.01, max_delay=0.03):
     time.sleep(random.uniform(min_delay, max_delay))
 
@@ -529,7 +536,7 @@ def _apply_macro_rhythm(profile=None):
         time.sleep(pause)
     _fail_safe_check()
 
-def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True,
+def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.11, humanize=True,
            mouse_velocity=0.65, noise=2.6, offset_x=0, offset_y=0):
     _fail_safe_check()
     dev = _get_mouse()
@@ -572,6 +579,7 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True,
             dy = target_abs_y - actual_y
 
             if dx != 0 or dy != 0:
+                dx, dy = _cap_rel_delta(dx, dy)
                 dev.write(e.EV_REL, e.REL_X, dx)
                 dev.write(e.EV_REL, e.REL_Y, dy)
                 dev.syn()
@@ -601,6 +609,7 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True,
             dy = target_abs_y - actual_y
 
             if dx != 0 or dy != 0:
+                dx, dy = _cap_rel_delta(dx, dy)
                 dev.write(e.EV_REL, e.REL_X, dx)
                 dev.write(e.EV_REL, e.REL_Y, dy)
                 dev.syn()
@@ -609,20 +618,23 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True,
             if i < steps - 1 and step_sleep > 0:
                 time.sleep(step_sleep)
 
+    target_x, target_y = _to_absolute(x, y)
     timeout_start = time.time()
-    while time.time() - timeout_start < 0.5:
+    while time.time() - timeout_start < 0.08:
         actual_x, actual_y = get_position()
-        if (actual_x, actual_y) == (x, y):
+        dx = target_x - actual_x
+        dy = target_y - actual_y
+
+        if abs(dx) <= 1 and abs(dy) <= 1:
             break
-            
-        dx = x - actual_x
-        dy = y - actual_y
+
+        dx, dy = _cap_rel_delta(dx, dy, max_step=10)
         
         dev.write(e.EV_REL, e.REL_X, dx)
         dev.write(e.EV_REL, e.REL_Y, dy)
         dev.syn()
-        
-        time.sleep(0.005)
+
+        time.sleep(0.01)
 
     human_final_min, human_final_max = profile["final_delay_human"]
     nonhuman_final_min, nonhuman_final_max = profile["final_delay_nonhuman"]
@@ -642,6 +654,7 @@ def click(x=None, y=None, button='left', clicks=1, interval=0.1, duration=0.0, t
 
     if x is not None and y is not None:
         moveTo(x, y, duration, tween, delay=delay+0.02)
+    
     elif duration > 0:
         current_x, current_y = get_position()
         moveTo(current_x, current_y, duration, tween, delay=delay+0.02)
@@ -650,8 +663,10 @@ def click(x=None, y=None, button='left', clicks=1, interval=0.1, duration=0.0, t
 
     for i in range(clicks):
         _fail_safe_check()
+
         mouseDown(button, delay=delay)
         mouseUp(button, delay=delay)
+
         if interval > 0 and i < clicks - 1:
             time.sleep(randomize_with_profile(interval, profile=profile, key="click_interval_jitter"))
             _fail_safe_check()

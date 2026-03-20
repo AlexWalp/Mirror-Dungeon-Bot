@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 set -e
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 APPNAME="CGrinder"
 ARCH="x86_64"
-APPDIR="$PWD/AppDir"
+APPDIR="$ROOT_DIR/AppDir"
 APPIMAGETOOL="$HOME/appimagetool-x86_64.AppImage"
-DISTDIR="$PWD/dist"
-DOCKER_OUTDIR="$PWD/.docker_dist"
+DISTDIR="$ROOT_DIR/dist"
+DOCKER_OUTDIR="$ROOT_DIR/.docker_dist"
 
 mkdir -p "$APPDIR/usr/bin"
 mkdir -p "$DISTDIR"
@@ -20,7 +22,7 @@ if [ ! -x "$APPIMAGETOOL" ]; then
 fi
 
 echo "=== Step 1: Building Docker image ==="
-docker build -t cgrinder-builder .
+docker build -t cgrinder-builder -f "$ROOT_DIR/release/linux/docker-linux.Dockerfile" "$ROOT_DIR"
 
 echo "=== Step 2: Running PyInstaller inside Docker ==="
 docker run --rm \

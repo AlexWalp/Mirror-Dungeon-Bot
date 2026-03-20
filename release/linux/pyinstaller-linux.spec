@@ -3,15 +3,21 @@
 import os
 from glob import glob
 
+ROOT_DIR = os.path.abspath(os.environ.get('PROJECT_ROOT', os.getcwd()))
+
+
+def project_path(*parts):
+    return os.path.join(ROOT_DIR, *parts)
+
 def collect(src_dir, dst_dir, patterns=("*.png", "*.ttf", "*.ico")):
     files = []
     for pat in patterns:
-        files += [(f, dst_dir) for f in glob(os.path.join(src_dir, pat))]
+        files += [(f, dst_dir) for f in glob(os.path.join(project_path(src_dir), pat))]
     return files
 
 
 datas = []
-datas += [('AppDir/app.png', '.')]
+datas += [(project_path('AppDir', 'app.png'), '.')]
 
 datas += collect('ImageAssets/UI', 'ImageAssets/UI')
 
@@ -65,14 +71,14 @@ datas += collect('ImageAssets/AppUI/selected', 'ImageAssets/AppUI/selected')
 
 
 a = Analysis(
-    ['App.py'],
+    [project_path('App.py')],
     pathex=[],
     binaries=[],
     datas=datas,
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=["runtime_hooks.py"],
+    runtime_hooks=[project_path('runtime_hooks.py')],
     excludes=["source.utils.os_windows_backend"],
     noarchive=False,
     optimize=1,
@@ -90,7 +96,7 @@ exe = EXE(
     strip=True,
     upx=False,
     console=False,
-    icon='AppDir/app.png',
+    icon=project_path('AppDir', 'app.png'),
 )
 
 coll = COLLECT(

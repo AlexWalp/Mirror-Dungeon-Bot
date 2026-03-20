@@ -3,15 +3,21 @@
 import os
 from glob import glob
 
+ROOT_DIR = os.path.abspath(os.environ.get('PROJECT_ROOT', os.getcwd()))
+
+
+def project_path(*parts):
+    return os.path.join(ROOT_DIR, *parts)
+
 def collect(src_dir, dst_dir, patterns=("*.png", "*.ttf", "*.ico")):
     files = []
     for pat in patterns:
-        files += [(f, dst_dir) for f in glob(os.path.join(src_dir, pat))]
+        files += [(f, dst_dir) for f in glob(os.path.join(project_path(src_dir), pat))]
     return files
 
 
 datas = []
-datas += [('app_icon.ico', '.')]
+datas += [(project_path('app_icon.ico'), '.')]
 
 datas += collect('ImageAssets/UI', 'ImageAssets/UI')
 
@@ -63,18 +69,18 @@ datas += collect('ImageAssets/AppUI/font', 'ImageAssets/AppUI/font', patterns=("
 datas += collect('ImageAssets/AppUI/affinity', 'ImageAssets/AppUI/affinity')
 datas += collect('ImageAssets/AppUI/selected', 'ImageAssets/AppUI/selected')
 
-datas += [('drivers/install-interception.exe', 'drivers')]
+datas += [(project_path('drivers', 'install-interception.exe'), 'drivers')]
 
 
 a = Analysis(
-    ['App.py'],
+    [project_path('App.py')],
     pathex=[],
     binaries=[],
     datas=datas,
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=["runtime_hooks.py"],
+    runtime_hooks=[project_path('runtime_hooks.py')],
     excludes=["source.utils.os_x11_backend"],
     noarchive=False,
     optimize=1,
@@ -100,7 +106,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['app_icon.ico'],
+    icon=[project_path('app_icon.ico')],
 )
 
 exe_debug = EXE(
@@ -122,5 +128,5 @@ exe_debug = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['app_icon.ico'],
+    icon=[project_path('app_icon.ico')],
 )
