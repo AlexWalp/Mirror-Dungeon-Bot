@@ -69,9 +69,6 @@ datas += collect('ImageAssets/AppUI/font', 'ImageAssets/AppUI/font', patterns=("
 datas += collect('ImageAssets/AppUI/affinity', 'ImageAssets/AppUI/affinity')
 datas += collect('ImageAssets/AppUI/selected', 'ImageAssets/AppUI/selected')
 
-datas += [(project_path('drivers', 'install-interception.exe'), 'drivers')]
-
-
 a = Analysis(
     [project_path('App.py')],
     pathex=[],

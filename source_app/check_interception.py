@@ -12,13 +12,13 @@ def ensure_interception_driver(app_parent=None):
     if platform.system() != "Windows" or _is_interception_driver_installed():
         return True
 
-    driver_download_url = "https://github.com/oblitum/Interception/releases"
+    driver_download_url = "https://github.com/AlexWalp/Interception/releases"
 
     msg = QMessageBox(app_parent)
     msg.setIcon(QMessageBox.Icon.Warning)
     msg.setWindowTitle("Interception Driver Required")
-    msg.setText("Interception driver is not installed.")
-    msg.setInformativeText("Open the official Interception download page now?")
+    msg.setText("Interception driver is not installed. If you just installed it, please reboot your PC and relaunch ChargeGrinder.")
+    msg.setInformativeText("Open the Interception download page?")
     msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
     if msg.exec() != QMessageBox.StandardButton.Yes:
         return False
