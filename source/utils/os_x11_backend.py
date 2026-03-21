@@ -522,7 +522,7 @@ def mouseDown(button='left', delay=0.16):
     _human_delay(delay, delay + 0.04)
     _fail_safe_check()
 
-def mouseUp(button='left', delay=0.09):
+def mouseUp(button='left', delay=0.16):
     _fail_safe_check()
     dev = _get_mouse()
     _btn = _BUTTON_MAP.get(button.lower(), e.BTN_LEFT)
@@ -542,6 +542,17 @@ def _cap_rel_delta(dx, dy, max_step=22):
     return capped_dx, capped_dy
 
 
+def _emit_rel_open_loop(dev, dx, dy):
+    """Emit a relative movement step using rounded carry to preserve sub-pixel intent."""
+    ix = int(round(dx))
+    iy = int(round(dy))
+    if ix == 0 and iy == 0:
+        return
+    dev.write(e.EV_REL, e.REL_X, ix)
+    dev.write(e.EV_REL, e.REL_Y, iy)
+    dev.syn()
+
+
 def _apply_macro_rhythm(profile=None):
     _fail_safe_check()
     profile = profile or get_macro_profile()
@@ -558,7 +569,7 @@ def _apply_macro_rhythm(profile=None):
         time.sleep(pause)
     _fail_safe_check()
 
-def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.15, humanize=True,
+def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.09, humanize=True,
            mouse_velocity=0.65, noise=2.6, offset_x=0, offset_y=0):
     _fail_safe_check()
     dev = _get_mouse()
@@ -588,26 +599,27 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.15, humanize=True,
             noise=noise,
             offset_x=offset_x, offset_y=offset_y
         )
-
-        total_duration = params.get('duration', duration)
+        steps = max(10, steps*5)
+        
+        if duration > delay:
+            total_duration = duration
+        else:
+            total_duration = params.get('duration', duration)
+        
+        total_duration *= 5
         step_delay = total_duration / steps if steps > 0 else 0.01
         step_jitter_min, step_jitter_max = profile["step_sleep_jitter"]
 
         poll_period_ns = max(1, int(1_000_000_000 / HZ))
         next_tick_ns = time.perf_counter_ns()
+        prev_plan_x, prev_plan_y = _to_absolute(start_x, start_y)
 
         for i, (cur_x, cur_y) in enumerate(path):
             target_abs_x, target_abs_y = _to_absolute(cur_x, cur_y)
-            actual_x, actual_y = get_position()
-
-            dx = target_abs_x - actual_x
-            dy = target_abs_y - actual_y
-
-            if dx != 0 or dy != 0:
-                dx, dy = _cap_rel_delta(dx, dy)
-                dev.write(e.EV_REL, e.REL_X, dx)
-                dev.write(e.EV_REL, e.REL_Y, dy)
-                dev.syn()
+            dx = target_abs_x - prev_plan_x
+            dy = target_abs_y - prev_plan_y
+            _emit_rel_open_loop(dev, dx, dy)
+            prev_plan_x, prev_plan_y = target_abs_x, target_abs_y
 
             if i < steps - 1:
                 sleep_time = step_delay * random.uniform(step_jitter_min, step_jitter_max)
@@ -622,6 +634,7 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.15, humanize=True,
 
         poll_period_ns = max(1, int(1_000_000_000 / HZ))
         next_tick_ns = time.perf_counter_ns()
+        prev_plan_x, prev_plan_y = _to_absolute(start_x, start_y)
 
         for i in range(steps):
             progress = tween(i / (steps - 1))
@@ -633,16 +646,10 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.15, humanize=True,
             current_y = min(max(current_y, min(start_y, y)), max(start_y, y))
 
             target_abs_x, target_abs_y = _to_absolute(current_x, current_y)
-            actual_x, actual_y = get_position()
-
-            dx = target_abs_x - actual_x
-            dy = target_abs_y - actual_y
-
-            if dx != 0 or dy != 0:
-                dx, dy = _cap_rel_delta(dx, dy)
-                dev.write(e.EV_REL, e.REL_X, dx)
-                dev.write(e.EV_REL, e.REL_Y, dy)
-                dev.syn()
+            dx = target_abs_x - prev_plan_x
+            dy = target_abs_y - prev_plan_y
+            _emit_rel_open_loop(dev, dx, dy)
+            prev_plan_x, prev_plan_y = target_abs_x, target_abs_y
 
             step_sleep = duration / (steps - 1)
             if i < steps - 1 and step_sleep > 0:
@@ -683,7 +690,7 @@ def click(x=None, y=None, button='left', clicks=1, interval=0.1, duration=0.0, t
     profile = get_macro_profile()
     _apply_macro_rhythm(profile)
     delay = randomize_with_profile(delay, profile=profile, key="delay_jitter")
-    interval += 0.2
+    interval += 0.05
 
     if x is not None and y is not None:
         moveTo(x, y, duration, tween, delay=delay+0.02)

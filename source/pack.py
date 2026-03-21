@@ -195,7 +195,6 @@ def pack():
             break
         if skip != skips:
             win_click(1617, 62)
-            win_moveTo(1721, 999)
             time.sleep(2)
     
     wait_while_condition(lambda: now.button("PackChoice"), interval=0.1)
