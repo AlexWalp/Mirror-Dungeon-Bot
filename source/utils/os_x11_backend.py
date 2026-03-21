@@ -220,6 +220,8 @@ def screenshot(imageFilename=None, region=None):
 
 
 # --- UINPUT VIRTUAL DEVICE SETUP ---
+HZ = 1000
+
 MOUSE_FALLBACK = {
     'name': 'Logitech USB Receiver',
     'vendor': 0x046d,
@@ -273,6 +275,28 @@ _uinput_error = None
 _uinput_init_started = False
 _uinput_ready = threading.Event()
 _uinput_lock = threading.Lock()
+
+def _wait_until_ns(target_ns, spin_threshold_ns=250_000):
+    """
+    Wait until a monotonic timestamp using a sleep+spin strategy.
+    
+    Absolute-deadline waits prevent cumulative drift compared to repeatedly
+    sleeping relative intervals in tight loops.
+    """
+    while True:
+        now_ns = time.perf_counter_ns()
+        remaining_ns = target_ns - now_ns
+        if remaining_ns <= 0:
+            return
+
+        if remaining_ns > spin_threshold_ns:
+            sleep_ns = remaining_ns - spin_threshold_ns
+            time.sleep(sleep_ns / 1_000_000_000)
+            continue
+
+        while time.perf_counter_ns() < target_ns:
+            pass
+        return
 
 
 def clone_device(path: str) -> UInput:
@@ -486,14 +510,16 @@ class PauseException(Exception):
         super().__init__(name)
         self.window = name
 
+def _human_delay(min_delay=0.01, max_delay=0.03):
+    time.sleep(random.uniform(min_delay, max_delay))
 
-def mouseDown(button='left', delay=0.09):
+def mouseDown(button='left', delay=0.16):
     _fail_safe_check()
     dev = _get_mouse()
     _btn = _BUTTON_MAP.get(button.lower(), e.BTN_LEFT)
     dev.write(e.EV_KEY, _btn, 1)
     dev.syn()
-    _human_delay(delay, delay + 0.02)
+    _human_delay(delay, delay + 0.04)
     _fail_safe_check()
 
 def mouseUp(button='left', delay=0.09):
@@ -502,22 +528,18 @@ def mouseUp(button='left', delay=0.09):
     _btn = _BUTTON_MAP.get(button.lower(), e.BTN_LEFT)
     dev.write(e.EV_KEY, _btn, 0)
     dev.syn()
-    _human_delay(delay, delay + 0.02)
+    _human_delay(delay, delay + 0.05)
     _fail_safe_check()
 
 def _to_absolute(x, y):
     """For X, absolute coords are pixel coordinates (no 0..65535 scaling)."""
     return int(round(x)), int(round(y))
 
-
 def _cap_rel_delta(dx, dy, max_step=22):
     """Limit a single relative write to avoid visible jumpy corrections."""
     capped_dx = max(-max_step, min(max_step, dx))
     capped_dy = max(-max_step, min(max_step, dy))
     return capped_dx, capped_dy
-
-def _human_delay(min_delay=0.01, max_delay=0.03):
-    time.sleep(random.uniform(min_delay, max_delay))
 
 
 def _apply_macro_rhythm(profile=None):
@@ -536,7 +558,7 @@ def _apply_macro_rhythm(profile=None):
         time.sleep(pause)
     _fail_safe_check()
 
-def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.11, humanize=True,
+def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.15, humanize=True,
            mouse_velocity=0.65, noise=2.6, offset_x=0, offset_y=0):
     _fail_safe_check()
     dev = _get_mouse()
@@ -571,6 +593,9 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.11, humanize=True,
         step_delay = total_duration / steps if steps > 0 else 0.01
         step_jitter_min, step_jitter_max = profile["step_sleep_jitter"]
 
+        poll_period_ns = max(1, int(1_000_000_000 / HZ))
+        next_tick_ns = time.perf_counter_ns()
+
         for i, (cur_x, cur_y) in enumerate(path):
             target_abs_x, target_abs_y = _to_absolute(cur_x, cur_y)
             actual_x, actual_y = get_position()
@@ -586,12 +611,17 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.11, humanize=True,
 
             if i < steps - 1:
                 sleep_time = step_delay * random.uniform(step_jitter_min, step_jitter_max)
-                time.sleep(max(0.001, sleep_time))
+                step_ns = max(poll_period_ns, int(max(0.0, sleep_time) * 1_000_000_000))
+                next_tick_ns += step_ns
+                _wait_until_ns(next_tick_ns)
     else:
         distance = math.hypot(x - start_x, y - start_y)
         time_steps = max(2, int(duration * 400))
         distance_steps = int(distance / 1)
         steps = max(3, min(max(time_steps, distance_steps), 1000))
+
+        poll_period_ns = max(1, int(1_000_000_000 / HZ))
+        next_tick_ns = time.perf_counter_ns()
 
         for i in range(steps):
             progress = tween(i / (steps - 1))
@@ -616,7 +646,9 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.11, humanize=True,
 
             step_sleep = duration / (steps - 1)
             if i < steps - 1 and step_sleep > 0:
-                time.sleep(step_sleep)
+                step_ns = max(poll_period_ns, int(step_sleep * 1_000_000_000))
+                next_tick_ns += step_ns
+                _wait_until_ns(next_tick_ns)
 
     target_x, target_y = _to_absolute(x, y)
     timeout_start = time.time()
@@ -634,7 +666,7 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.11, humanize=True,
         dev.write(e.EV_REL, e.REL_Y, dy)
         dev.syn()
 
-        time.sleep(0.01)
+        _wait_until_ns(time.perf_counter_ns() + max(1, int(1_000_000_000 / HZ)))
 
     human_final_min, human_final_max = profile["final_delay_human"]
     nonhuman_final_min, nonhuman_final_max = profile["final_delay_nonhuman"]
@@ -651,6 +683,7 @@ def click(x=None, y=None, button='left', clicks=1, interval=0.1, duration=0.0, t
     profile = get_macro_profile()
     _apply_macro_rhythm(profile)
     delay = randomize_with_profile(delay, profile=profile, key="delay_jitter")
+    interval += 0.2
 
     if x is not None and y is not None:
         moveTo(x, y, duration, tween, delay=delay+0.02)
@@ -739,16 +772,6 @@ def press(keys, presses=1, interval=0.1, delay=0.01):
 
 def hotkey(*args, **kwargs):
     press(list(args), **kwargs)
-
-# Anti-cheat enhancements
-def add_mouse_jitter(max_offset=5):
-    x, y = get_position()
-    jitter_x = random.randint(-max_offset, max_offset)
-    jitter_y = random.randint(-max_offset, max_offset)
-    moveTo(x + jitter_x, y + jitter_y, duration=0.05)
-
-def randomize_delay(base_delay):
-    return randomize_with_profile(base_delay)
 
 
 def get_absolute_position(win):

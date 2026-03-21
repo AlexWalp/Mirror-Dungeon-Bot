@@ -301,10 +301,6 @@ class PauseException(Exception):
 FAILSAFE = True
 FAILSAFE_ENABLED = True
 
-def randomize_delay(base_delay):
-    """Add randomness to timing patterns"""
-    return randomize_with_profile(base_delay)
-
 
 def _apply_macro_rhythm(profile=None):
     profile = profile or get_macro_profile()
