@@ -22,6 +22,12 @@ if [ "$INSIDE_DOCKER" = "1" ]; then
       --noconfirm
 else
     echo "Building AppImage..."
+    chmod 755 "$APPDIR" "$APPDIR/usr" "$APPDIR/usr/bin"
+    chmod +x "$APPDIR/AppRun"
+    if [ -f "$APPDIR/usr/bin/app" ]; then
+      chmod +x "$APPDIR/usr/bin/app"
+    fi
+
     APPIMAGE_EXTRACT_AND_RUN=1 \
       "$APPIMAGETOOL" "$APPDIR" "$DISTDIR/CGrinder-x86_64.AppImage"
 

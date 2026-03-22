@@ -222,6 +222,10 @@ def screenshot(imageFilename=None, region=None):
 # --- UINPUT VIRTUAL DEVICE SETUP ---
 HZ = 1000
 
+def _print_device_data(config):
+    print(*[f"{k}{' '*(12-len(k))}: {v}" for k, v in config.items()], sep="\n", end="\n\n")
+
+
 MOUSE_FALLBACK = {
     'name': 'Logitech USB Receiver',
     'vendor': 0x046d,
@@ -230,9 +234,9 @@ MOUSE_FALLBACK = {
     'bustype': 0x03,
     'phys': 'usb-0000:00:14.0-1.2/input0',
     'events': {
-        e.EV_KEY: [e.BTN_LEFT, e.BTN_RIGHT, e.BTN_MIDDLE,
-                   e.BTN_SIDE, e.BTN_EXTRA],
-        e.EV_REL: [e.REL_X, e.REL_Y, e.REL_WHEEL, e.REL_HWHEEL]
+        e.EV_KEY: [e.BTN_LEFT, e.BTN_RIGHT, e.BTN_MIDDLE, e.BTN_SIDE, e.BTN_EXTRA],
+        e.EV_REL: [e.REL_X, e.REL_Y, e.REL_WHEEL, e.REL_HWHEEL],
+        e.EV_MSC: [e.MSC_SCAN]
     },
     'input_props': []
 }
@@ -241,20 +245,50 @@ _EVDEV_KEYSYM_MAP = {
     'enter': e.KEY_ENTER, 'esc': e.KEY_ESC, 'space': e.KEY_SPACE,
     'tab': e.KEY_TAB, 'backspace': e.KEY_BACKSPACE, 'delete': e.KEY_DELETE,
     'insert': e.KEY_INSERT, 'home': e.KEY_HOME, 'end': e.KEY_END,
-    'pageup': e.KEY_PAGEUP, 'pagedown': e.KEY_PAGEDOWN, 'shift': e.KEY_LEFTSHIFT,
-    'ctrl': e.KEY_LEFTCTRL, 'alt': e.KEY_LEFTALT, 'win': e.KEY_LEFTMETA,
+    'pageup': e.KEY_PAGEUP, 'pagedown': e.KEY_PAGEDOWN,
+    'shift': e.KEY_LEFTSHIFT, 'ctrl': e.KEY_LEFTCTRL, 
+    'alt': e.KEY_LEFTALT, 'win': e.KEY_LEFTMETA,
+    'rightshift': e.KEY_RIGHTSHIFT, 'rightctrl': e.KEY_RIGHTCTRL,
+    'rightalt': e.KEY_RIGHTALT, 'rightwin': e.KEY_RIGHTMETA,
     'up': e.KEY_UP, 'down': e.KEY_DOWN, 'left': e.KEY_LEFT, 'right': e.KEY_RIGHT,
-    'f1': e.KEY_F1, 'f2': e.KEY_F2, 'f3': e.KEY_F3, 'f4': e.KEY_F4,
-    'f5': e.KEY_F5, 'f6': e.KEY_F6, 'f7': e.KEY_F7, 'f8': e.KEY_F8,
-    'f9': e.KEY_F9, 'f10': e.KEY_F10, 'f11': e.KEY_F11, 'f12': e.KEY_F12,
+    'capslock': e.KEY_CAPSLOCK, 'numlock': e.KEY_NUMLOCK, 'scrolllock': e.KEY_SCROLLLOCK,
+    'printscreen': e.KEY_SYSRQ, 'pause': e.KEY_PAUSE,
 }
+
+_symbols = {
+    '-': e.KEY_MINUS, '=': e.KEY_EQUAL, '[': e.KEY_LEFTBRACE, ']': e.KEY_RIGHTBRACE,
+    ';': e.KEY_SEMICOLON, "'": e.KEY_APOSTROPHE, '`': e.KEY_GRAVE, '\\': e.KEY_BACKSLASH,
+    ',': e.KEY_COMMA, '.': e.KEY_DOT, '/': e.KEY_SLASH,
+}
+
+_EVDEV_KEYSYM_MAP.update(_symbols)
 
 for char in "abcdefghijklmnopqrstuvwxyz":
     _EVDEV_KEYSYM_MAP[char] = getattr(e, f"KEY_{char.upper()}")
 for num in "0123456789":
     _EVDEV_KEYSYM_MAP[num] = getattr(e, f"KEY_{num}")
 
-_safe_keys = list(set(_EVDEV_KEYSYM_MAP.values()))
+for i in range(1, 25):
+    _EVDEV_KEYSYM_MAP[f'f{i}'] = getattr(e, f"KEY_F{i}")
+
+_numpad = {
+    'kp0': e.KEY_KP0, 'kp1': e.KEY_KP1, 'kp2': e.KEY_KP2, 'kp3': e.KEY_KP3,
+    'kp4': e.KEY_KP4, 'kp5': e.KEY_KP5, 'kp6': e.KEY_KP6, 'kp7': e.KEY_KP7,
+    'kp8': e.KEY_KP8, 'kp9': e.KEY_KP9, 'kpdot': e.KEY_KPDOT, 
+    'kpenter': e.KEY_KPENTER, 'kpplus': e.KEY_KPPLUS, 'kpminus': e.KEY_KPMINUS,
+    'kpasterisk': e.KEY_KPASTERISK, 'kpslash': e.KEY_KPSLASH, 'kpequal': e.KEY_KPEQUAL,
+}
+_EVDEV_KEYSYM_MAP.update(_numpad)
+
+_media = {
+    'mute': e.KEY_MUTE, 'volumedown': e.KEY_VOLUMEDOWN, 'volumeup': e.KEY_VOLUMEUP,
+    'playpause': e.KEY_PLAYPAUSE, 'stop': e.KEY_STOPCD, 'next': e.KEY_NEXTSONG,
+    'previous': e.KEY_PREVIOUSSONG, 'search': e.KEY_SEARCH, 'email': e.KEY_EMAIL,
+    'calc': e.KEY_CALC, 'computer': e.KEY_COMPUTER,
+}
+_EVDEV_KEYSYM_MAP.update(_media)
+
+_safe_keys = sorted(list(set(_EVDEV_KEYSYM_MAP.values())))
 
 KEYBOARD_FALLBACK = {
     'name': 'Dell USB Keyboard',
@@ -264,7 +298,12 @@ KEYBOARD_FALLBACK = {
     'bustype': 0x03,
     'phys': 'usb-0000:00:14.0-1.3/input0',
     'events': {
-        e.EV_KEY: _safe_keys,
+        e.EV_KEY: _safe_keys, 
+        e.EV_LED: [e.LED_NUML, e.LED_CAPSL, e.LED_SCROLLL, e.LED_COMPOSE, e.LED_KANA],
+        e.EV_REP: [e.REP_DELAY, e.REP_PERIOD],
+        e.EV_MSC: [e.MSC_SCAN],
+        e.EV_REL: [e.REL_HWHEEL, 12],
+        e.EV_ABS: [(e.ABS_VOLUME, evdev.AbsInfo(value=0, min=0, max=572, fuzz=0, flat=0, resolution=0))]
     },
     'input_props': []
 }
@@ -300,7 +339,6 @@ def _wait_until_ns(target_ns, spin_threshold_ns=250_000):
 
 
 def clone_device(path: str) -> UInput:
-    """Clone a real evdev device into a uinput virtual device."""
     real = evdev.InputDevice(path)
     kwargs = {
         "name": real.name,
@@ -308,62 +346,81 @@ def clone_device(path: str) -> UInput:
         "product": real.info.product,
         "version": real.info.version,
         "bustype": real.info.bustype,
-        "phys": real.phys,
+        "phys": real.phys if real.phys else "usb-0000:00:14.0-1/input0",
         "input_props": real.input_props(),
     }
-    print(kwargs)
 
-    try:
-        return UInput.from_device(real, **kwargs)
-    except OSError as ex:
-        # Some devices expose event types that can trigger EINVAL in uinput.
-        if ex.errno != 22:
-            raise
-        filtered = (e.EV_SYN, e.EV_FF, e.EV_MSC)
-        return UInput.from_device(real, filtered_types=filtered, **kwargs)
+    device = UInput.from_device(real, **kwargs)
+    _print_device_data(kwargs)
+    return device
 
+
+def _is_virtual(dev):
+    name = (dev.name or "").lower()
+    phys = (dev.phys or "").lower()
+    
+    if any(x in name for x in ["virtual", "uinput", "keyd", "python"]):
+        return True
+    if not phys or phys.startswith("py-evdev"):
+        return True
+    return False
 
 def _pick_device_paths():
-    paths = list(evdev.list_devices())
+    paths = evdev.list_devices()
     mouse_path = None
-    keyboard_path = None
-
-    # We'll store potential candidates to pick the "best" one
+    mouse_name = None
+    kbd_data = {}
     kbd_candidates = []
 
     for path in paths:
         try:
             dev = evdev.InputDevice(path)
-            caps = dev.capabilities()
-            key_caps = set(caps.get(e.EV_KEY, []))
-            rel_caps = set(caps.get(e.EV_REL, []))
             
-            # 1. Is it a Mouse? 
-            # It MUST have relative X/Y movement.
+            if _is_virtual(dev):
+                continue
+
+            caps = dev.capabilities()
+            rel_caps = caps.get(e.EV_REL, [])
+
+            # 1. Mouse Selection (Must have Rel X/Y)
             if e.REL_X in rel_caps and e.REL_Y in rel_caps:
                 if mouse_path is None:
                     mouse_path = path
-                continue # If it moves like a mouse, don't even consider it for a keyboard
+                    mouse_name = dev.name.lower()
+                continue
 
-            # 2. Is it a Keyboard?
-            # It should have a significant number of keys (usually > 50).
-            # Ignore anything that has relative movement (already handled above).
-            if len(key_caps) > 50:
-                # We prioritize devices with "keyboard" in the name
+            kbd_data[path] = {"dev": dev, "key_caps": caps.get(e.EV_KEY, [])}
+        
+        except Exception:
+            continue
+        
+    for path in kbd_data:
+        try:
+            dev = kbd_data[path]["dev"]
+            key_caps = kbd_data[path]["key_caps"]
+
+            # 2. Keyboard Selection
+            # Hardware keyboards usually have the 'ESC' key and a high count
+            if e.KEY_ESC in key_caps and len(key_caps) > 50:
                 name = (dev.name or "").lower()
                 score = 0
+                
+                if dev.info.bustype == e.BUS_USB:
+                    score += 20
                 if "keyboard" in name or "kbd" in name:
                     score += 10
-                
+                if mouse_name and mouse_name in name:
+                    score -= 30
                 kbd_candidates.append((score, path))
 
         except Exception:
             continue
 
-    # Pick the highest-scoring keyboard candidate
     if kbd_candidates:
         kbd_candidates.sort(key=lambda x: x[0], reverse=True)
         keyboard_path = kbd_candidates[0][1]
+    else:
+        keyboard_path = None
 
     return mouse_path, keyboard_path
 
@@ -406,29 +463,33 @@ def _init_uinput_devices():
 
         if mouse_path:
             try:
-                local_mouse = clone_device(mouse_path)
                 print(f"Cloning mouse from {mouse_path}")
+                local_mouse = clone_device(mouse_path)
             except Exception as ex:
                 print(f"[!] Mouse clone failed ({mouse_path}): {ex}")
                 print("No mouse found – using fallback.")
                 local_mouse = UInput(**MOUSE_FALLBACK)
+                _print_device_data(MOUSE_FALLBACK)
         else:
             print("No mouse found – using fallback.")
             local_mouse = UInput(**MOUSE_FALLBACK)
+            _print_device_data(MOUSE_FALLBACK)
 
         _disable_mouse_accel_x11(getattr(local_mouse, "name", None))
 
         if keyboard_path:
             try:
-                local_keyboard = clone_device(keyboard_path)
                 print(f"Cloning keyboard from {keyboard_path}")
+                local_keyboard = clone_device(keyboard_path)
             except Exception as ex:
                 print(f"[!] Keyboard clone failed ({keyboard_path}): {ex}")
                 print("No keyboard found – using fallback.")
                 local_keyboard = UInput(**KEYBOARD_FALLBACK)
+                _print_device_data(KEYBOARD_FALLBACK)
         else:
             print("No keyboard found – using fallback.")
             local_keyboard = UInput(**KEYBOARD_FALLBACK)
+            _print_device_data(KEYBOARD_FALLBACK)
 
         with _uinput_lock:
             mouse = local_mouse
