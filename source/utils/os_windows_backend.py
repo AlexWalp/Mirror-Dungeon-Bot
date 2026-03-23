@@ -301,10 +301,6 @@ class PauseException(Exception):
 FAILSAFE = True
 FAILSAFE_ENABLED = True
 
-def randomize_delay(base_delay):
-    """Add randomness to timing patterns"""
-    return randomize_with_profile(base_delay)
-
 
 def _apply_macro_rhythm(profile=None):
     profile = profile or get_macro_profile()
@@ -457,11 +453,24 @@ def scroll(clicks, x=None, y=None):
 
 
 def press(keys, presses=1, interval=0.1, delay=0.01):
+    _fail_safe_check()
     profile = get_macro_profile()
     _apply_macro_rhythm(profile)
     time.sleep(randomize_with_profile(delay, profile=profile, key="delay_jitter"))
     interval = randomize_with_profile(interval, profile=profile, key="key_interval_jitter")
-    interception.press(keys, presses=presses, interval=interval)
+
+    if isinstance(keys, str):
+        keys = [keys]
+
+    for _ in range(presses):
+        for key in keys:
+            interception.key_down(key)
+        
+        for key in reversed(keys):
+            interception.key_up(key)
+        
+        if presses > 1:
+            time.sleep(interval)
 
 def hotkey(*args, **kwargs):
     press(list(args), **kwargs)

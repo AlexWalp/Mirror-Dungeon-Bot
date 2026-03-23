@@ -1,21 +1,24 @@
 #!/usr/bin/env bash
 set -e
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
 APPNAME="CGrinder"
 ARCH="x86_64"
-APPDIR="$PWD/AppDir"
+APPDIR="$ROOT_DIR/AppDir"
 APPIMAGETOOL="$HOME/appimagetool-x86_64.AppImage"
-DISTDIR="$PWD/dist"
+DISTDIR="$ROOT_DIR/dist"
 
 mkdir -p "$APPDIR/usr/bin"
 mkdir -p "$DISTDIR"
 
 if [ "$INSIDE_DOCKER" = "1" ]; then
     echo "Building executable inside Docker..."
-    pyinstaller build_linux.spec \
+  export PROJECT_ROOT="$ROOT_DIR"
+    pyinstaller "$ROOT_DIR/release/linux/pyinstaller-linux.spec" \
       --clean \
       --distpath "/output" \
-      --workpath build \
+      --workpath "$ROOT_DIR/build" \
       --noconfirm
 else
     echo "Building AppImage..."

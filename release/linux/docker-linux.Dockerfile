@@ -21,4 +21,4 @@ RUN pip install --upgrade pip && \
 
 COPY . .
 
-CMD ["bash", "build_linux.sh"]
+CMD ["bash", "release/linux/docker-linux.sh"]

@@ -176,18 +176,18 @@ REG = {
 }
 
 SINNERS = {
-    "YISANG"    : ( 351, 207, 196, 285),
-    "FAUST"     : ( 547, 207, 196, 285),
-    "DONQUIXOTE": ( 743, 207, 196, 285),
-    "RYOSHU"    : ( 939, 207, 196, 285),
-    "MEURSAULT" : (1135, 207, 196, 285),
-    "HONGLU"    : (1331, 207, 196, 285),
-    "HEATHCLIFF": ( 351, 492, 196, 285),
-    "ISHMAEL"   : ( 547, 492, 196, 285),
-    "RODION"    : ( 743, 492, 196, 285),
-    "SINCLAIR"  : ( 939, 492, 196, 285),
-    "OUTIS"     : (1135, 492, 196, 285),
-    "GREGOR"    : (1331, 492, 196, 285)
+    "YISANG"    : ( 350, 227, 188, 270),
+    "FAUST"     : ( 549, 227, 188, 270),
+    "DONQUIXOTE": ( 747, 227, 188, 270),
+    "RYOSHU"    : ( 946, 227, 188, 270),
+    "MEURSAULT" : (1144, 227, 188, 270),
+    "HONGLU"    : (1343, 227, 188, 270),
+    "HEATHCLIFF": ( 350, 523, 188, 270),
+    "ISHMAEL"   : ( 549, 523, 188, 270),
+    "RODION"    : ( 747, 523, 188, 270),
+    "SINCLAIR"  : ( 946, 523, 188, 270),
+    "OUTIS"     : (1144, 523, 188, 270),
+    "GREGOR"    : (1343, 523, 188, 270)
 }
 
 WORDLESS = {
@@ -255,7 +255,7 @@ PACKS = {
     'MurderontheWARPExpress'      : ((4, 5), (4, 5)),
     'TheNoonofViolet'             : ((4,), (3,)),
     'Line1'                       : ((), (4, 5)),
-    'Line2'                       : ((), (4,)),
+    'Line2'                       : ((), (4, 5)),
     'Line3'                       : ((), (5, 15)),
     'Line4'                       : ((), (5, 15)),
     'MiracleinDistrict20BokGak'   : ((), (4, 5)),
@@ -269,6 +269,7 @@ PACKS = {
     'SpringCultivation'           : ((5,), (5,)),
     'WARPExpressBokGak'           : ((), (4, 5)),
     'TheDuskofAmber'              : ((4, 5), (4, 5)),
+    'LCBRegularCheckupBokGak'     : ((), (4, 5)),
     'SlicersDicers'               : ((5,), (4,)),
     'TobeCleaved'                 : ((2, 3), (1, 2)),
     'PiercersPenetrators'         : ((5,), (4,)),

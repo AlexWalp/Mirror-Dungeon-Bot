@@ -233,22 +233,24 @@ def select(sinners):
     correct_back = 0
     to_click = []
     regions = [SINNERS[name] for name in sinners]
+    death_offset = 0
     for i, region in enumerate(regions):
-        ck = False
         if any(
             region[0] < point[0] < region[0]+region[2] and  
             region[1] < point[1] < region[1]+region[3] 
-            for point in selected) and i < 7:
+            for point in selected) and i < 7 + death_offset:
             correct += 1
-            ck = True
-        if i > 5 and any(
+            continue
+        if i > 5 + death_offset and any(
             region[0] < point[0] < region[0]+region[2] and  
             region[1] < point[1] < region[1]+region[3] 
             for point in backup):
             correct_back += 1
-            ck = True
-        if not ck:
-            to_click.append(gui.center(region))
+            continue
+        if is_grayscale(screenshot(region=region)): # dead
+            death_offset += 1
+            continue
+        to_click.append(gui.center(region))
     if len(selected) > correct or len(backup) > correct_back:
         ClickAction((1713, 712), ver="Confirm_alt").execute(click)
         time.sleep(0.21)

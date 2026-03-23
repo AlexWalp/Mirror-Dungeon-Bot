@@ -1,7 +1,7 @@
 # Linux (X11) port
 # Extra dependencies: python-xlib, mss
 
-import atexit, signal, threading
+import atexit, signal, threading, subprocess
 import mss
 import evdev
 from evdev import UInput, ecodes as e
@@ -220,12 +220,15 @@ def screenshot(imageFilename=None, region=None):
 
 
 # --- UINPUT VIRTUAL DEVICE SETUP ---
+HZ = 1000
+
 MOUSE_FALLBACK = {
     'name': 'Logitech USB Receiver',
     'vendor': 0x046d,
     'product': 0xc52b,
     'version': 0x0111,
     'bustype': 0x03,
+    'phys': 'usb-0000:00:14.0-1.2/input0',
     'events': {
         e.EV_KEY: [e.BTN_LEFT, e.BTN_RIGHT, e.BTN_MIDDLE,
                    e.BTN_SIDE, e.BTN_EXTRA],
@@ -259,6 +262,7 @@ KEYBOARD_FALLBACK = {
     'product': 0x2003,
     'version': 0x0111,
     'bustype': 0x03,
+    'phys': 'usb-0000:00:14.0-1.3/input0',
     'events': {
         e.EV_KEY: _safe_keys,
     },
@@ -272,13 +276,160 @@ _uinput_init_started = False
 _uinput_ready = threading.Event()
 _uinput_lock = threading.Lock()
 
+def _wait_until_ns(target_ns, spin_threshold_ns=250_000):
+    """
+    Wait until a monotonic timestamp using a sleep+spin strategy.
+    
+    Absolute-deadline waits prevent cumulative drift compared to repeatedly
+    sleeping relative intervals in tight loops.
+    """
+    while True:
+        now_ns = time.perf_counter_ns()
+        remaining_ns = target_ns - now_ns
+        if remaining_ns <= 0:
+            return
+
+        if remaining_ns > spin_threshold_ns:
+            sleep_ns = remaining_ns - spin_threshold_ns
+            time.sleep(sleep_ns / 1_000_000_000)
+            continue
+
+        while time.perf_counter_ns() < target_ns:
+            pass
+        return
+
+
+def clone_device(path: str) -> UInput:
+    """Clone a real evdev device into a uinput virtual device."""
+    real = evdev.InputDevice(path)
+    kwargs = {
+        "name": real.name,
+        "vendor": real.info.vendor,
+        "product": real.info.product,
+        "version": real.info.version,
+        "bustype": real.info.bustype,
+        "phys": real.phys,
+        "input_props": real.input_props(),
+    }
+    print(kwargs)
+
+    try:
+        return UInput.from_device(real, **kwargs)
+    except OSError as ex:
+        # Some devices expose event types that can trigger EINVAL in uinput.
+        if ex.errno != 22:
+            raise
+        filtered = (e.EV_SYN, e.EV_FF, e.EV_MSC)
+        return UInput.from_device(real, filtered_types=filtered, **kwargs)
+
+
+def _pick_device_paths():
+    paths = list(evdev.list_devices())
+    mouse_path = None
+    keyboard_path = None
+
+    # We'll store potential candidates to pick the "best" one
+    kbd_candidates = []
+
+    for path in paths:
+        try:
+            dev = evdev.InputDevice(path)
+            caps = dev.capabilities()
+            key_caps = set(caps.get(e.EV_KEY, []))
+            rel_caps = set(caps.get(e.EV_REL, []))
+            
+            # 1. Is it a Mouse? 
+            # It MUST have relative X/Y movement.
+            if e.REL_X in rel_caps and e.REL_Y in rel_caps:
+                if mouse_path is None:
+                    mouse_path = path
+                continue # If it moves like a mouse, don't even consider it for a keyboard
+
+            # 2. Is it a Keyboard?
+            # It should have a significant number of keys (usually > 50).
+            # Ignore anything that has relative movement (already handled above).
+            if len(key_caps) > 50:
+                # We prioritize devices with "keyboard" in the name
+                name = (dev.name or "").lower()
+                score = 0
+                if "keyboard" in name or "kbd" in name:
+                    score += 10
+                
+                kbd_candidates.append((score, path))
+
+        except Exception:
+            continue
+
+    # Pick the highest-scoring keyboard candidate
+    if kbd_candidates:
+        kbd_candidates.sort(key=lambda x: x[0], reverse=True)
+        keyboard_path = kbd_candidates[0][1]
+
+    return mouse_path, keyboard_path
+
+
+def _disable_mouse_accel_x11(device_name):
+    """Best-effort: set flat accel profile for matching XInput devices."""
+    if not device_name:
+        return
+
+    try:
+        out = subprocess.check_output(
+            ["xinput", "list", "--id-only", device_name],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception:
+        return
+
+    ids = [line.strip() for line in out.splitlines() if line.strip().isdigit()]
+    for dev_id in ids:
+        subprocess.run(
+            ["xinput", "set-prop", dev_id, "libinput Accel Profile Enabled", "0", "1"],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        subprocess.run(
+            ["xinput", "set-prop", dev_id, "libinput Accel Speed", "0"],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
 
 def _init_uinput_devices():
     """Initialize uinput devices once and publish result to globals."""
     global mouse, keyboard, _uinput_error
     try:
-        local_mouse = UInput(**MOUSE_FALLBACK)
-        local_keyboard = UInput(**KEYBOARD_FALLBACK)
+        mouse_path, keyboard_path = _pick_device_paths()
+
+        if mouse_path:
+            try:
+                local_mouse = clone_device(mouse_path)
+                print(f"Cloning mouse from {mouse_path}")
+            except Exception as ex:
+                print(f"[!] Mouse clone failed ({mouse_path}): {ex}")
+                print("No mouse found – using fallback.")
+                local_mouse = UInput(**MOUSE_FALLBACK)
+        else:
+            print("No mouse found – using fallback.")
+            local_mouse = UInput(**MOUSE_FALLBACK)
+
+        _disable_mouse_accel_x11(getattr(local_mouse, "name", None))
+
+        if keyboard_path:
+            try:
+                local_keyboard = clone_device(keyboard_path)
+                print(f"Cloning keyboard from {keyboard_path}")
+            except Exception as ex:
+                print(f"[!] Keyboard clone failed ({keyboard_path}): {ex}")
+                print("No keyboard found – using fallback.")
+                local_keyboard = UInput(**KEYBOARD_FALLBACK)
+        else:
+            print("No keyboard found – using fallback.")
+            local_keyboard = UInput(**KEYBOARD_FALLBACK)
+
         with _uinput_lock:
             mouse = local_mouse
             keyboard = local_keyboard
@@ -359,31 +510,47 @@ class PauseException(Exception):
         super().__init__(name)
         self.window = name
 
+def _human_delay(min_delay=0.01, max_delay=0.03):
+    time.sleep(random.uniform(min_delay, max_delay))
 
-def mouseDown(button='left', delay=0.09):
+def mouseDown(button='left', delay=0.16):
     _fail_safe_check()
     dev = _get_mouse()
     _btn = _BUTTON_MAP.get(button.lower(), e.BTN_LEFT)
     dev.write(e.EV_KEY, _btn, 1)
     dev.syn()
-    _human_delay(delay, delay + 0.02)
+    _human_delay(delay, delay + 0.04)
     _fail_safe_check()
 
-def mouseUp(button='left', delay=0.09):
+def mouseUp(button='left', delay=0.16):
     _fail_safe_check()
     dev = _get_mouse()
     _btn = _BUTTON_MAP.get(button.lower(), e.BTN_LEFT)
     dev.write(e.EV_KEY, _btn, 0)
     dev.syn()
-    _human_delay(delay, delay + 0.02)
+    _human_delay(delay, delay + 0.05)
     _fail_safe_check()
 
 def _to_absolute(x, y):
     """For X, absolute coords are pixel coordinates (no 0..65535 scaling)."""
     return int(round(x)), int(round(y))
 
-def _human_delay(min_delay=0.01, max_delay=0.03):
-    time.sleep(random.uniform(min_delay, max_delay))
+def _cap_rel_delta(dx, dy, max_step=22):
+    """Limit a single relative write to avoid visible jumpy corrections."""
+    capped_dx = max(-max_step, min(max_step, dx))
+    capped_dy = max(-max_step, min(max_step, dy))
+    return capped_dx, capped_dy
+
+
+def _emit_rel_open_loop(dev, dx, dy):
+    """Emit a relative movement step using rounded carry to preserve sub-pixel intent."""
+    ix = int(round(dx))
+    iy = int(round(dy))
+    if ix == 0 and iy == 0:
+        return
+    dev.write(e.EV_REL, e.REL_X, ix)
+    dev.write(e.EV_REL, e.REL_Y, iy)
+    dev.syn()
 
 
 def _apply_macro_rhythm(profile=None):
@@ -402,7 +569,7 @@ def _apply_macro_rhythm(profile=None):
         time.sleep(pause)
     _fail_safe_check()
 
-def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True,
+def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.09, humanize=True,
            mouse_velocity=0.65, noise=2.6, offset_x=0, offset_y=0):
     _fail_safe_check()
     dev = _get_mouse()
@@ -432,31 +599,42 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True,
             noise=noise,
             offset_x=offset_x, offset_y=offset_y
         )
-
-        total_duration = params.get('duration', duration)
+        steps = max(10, steps*5)
+        
+        if duration > delay:
+            total_duration = duration
+        else:
+            total_duration = params.get('duration', duration)
+        
+        total_duration *= 5
         step_delay = total_duration / steps if steps > 0 else 0.01
         step_jitter_min, step_jitter_max = profile["step_sleep_jitter"]
 
+        poll_period_ns = max(1, int(1_000_000_000 / HZ))
+        next_tick_ns = time.perf_counter_ns()
+        prev_plan_x, prev_plan_y = _to_absolute(start_x, start_y)
+
         for i, (cur_x, cur_y) in enumerate(path):
             target_abs_x, target_abs_y = _to_absolute(cur_x, cur_y)
-            actual_x, actual_y = get_position()
-
-            dx = target_abs_x - actual_x
-            dy = target_abs_y - actual_y
-
-            if dx != 0 or dy != 0:
-                dev.write(e.EV_REL, e.REL_X, dx)
-                dev.write(e.EV_REL, e.REL_Y, dy)
-                dev.syn()
+            dx = target_abs_x - prev_plan_x
+            dy = target_abs_y - prev_plan_y
+            _emit_rel_open_loop(dev, dx, dy)
+            prev_plan_x, prev_plan_y = target_abs_x, target_abs_y
 
             if i < steps - 1:
                 sleep_time = step_delay * random.uniform(step_jitter_min, step_jitter_max)
-                time.sleep(max(0.001, sleep_time))
+                step_ns = max(poll_period_ns, int(max(0.0, sleep_time) * 1_000_000_000))
+                next_tick_ns += step_ns
+                _wait_until_ns(next_tick_ns)
     else:
         distance = math.hypot(x - start_x, y - start_y)
         time_steps = max(2, int(duration * 400))
         distance_steps = int(distance / 1)
         steps = max(3, min(max(time_steps, distance_steps), 1000))
+
+        poll_period_ns = max(1, int(1_000_000_000 / HZ))
+        next_tick_ns = time.perf_counter_ns()
+        prev_plan_x, prev_plan_y = _to_absolute(start_x, start_y)
 
         for i in range(steps):
             progress = tween(i / (steps - 1))
@@ -468,34 +646,34 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.08, humanize=True,
             current_y = min(max(current_y, min(start_y, y)), max(start_y, y))
 
             target_abs_x, target_abs_y = _to_absolute(current_x, current_y)
-            actual_x, actual_y = get_position()
-
-            dx = target_abs_x - actual_x
-            dy = target_abs_y - actual_y
-
-            if dx != 0 or dy != 0:
-                dev.write(e.EV_REL, e.REL_X, dx)
-                dev.write(e.EV_REL, e.REL_Y, dy)
-                dev.syn()
+            dx = target_abs_x - prev_plan_x
+            dy = target_abs_y - prev_plan_y
+            _emit_rel_open_loop(dev, dx, dy)
+            prev_plan_x, prev_plan_y = target_abs_x, target_abs_y
 
             step_sleep = duration / (steps - 1)
             if i < steps - 1 and step_sleep > 0:
-                time.sleep(step_sleep)
+                step_ns = max(poll_period_ns, int(step_sleep * 1_000_000_000))
+                next_tick_ns += step_ns
+                _wait_until_ns(next_tick_ns)
 
+    target_x, target_y = _to_absolute(x, y)
     timeout_start = time.time()
-    while time.time() - timeout_start < 0.5:
+    while time.time() - timeout_start < 0.08:
         actual_x, actual_y = get_position()
-        if (actual_x, actual_y) == (x, y):
+        dx = target_x - actual_x
+        dy = target_y - actual_y
+
+        if abs(dx) <= 1 and abs(dy) <= 1:
             break
-            
-        dx = x - actual_x
-        dy = y - actual_y
+
+        dx, dy = _cap_rel_delta(dx, dy, max_step=10)
         
         dev.write(e.EV_REL, e.REL_X, dx)
         dev.write(e.EV_REL, e.REL_Y, dy)
         dev.syn()
-        
-        time.sleep(0.005)
+
+        _wait_until_ns(time.perf_counter_ns() + max(1, int(1_000_000_000 / HZ)))
 
     human_final_min, human_final_max = profile["final_delay_human"]
     nonhuman_final_min, nonhuman_final_max = profile["final_delay_nonhuman"]
@@ -512,9 +690,11 @@ def click(x=None, y=None, button='left', clicks=1, interval=0.1, duration=0.0, t
     profile = get_macro_profile()
     _apply_macro_rhythm(profile)
     delay = randomize_with_profile(delay, profile=profile, key="delay_jitter")
+    interval += 0.05
 
     if x is not None and y is not None:
         moveTo(x, y, duration, tween, delay=delay+0.02)
+    
     elif duration > 0:
         current_x, current_y = get_position()
         moveTo(current_x, current_y, duration, tween, delay=delay+0.02)
@@ -523,8 +703,10 @@ def click(x=None, y=None, button='left', clicks=1, interval=0.1, duration=0.0, t
 
     for i in range(clicks):
         _fail_safe_check()
+
         mouseDown(button, delay=delay)
         mouseUp(button, delay=delay)
+
         if interval > 0 and i < clicks - 1:
             time.sleep(randomize_with_profile(interval, profile=profile, key="click_interval_jitter"))
             _fail_safe_check()
@@ -597,16 +779,6 @@ def press(keys, presses=1, interval=0.1, delay=0.01):
 
 def hotkey(*args, **kwargs):
     press(list(args), **kwargs)
-
-# Anti-cheat enhancements
-def add_mouse_jitter(max_offset=5):
-    x, y = get_position()
-    jitter_x = random.randint(-max_offset, max_offset)
-    jitter_y = random.randint(-max_offset, max_offset)
-    moveTo(x + jitter_x, y + jitter_y, duration=0.05)
-
-def randomize_delay(base_delay):
-    return randomize_with_profile(base_delay)
 
 
 def get_absolute_position(win):
