@@ -65,10 +65,6 @@ datas += collect('ImageAssets/AppUI/selected', 'ImageAssets/AppUI/selected')
 
 datas += [('drivers/install-interception.exe', 'drivers')]
 
-# GNU strip is usually unavailable on standard Windows setups, so do not
-# request binary stripping there to avoid noisy non-fatal warnings.
-should_strip = os.name != "nt"
-
 
 a = Analysis(
     ['App.py'],
@@ -94,7 +90,7 @@ exe = EXE(
     name='app',
     debug=False,
     bootloader_ignore_signals=False,
-    strip=should_strip,
+    strip=True,
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
@@ -116,7 +112,7 @@ exe_debug = EXE(
     name='app_debug',
     debug=False,
     bootloader_ignore_signals=False,
-    strip=should_strip,
+    strip=True,
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
