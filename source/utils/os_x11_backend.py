@@ -235,7 +235,7 @@ MOUSE_FALLBACK = {
     'phys': 'usb-0000:00:14.0-1.2/input0',
     'events': {
         e.EV_KEY: [e.BTN_LEFT, e.BTN_RIGHT, e.BTN_MIDDLE, e.BTN_SIDE, e.BTN_EXTRA],
-        e.EV_REL: [e.REL_X, e.REL_Y, e.REL_WHEEL, e.REL_HWHEEL],
+        e.EV_REL: [e.REL_X, e.REL_Y, e.REL_WHEEL, e.REL_HWHEEL, e.REL_WHEEL_HI_RES],
         e.EV_MSC: [e.MSC_SCAN]
     },
     'input_props': []
@@ -300,10 +300,7 @@ KEYBOARD_FALLBACK = {
     'events': {
         e.EV_KEY: _safe_keys, 
         e.EV_LED: [e.LED_NUML, e.LED_CAPSL, e.LED_SCROLLL, e.LED_COMPOSE, e.LED_KANA],
-        e.EV_REP: [e.REP_DELAY, e.REP_PERIOD],
         e.EV_MSC: [e.MSC_SCAN],
-        e.EV_REL: [e.REL_HWHEEL, 12],
-        e.EV_ABS: [(e.ABS_VOLUME, evdev.AbsInfo(value=0, min=0, max=572, fuzz=0, flat=0, resolution=0))]
     },
     'input_props': []
 }
@@ -349,8 +346,8 @@ def clone_device(path: str) -> UInput:
         "phys": real.phys if real.phys else "usb-0000:00:14.0-1/input0",
         "input_props": real.input_props(),
     }
-
-    device = UInput.from_device(real, **kwargs)
+    # raise Exception
+    device = UInput.from_device(real, filtered_types=(e.EV_SYN, e.EV_FF, e.EV_REP), **kwargs)
     _print_device_data(kwargs)
     return device
 
@@ -795,6 +792,12 @@ def scroll(clicks, x=None, y=None):
     for _ in range(count):
         _fail_safe_check()
         dev.write(e.EV_REL, e.REL_WHEEL, direction)
+        # Emit the hi-res wheel tick when supported (120 units per detent).
+        if hasattr(e, "REL_WHEEL_HI_RES"):
+            try:
+                dev.write(e.EV_REL, e.REL_WHEEL_HI_RES, direction * 120)
+            except OSError:
+                pass
         dev.syn()
         time.sleep(0.02)
         
