@@ -337,6 +337,21 @@ def _wait_until_ns(target_ns, spin_threshold_ns=250_000):
 
 def clone_device(path: str) -> UInput:
     real = evdev.InputDevice(path)
+    caps = real.capabilities()
+    
+    if e.EV_KEY in caps:
+        caps[e.EV_KEY] = list(set(caps[e.EV_KEY] + _safe_keys))
+    else:
+        caps[e.EV_KEY] = _safe_keys
+    
+    if e.EV_MSC not in caps:
+        caps[e.EV_MSC] = [e.MSC_SCAN]
+    elif e.MSC_SCAN not in caps[e.EV_MSC]:
+        caps[e.EV_MSC].append(e.MSC_SCAN)
+
+    if e.EV_REP not in caps:
+        caps[e.EV_REP] = [e.REP_DELAY, e.REP_PERIOD]
+    
     kwargs = {
         "name": real.name,
         "vendor": real.info.vendor,
@@ -400,6 +415,7 @@ def _pick_device_paths():
             # Hardware keyboards usually have the 'ESC' key and a high count
             if e.KEY_ESC in key_caps and len(key_caps) > 50:
                 name = (dev.name or "").lower()
+                phys = (dev.phys or "").lower()
                 score = 0
                 
                 if dev.info.bustype == e.BUS_USB:
@@ -408,6 +424,11 @@ def _pick_device_paths():
                     score += 10
                 if mouse_name and mouse_name in name:
                     score -= 30
+
+                if phys.endswith("/input0"):
+                        score += 50  # Huge bonus for primary typing endpoint
+                elif phys.endswith("/input1") or phys.endswith("/input2"):
+                        score -= 50  # Massive penalty for media/NKRO endpoints
                 kbd_candidates.append((score, path))
 
         except Exception:
