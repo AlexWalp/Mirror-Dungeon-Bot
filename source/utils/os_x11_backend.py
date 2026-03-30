@@ -5,7 +5,8 @@ import atexit, signal, threading, subprocess
 import mss
 import evdev
 from evdev import UInput, ecodes as e
-from Xlib import X, display
+from Xlib import X, display, XK
+from Xlib.ext import xtest
 import numpy as np, time, math, random
 from pathgenerator import PDPathGenerator
 import source.utils.params as p
@@ -803,13 +804,80 @@ def scroll(clicks, x=None, y=None):
         
     _human_delay()
 
-# Keyboard functions
-def _key_to_ecode(key):
-    return _EVDEV_KEYSYM_MAP.get(key.lower(), None)
+# Keyboard functions using XTest (layout-independent keycodes)
+# X11 KeySyms are layout-independent like Windows VK codes, unlike evdev scancodes
+# This fixes keyboard input with non-English keyboard layouts on Linux
+
+# Map key names to X11 KeySyms (layout-independent)
+_XKEYSYM_MAP = {
+    'enter': XK.XK_Return, 'esc': XK.XK_Escape, 'space': XK.XK_space,
+    'tab': XK.XK_Tab, 'backspace': XK.XK_BackSpace, 'delete': XK.XK_Delete,
+    'insert': XK.XK_Insert, 'home': XK.XK_Home, 'end': XK.XK_End,
+    'pageup': XK.XK_Page_Up, 'pagedown': XK.XK_Page_Down,
+    'shift': XK.XK_Shift_L, 'ctrl': XK.XK_Control_L, 
+    'alt': XK.XK_Alt_L, 'win': XK.XK_Super_L,
+    'rightshift': XK.XK_Shift_R, 'rightctrl': XK.XK_Control_R,
+    'rightalt': XK.XK_Alt_R, 'rightwin': XK.XK_Super_R,
+    'up': XK.XK_Up, 'down': XK.XK_Down, 'left': XK.XK_Left, 'right': XK.XK_Right,
+    'capslock': XK.XK_Caps_Lock, 'numlock': XK.XK_Num_Lock, 'scrolllock': XK.XK_Scroll_Lock,
+    'printscreen': XK.XK_Print, 'pause': XK.XK_Pause,
+}
+
+# Add letter keys
+for char in "abcdefghijklmnopqrstuvwxyz":
+    _XKEYSYM_MAP[char] = getattr(XK, f"XK_{char}")
+# Add number keys
+for num in "0123456789":
+    _XKEYSYM_MAP[num] = getattr(XK, f"XK_{num}")
+
+# Add symbol keys
+_symbols_keysym = {
+    '-': XK.XK_minus, '=': XK.XK_equal, '[': XK.XK_bracketleft, ']': XK.XK_bracketright,
+    ';': XK.XK_semicolon, "'": XK.XK_apostrophe, '`': XK.XK_grave, '\\': XK.XK_backslash,
+    ',': XK.XK_comma, '.': XK.XK_period, '/': XK.XK_slash,
+}
+_XKEYSYM_MAP.update(_symbols_keysym)
+
+# Add function keys
+for i in range(1, 25):
+    _XKEYSYM_MAP[f'f{i}'] = getattr(XK, f"XK_F{i}")
+
+# Add numpad keys
+_numpad_keysym = {
+    'kp0': XK.XK_KP_0, 'kp1': XK.XK_KP_1, 'kp2': XK.XK_KP_2, 'kp3': XK.XK_KP_3,
+    'kp4': XK.XK_KP_4, 'kp5': XK.XK_KP_5, 'kp6': XK.XK_KP_6, 'kp7': XK.XK_KP_7,
+    'kp8': XK.XK_KP_8, 'kp9': XK.XK_KP_9, 'kpdot': XK.XK_KP_Decimal, 
+    'kpenter': XK.XK_KP_Enter, 'kpplus': XK.XK_KP_Add, 'kpminus': XK.XK_KP_Subtract,
+    'kpasterisk': XK.XK_KP_Multiply, 'kpslash': XK.XK_KP_Divide, 'kpequal': XK.XK_KP_Equal,
+}
+_XKEYSYM_MAP.update(_numpad_keysym)
+
+# Add media keys
+_media_keysym = {
+    'mute': XK.XK_AudioMute, 'volumedown': XK.XK_AudioLowerVolume, 'volumeup': XK.XK_AudioRaiseVolume,
+    'playpause': XK.XK_AudioPlay, 'stop': XK.XK_AudioStop, 'next': XK.XK_AudioNext,
+    'previous': XK.XK_AudioPrev, 'search': XK.XK_Search, 'email': XK.XK_Mail,
+    'calc': XK.XK_Calculator, 'computer': XK.XK_MyComputer,
+}
+_XKEYSYM_MAP.update(_media_keysym)
+
+
+def _key_to_keysym(key):
+    """Convert key name to X11 KeySym (layout-independent)."""
+    return _XKEYSYM_MAP.get(key.lower(), None)
+
+
+def _keysym_to_keycode(keysym):
+    """Convert X11 KeySym to X11 keycode using the current keyboard mapping."""
+    return _disp.keysym_to_keycode(keysym)
+
 
 def press(keys, presses=1, interval=0.1, delay=0.01):
+    """
+    Press keys using XTest extension (layout-independent).
+    This fixes issues with non-English keyboard layouts on Linux.
+    """
     _fail_safe_check()
-    dev = _get_keyboard()
     profile = get_macro_profile()
     _apply_macro_rhythm(profile)
     time.sleep(randomize_with_profile(delay, profile=profile, key="delay_jitter"))
@@ -820,26 +888,31 @@ def press(keys, presses=1, interval=0.1, delay=0.01):
         if isinstance(keys, str):
             keys = [keys]
 
-        ecodes = []
+        keycodes = []
         for key in keys:
             _fail_safe_check()
-            kc = _key_to_ecode(key)
-            if not kc:
+            keysym = _key_to_keysym(key)
+            if not keysym:
                 continue
-            ecodes.append(kc)
-            dev.write(e.EV_KEY, kc, 1) # Press
-            dev.syn()
+            keycode = _keysym_to_keycode(keysym)
+            if not keycode:
+                continue
+            keycodes.append(keycode)
+            # Use XTest to simulate key press (layout-independent)
+            xtest.fake_key_event(_disp, keycode, True)
+            _disp.sync()
             time.sleep(delay)
 
-        for kc in reversed(ecodes):
+        for keycode in reversed(keycodes):
             _fail_safe_check()
-            dev.write(e.EV_KEY, kc, 0) # Release
-            dev.syn()
+            xtest.fake_key_event(_disp, keycode, False)
+            _disp.sync()
             time.sleep(delay)
 
         if interval > 0 and _p < presses - 1:
             time.sleep(interval)
             _fail_safe_check()
+
 
 def hotkey(*args, **kwargs):
     press(list(args), **kwargs)
