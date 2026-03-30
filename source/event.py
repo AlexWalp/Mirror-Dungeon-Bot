@@ -9,14 +9,14 @@ def is_choice_made():
     return wait_while_condition(lambda: now.button("choices"), interval=0.1, timer=1.5)
 
 def event():
-    if not now.button("eventskip"): return False
+    if not now.button("EGObin.0"): return False
     print("event check")
     start_time = time.time()
     while True:
         if time.time() - start_time > 100: return False
         if p.LIMBUS_NAME not in (win := gui.getActiveWindowTitle()): pause(win)
 
-        win_click(906, 460, clicks=3, interval=0.04)
+        gui.press("space", presses=3, interval=0.05)
         
         if now.button("choices"):
             time.sleep(0.1)
@@ -75,8 +75,9 @@ def event():
                 for prob in PROBS:
                     if now_click.button(prob, "probs"):
                         click.button("Commence")
+                        time.sleep(2)
                         break
-
+        
         if now_click.button("Continue"):
             connection()
             return True

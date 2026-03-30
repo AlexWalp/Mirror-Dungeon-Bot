@@ -45,13 +45,15 @@ def rectangle(image, point1, point2, color, type):
 def win_get_position():
     x, y = gui.get_position()
     inv_comp = 1920 / p.WINDOW[2]
-    return int(x*inv_comp - p.WINDOW[0]), int(y*inv_comp - p.WINDOW[1])
+    return int((x - p.WINDOW[0])*inv_comp), int((y - p.WINDOW[1])*inv_comp)
 
 def win_click(*args, **kwargs):
-    if len(args) == 1: x, y = args[0]
+    if len(args) == 0: x, y = None, None
+    elif len(args) == 1: x, y = args[0]
     else: x, y = args
     comp = p.WINDOW[2] / 1920
-    x, y = int(p.WINDOW[0] + x*comp), int(p.WINDOW[1] + y*comp)
+    if x is not None and y is not None:
+        x, y = int(p.WINDOW[0] + x*comp), int(p.WINDOW[1] + y*comp)
     gui.click(x, y, **kwargs)
 
 def win_moveTo(*args, **kwargs):

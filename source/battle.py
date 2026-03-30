@@ -264,8 +264,7 @@ def select(sinners):
             win_click(i)
             time.sleep(0.1)
 
-    win_click(1728, 884) # to battle
-    win_moveTo(1714, 940)
+    gui.press("space")
     loading_halt()
 
 
@@ -309,8 +308,13 @@ def fight(lux=False):
     if not is_tobattle and not is_battle: return False
     print("battle check")
     if is_tobattle:
-        win_moveTo(1714, 940)
-        if lux: select_team()
+        if lux: 
+            win_moveTo(880, 880)
+            select_team()
+        else:
+            x, y = win_get_position()
+            if x < 1560 and y < 820:
+                win_moveTo(random.randint(1560, 1730), random.randint(250, 620))
         select(p.SELECTED)
 
         # for lux with 6 sinners max
@@ -350,7 +354,7 @@ def fight(lux=False):
                 gui.press("enter", 1, 0.1)
                 time.sleep(1)
 
-        if now.button("eventskip"):
+        if now_rgb.button("EGObin.0"):
             ck = True
             event()
 
@@ -372,7 +376,7 @@ def fight(lux=False):
                 logging.info("Got stuck in hard battle")
                 if not p.RESTART:
                     wait_while_condition(lambda: not now.button("Confirm_retry", method=cv2.TM_SQDIFF_NORMED), lambda: win_click(1200, 400), interval=1, timer=3)
-                    Action("Confirm_retry", ver="loading").execute(click)
+                    gui.press("space")
                     loading_halt()
                     logging.info("Run stopped")
                     err = StopIteration("Dante, we failed... If you want to end run here, enable 'End stuck runs'")
@@ -380,14 +384,14 @@ def fight(lux=False):
                     raise err
                 else:
                     wait_while_condition(lambda: not now.button("Confirm_retry", method=cv2.TM_SQDIFF_NORMED), lambda: win_click(1200, 670), interval=1, timer=3)
-                    Action("Confirm_retry", ver="loading").execute(click)
+                    gui.press("space")
                     loading_halt()
                     print("Battle is over")
                     logging.info("Battle is over")
                     return True
             else:
                 wait_while_condition(lambda: not now.button("Confirm_retry", method=cv2.TM_SQDIFF_NORMED), lambda: win_click(1200, 530), interval=1, timer=3)
-                Action("Confirm_retry", ver="loading").execute(click)
+                gui.press("space")
                 loading_halt()
                 logging.info(f"Re-attempting the battle (attempt {attempts + 1})")
 

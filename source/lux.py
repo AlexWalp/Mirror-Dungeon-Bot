@@ -22,6 +22,34 @@ def check_enkephalin(shift=0): # 227
     gui.press("esc")
     time.sleep(0.5)
 
+def select_thd_level():
+    choices = LocateRGB.locate_all(PTH["EnterSmall"], region=REG["thd!"])
+    if not choices:
+        return
+
+    while True:
+        choices.sort(key=lambda box: box[1], reverse=True)
+        x, y = gui.center(choices[0])
+        if y < 620:
+            # Lower options are locked
+            break
+
+        img = screenshot(region=(1340, 783, 3, 3))
+        _, _, v = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)[0][0]
+        if v > 127:
+            # We can't scroll further down
+            break
+
+        win_dragTo(950, 220, duration=0.5, start_x=950, start_y=540)
+        choices = LocateRGB.locate_all(PTH["EnterSmall"], region=REG["thd!"])
+        if not choices:
+            return
+
+    win_click(x, y)
+    time.sleep(0.5)
+
+    logging.info("Thread Luxcavation")
+    
 
 def start_lux():
     try:
@@ -81,7 +109,7 @@ def grind_lux(count_exp, count_thd, teams):
             if not now.button("winrate") and not now.button("Exp"): start_lux()
             if p.LIMBUS_NAME not in (win := gui.getActiveWindowTitle()): pause(win)
 
-            if now.button("Exp"):
+            if now.button("Exp") and not now.button("EnterSmall", "thd!"):
                 if p.NETZACH: check_enkephalin(shift=227)
 
                 win_click(225, 492)
@@ -91,13 +119,7 @@ def grind_lux(count_exp, count_thd, teams):
                 wait_while_condition(lambda: not now.button("EnterSmall", "thd!"))
                 time.sleep(0.5)
 
-            choices = LocateRGB.locate_all(PTH["EnterSmall"], region=REG["thd!"])
-            if len(choices) != 0:
-                choices.sort(key=lambda box: box[1], reverse=True)
-                win_click(gui.center(choices[0]))
-                time.sleep(0.5)
-
-                logging.info("Thread Luxcavation")
+            select_thd_level()
             fight(lux=True)
 
             if now.button("victory"):

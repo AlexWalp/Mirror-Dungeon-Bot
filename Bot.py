@@ -28,7 +28,7 @@ start_locations = {
     "enterBonus": 12, 
     "Confirm.0": 15, 
     "refuse": 17, 
-    "Confirm": 25
+    "Confirm": 23
 }
 
 def select_grace():
@@ -69,9 +69,7 @@ def dungeon_start():
         lambda: ClickAction((1239, 703), ver="selected!").execute(try_click) if p.BUFF[9] else None,
         ClickAction((1624, 882)),
 
-        lambda: Action("Confirm", ver="Confirm").execute(try_click) if p.BUFF[9] else None,
-        lambda: Action("Confirm", ver="Confirm").execute(try_click) if p.BUFF[3] else None,
-        Action("Confirm", ver="loading"),
+        lambda: wait_while_condition(lambda: not now.button("loading"), lambda: gui.press("space") if now.button("Confirm") else None, timer=5),
         loading_halt
     ]
     
@@ -102,7 +100,7 @@ def dungeon_start():
 def collect_rewards():
     wait_while_condition(
         condition=lambda: not now.button("loading"),
-        action=lambda: now_click.button("Confirm.0"),
+        action=lambda: gui.press("space") if now.button("Confirm.0") else None,
         interval=0.1
     )
 

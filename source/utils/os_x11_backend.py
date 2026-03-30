@@ -377,6 +377,36 @@ def _is_virtual(dev):
         return True
     return False
 
+def _is_touchpad(caps, dname):
+    abs_caps = caps.get(e.EV_ABS, [])
+    abs_codes = [cap[0] for cap in abs_caps] if abs_caps else []
+    key_caps = caps.get(e.EV_KEY, [])
+    
+    is_touchpad = (
+        # Multi-touch capabilities
+        e.ABS_MT_SLOT in abs_codes or
+        e.ABS_MT_POSITION_X in abs_codes or
+        e.ABS_MT_POSITION_Y in abs_codes or
+        
+        # Pressure/touch sensors
+        e.ABS_PRESSURE in abs_codes or
+        
+        # Touchpad-specific buttons
+        e.BTN_TOOL_FINGER in key_caps or
+        e.BTN_TOUCH in key_caps or
+        e.BTN_TOOL_DOUBLETAP in key_caps or
+        e.BTN_TOOL_TRIPLETAP in key_caps or
+        
+        # Absolute positioning (touchpads report abs x/y)
+        (e.ABS_X in abs_codes and e.ABS_Y in abs_codes) or
+        
+        # Name-based detection
+        any(name in (dname or "").lower() 
+            for name in ["touchpad", "trackpad", "synaptics", 
+                        "elan", "clickpad", "glidepoint"])
+    )
+    return is_touchpad
+
 def _pick_device_paths():
     paths = evdev.list_devices()
     mouse_path = None
@@ -396,6 +426,9 @@ def _pick_device_paths():
 
             # 1. Mouse Selection (Must have Rel X/Y)
             if e.REL_X in rel_caps and e.REL_Y in rel_caps:
+                if _is_touchpad(caps, dev.name):
+                    continue
+
                 if mouse_path is None:
                     mouse_path = path
                     mouse_name = dev.name.lower()
@@ -444,7 +477,7 @@ def _pick_device_paths():
 
 
 def _disable_mouse_accel_x11(device_name):
-    """Best-effort: set flat accel profile for matching XInput devices."""
+    """Set flat accel profile for matching XInput devices safely."""
     if not device_name:
         return
 
@@ -459,18 +492,43 @@ def _disable_mouse_accel_x11(device_name):
 
     ids = [line.strip() for line in out.splitlines() if line.strip().isdigit()]
     for dev_id in ids:
-        subprocess.run(
-            ["xinput", "set-prop", dev_id, "libinput Accel Profile Enabled", "0", "1"],
-            check=False,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        subprocess.run(
-            ["xinput", "set-prop", dev_id, "libinput Accel Speed", "0"],
-            check=False,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        try:
+            # Check the current properties to see how many arguments the profile expects
+            props = subprocess.check_output(
+                ["xinput", "list-props", dev_id],
+                text=True,
+                stderr=subprocess.DEVNULL,
+            )
+
+            if "libinput Tapping Enabled" in props:
+                continue # Ignore touchpads
+            
+            for line in props.splitlines():
+                if  "libinput Accel Profile Enabled" not in line or ":" not in line:
+                    continue
+
+                #  Example outputs: 
+                # "libinput Accel Profile Enabled (305): 1, 0"
+                # "libinput Accel Profile Enabled (305): 1, 0, 0"
+                values_str = line.split(":", 1)[1]
+                num_args = len(values_str.split(","))
+                
+                # Build the target array based on what the system expects
+                # Index 0: Adaptive, Index 1: Flat, Index 2: Custom
+                target_profile = ["0"] * num_args
+                if num_args >= 2:
+                    target_profile[1] = "1"  # Force 'Flat' profile to ON
+                
+                subprocess.run(
+                    ["xinput", "set-prop", dev_id, "libinput Accel Profile Enabled"] + target_profile,
+                    check=False,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                break
+                    
+        except Exception:
+            continue
 
 
 def _init_uinput_devices():
@@ -828,15 +886,13 @@ def scroll(clicks, x=None, y=None):
 def _key_to_ecode(key):
     return _EVDEV_KEYSYM_MAP.get(key.lower(), None)
 
-def press(keys, presses=1, interval=0.1, delay=0.01):
+def press(keys, presses=1, interval=0.1, delay=0.09):
     _fail_safe_check()
     dev = _get_keyboard()
     profile = get_macro_profile()
     _apply_macro_rhythm(profile)
     time.sleep(randomize_with_profile(delay, profile=profile, key="delay_jitter"))
-    delay = randomize_with_profile(delay, profile=profile, key="delay_jitter")
-    interval = randomize_with_profile(interval, profile=profile, key="key_interval_jitter")
-
+    
     for _p in range(presses):
         if isinstance(keys, str):
             keys = [keys]
@@ -850,16 +906,15 @@ def press(keys, presses=1, interval=0.1, delay=0.01):
             ecodes.append(kc)
             dev.write(e.EV_KEY, kc, 1) # Press
             dev.syn()
-            time.sleep(delay)
+            time.sleep(randomize_with_profile(delay, profile=profile, key="delay_jitter"))
 
         for kc in reversed(ecodes):
             _fail_safe_check()
             dev.write(e.EV_KEY, kc, 0) # Release
             dev.syn()
-            time.sleep(delay)
 
         if interval > 0 and _p < presses - 1:
-            time.sleep(interval)
+            time.sleep(randomize_with_profile(interval, profile=profile, key="key_interval_jitter"))
             _fail_safe_check()
 
 def hotkey(*args, **kwargs):

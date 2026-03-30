@@ -223,6 +223,14 @@ def browse(step=128, adj=0, dur=0.3, pr_end=True):
     if pr_end:
         win_click(1229, 480)
 
+def close_panel():
+    gui.press("esc")
+    wait_while_condition(lambda: not now.button(p.SUPER), timer=1.5)
+    time.sleep(0.1)
+    x, y = win_get_position()
+    if x > 750 and y < 830:
+        win_moveTo(x, 841)
+
 def concat(dict1, dict2):
     for key in dict2:
         if key in dict1:
@@ -294,13 +302,12 @@ def actual_fuse(tier, coords):
     else: return missing
 
 def fuse_selected():
-    chain_actions(click, [
-        Action("fuse", click=(1197, 876)),
-        Action("Confirm.2", ver="Confirm"),
-        lambda: time.sleep(0.3),
-        # Action("Confirm", ver="fuseButton"),
-        lambda: wait_while_condition(lambda: now_click.button("Confirm"))
-    ])
+    wait_while_condition(lambda: not now.button("Confirm.2"), lambda: win_click(1197, 876) if now.button("fuse") else None, timer=1.5)
+    wait_while_condition(lambda: not now.button("Confirm"), lambda: gui.press("space") if now.button("Confirm.2") else None, timer=1.5)
+    time.sleep(0.3)
+    gui.press("space")
+    wait_while_condition(lambda: loc.button("Confirm", wait=0.5))
+    time.sleep(0.2)
 
 def perform_clicks(to_click):
     if p.WISHMAKING and not now_rgb.button("wishmaking"):
@@ -343,6 +350,7 @@ def set_affinity(i, teams=None):
     if p.IDX == i: return
     p.IDX = i
     ClickAction((469, 602), ver="keywordSel").execute(shop_click)
+    win_moveTo(605, 612)
     confirm_affinity(teams=teams)
     time.sleep(0.2)
 
@@ -419,12 +427,7 @@ def get_fuse_list():
     for i in range(2, 5, 2):
         if not p.GIFTS[0].get(f"fuse{i}", False):
             continue
-        
         gift_list += [name for name, tier in p.GIFTS[0][f"fuse{i}"].items() if tier is None]
-    
-    if p.EXTREME:
-        gift_list.append("lunarmemory")
-
     return gift_list    
 
 def handle_available_fusion():
@@ -555,6 +558,7 @@ def init_fuse():
         lambda: time.sleep(0.1),
         ClickAction((469, 602), ver="keywordSel")
     ])
+    win_moveTo(605, 612)
     confirm_affinity()
 
 def fuse_loop():
@@ -565,8 +569,7 @@ def fuse_loop():
         while True:
             missing = fuse()
             if missing:
-                Action("fuse", click=(750, 873), ver=p.SUPER).execute(click)
-                time.sleep(0.1)
+                close_panel()
 
                 if ehnance_flag and p.TO_UPTIE:
                     enhance(p.TO_UPTIE)
@@ -580,9 +583,7 @@ def fuse_loop():
                 else:
                     init_fuse() # open fusing
     except NotImplementedError:
-        Action("fuse", click=(750, 873), ver=p.SUPER).execute(click)
-        print("We got everything!")
-        time.sleep(0.1)
+        close_panel()
 
         if p.TO_UPTIE:
             enhance(p.TO_UPTIE)
@@ -593,11 +594,8 @@ def fuse_loop():
 ### EGO gift enhance logic
 def power_up():
     for _ in range(2):
-        chain_actions(click, [
-            Action("power"),
-            Action("Confirm.2", ver="power")
-        ])
-        win_moveTo(1215, 939)
+        wait_while_condition(lambda: not now.button("Confirm.2"), lambda: gui.press("space"), timer=1.5)
+        wait_while_condition(lambda: not now.button("power"), lambda: gui.press("space"), timer=1.5)
 
 def get_uptie_inventory(gift_list):
     click_gifts(gift_list, REG["fuse_shelf"], chain=power_up)
@@ -616,17 +614,12 @@ def search_sell(reg):
     coords, _, _, _ = inventory_check(reg, 0, uptie_det=True)
     for i in range(4, 0, -1):
         if coords[i] != []:
-            try:
-                chain_actions(click, [
-                    lambda: win_click(coords[i][0][:2]),
-                    lambda: time.sleep(0.2),
-                    ClickAction((1182, 879)),
-                    Action("Confirm_retry.0", ver="connecting"),
-                    connection,
-                    Action("sell", click=(750, 879), ver=p.SUPER)
-                ])
-            except RuntimeError:
-                continue
+            win_click(coords[i][0][:2])
+            time.sleep(0.2)
+            wait_while_condition(lambda: not now.button("Confirm_retry.0"), lambda: gui.press("space"), timer=1.5)
+            wait_while_condition(lambda: not now.button("connecting"), lambda: gui.press("space"), timer=1.5)
+            connection()
+            close_panel()
             return True
     return False
 
@@ -658,7 +651,7 @@ def sell(gifts):
             
                 if found_flag: continue
             
-            Action("sell", click=(750, 879), ver=p.SUPER).execute(click)
+            close_panel()
             return False # nothing to sell
         else:
             return True # got the cost
@@ -688,7 +681,7 @@ def enhance(gifts, floor1=False):
         gift_list = [k for k in gifts.keys()]
 
     get_uptie_inventory(gift_list)
-    Action("power", click=(750, 873), ver=p.SUPER).execute(click)
+    close_panel()
     time.sleep(0.3)
 
 
@@ -728,13 +721,11 @@ def apply_inflation(value):
     return value
 
 def conf_gift():
+    Action("purchase", ver="connecting").execute(click)
     connection()
-    Action("purchase", ver="Confirm").execute(click)
-    time.sleep(0.3)
     wait_while_condition(
         condition=lambda: now.button("Confirm"),
-        action=lambda: now_click.button("Confirm"),
-        interval=0.1
+        action=lambda: gui.press("space")
     )
 
 def update_shelf():
@@ -968,10 +959,8 @@ def heal_all():
 
 ### General
 def leave():
-    chain_actions(click, [
-        ClickAction((1705, 967)),
-        Action("ConfirmInvert", ver="Move")
-    ])
+    ClickAction((1705, 967), ver="ConfirmInvert").execute(click)
+    wait_while_condition(lambda: loc.button("ConfirmInvert", wait=0.5), lambda: gui.press("space"), interval=1, timer=5)
 
 
 def shop():
@@ -983,7 +972,7 @@ def shop():
     print("shop check")
     time.sleep(0.2)
 
-    wait_while_condition(lambda: now_click.button("Confirm"))
+    wait_while_condition(lambda: now.button("Confirm"), lambda: gui.press("space"))
 
     if p.DEAD > 0 and p.HARD:
         revive_idiots()
@@ -1009,7 +998,7 @@ def shop():
         else:
             # the bot was started midway, so this is not the first floor
             p.LVL = 2
-            Action("power", click=(750, 873), ver=p.SUPER).execute(click)
+            close_panel()
     if 5 + p.EXTREME*11 > p.LVL > 1 or not p.SKIP:
         buy_some(rerolls=0, priority=True)
         fuse_loop()

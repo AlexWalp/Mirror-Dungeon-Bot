@@ -4,6 +4,7 @@ from source.utils.utils import *
 priority = {"Event": 0, "Normal": 52, "Miniboss": 67, "Risky": 87, "Focused": 77}
 v_list = [0.8, 0.9, 1]
 d_list = [None, -0.1, -0.19]
+keys_map = {0: "w", 1: "d", 2: "s"}
 
 lost_rangs = [
     (( 201, 1714), (201, 244)), 
@@ -13,66 +14,19 @@ lost_rangs = [
 ]
 lost_weights = [(x[1]-x[0]) * (y[1]-y[0]) for x, y in lost_rangs]
 
-def find_danteh(): # looks for high resolution Dante
-    for i in range(2):
-        try:
-            Danteh = LocateRGB.try_locate(PTH[f"Danteh{i}"])
-            print("Danteh found")
-            x, y = gui.center(Danteh)
-            return x, y
-        except:
-            continue
-    return None
 
-
-def find_bus(): # looks for low resolution Dante
-    try:
-        Bus = LocateRGB.try_locate(PTH["Bus"], conf=0.8)
-        print("Danteh found")
-        x, y = gui.center(Bus)
-        return x, y
-    except:
-        return None
-
-
-def zoom(direction):
-    for _ in range(6):
-        Danteh = find_danteh()
-        if Danteh:
-            return Danteh
-        gui.scroll(direction)
-        time.sleep(0.1)
-    return None
-
-
-def position(object, shift=0):
-    win_moveTo(object)
-    win_dragTo(429, 480 + shift*290, duration=0.4)
-    win_click(329, 710)
-
-
-def hook():
-    Bus = find_bus()
-    if Bus is None : return False
-    position(Bus)
-    Bus = find_bus()
-    if Bus:
-        win_moveTo(Bus[0], Bus[1] + 30)
-    return True
-
-
-def is_boss(region, comp):
+def is_boss(region=(624, 376, 282, 275)):
     image = screenshot(region=region)
     red_mask = cv2.inRange(image, np.array([0, 0, 180]), np.array([50, 50, 255]))
-    for i in range(2):
-        res = now_click.button(f"boss{i}", region, image=red_mask, comp=comp, conf=0.6)
-        if res: return res
-    return now_click.button("boss_ark", region, image=image, comp=comp)
+    
+    if any(now.button(f"boss{i}", region, image=red_mask, conf=0.6) for i in range(2)):
+        return True
+    return False
 
-def is_risky(_loc, comp, region):
+def is_risky(_loc, region):
     if _loc.button("risk0", region) or \
-   any(_loc.button("risk1", region, comp=comp*(1 - 0.14*j)) for j in range(2)) or \
-   any(_loc.button("risk2", region, comp=comp*(1 - 0.14*j), v_comp=None, distort=None) for j in range(2)):
+   any(_loc.button("risk1", region, comp=(1 - 0.14*j)) for j in range(2)) or \
+   any(_loc.button("risk2", region, comp=(1 - 0.14*j), v_comp=None, distort=None) for j in range(2)):
         return True
     return False
 
@@ -95,25 +49,52 @@ def is_shop(_loc, region):
         return True
     return False
 
+def get_node_name(_loc, region):
+    if is_boss(region):
+        return "Boss"
+    
+    if now_rgb.button("coin", region, conf=0.9):
+        if now_rgb.button("gift", region, conf=0.9):
+            if is_risky(_loc, region):
+                return "Risky"
+            elif is_focused(_loc, region):
+                return "Focused"
+            else:
+                return "Miniboss"
+        else:
+            return "Normal"
+    elif is_event(_loc, region):
+        return "Event"
+    elif is_shop(_loc, region):
+        return "Shop"
+    else:
+        # cv2.imwrite(f"debug{time.time()}.png", screenshot(region=region))
+        return "Unknown"
+    
 
-def directions():
+def position(shift=0):
+    x, y = random.randint(1500, 1700), random.randint(300, 500)
+    win_moveTo(x, y)
+    win_dragTo(x - 275, y + 103 + shift*315, duration=0.4)
+    win_click()
+
+def directions(is_aligned=True):
     options = {
         0: "_up",
         1: "_forward",
         2: "_down"
     }
     regions = dict()
+    dir_reg = "directions_init" if not is_aligned else "directions"
+    reg_xy = (624, 101) if is_aligned else (914, 0)
     for i, suffix in options.items():
-        for j in range(2):
-            comp_val = 1 - 0.14 * j
-            if now.button(suffix, "directions", conf=0.85, comp=comp_val):
-                regions[i] = (624, 101 + i * 275, 282, 275)
-                break
+        if now.button(suffix, dir_reg, conf=0.85):
+            regions[i] = (reg_xy[0], reg_xy[1] + i * 275, 282, 275)
     return regions
 
 
-def get_connections():
-    image = screenshot(region=(850, 340, 610, 370))
+def get_connections(region=(850, 340, 610, 370)):
+    image = screenshot(region=region)
     h, w = image.shape[:2]
     crop_h = int(0.216 * h)
     crop_w = int(0.492 * w)
@@ -196,14 +177,13 @@ def next_step(nodes, extra_connections):
 
 
 def enter(wait=1):
-    button = None
     if now.button("enter", wait=wait):
-        button = "enter"
+        gui.press("space")
+        connection()
+        return True
     elif p.EXTREME and now.button("secretEncounter", wait=wait):
         if p.SKIP: button = "skipEncounter"
         else: button = "secretEncounter"
-    if button:
-        time.sleep(0.3)
         wait_while_condition(
             condition= lambda: now.button(button),
             action=lambda: click.button(button)
@@ -230,6 +210,9 @@ def move():
     if p.HARD:
         time.sleep(1.2) # node reveal animation
         if now.button("suicide"): return False
+    else:
+        time.sleep(0.2)
+    
     print("move check")
     # run fail detection
     p.DEAD = len([gui.center(box) for box in LocateRGB.locate_all(PTH["0"], region=REG["alldead"], conf=0.9, threshold=40)])
@@ -244,41 +227,54 @@ def move():
         connection()
         return False
     # fail detection end
-
-    comp = 1 # image compression is off
-
-    Dante = find_danteh()
-    if Dante is None: 
-        Dante = zoom(-1)
-        comp = 0.86 # image compression is on
-        if Dante is None and find_bus(): hook()
-        if Dante is None: 
-            if Bus:= find_bus(): # zoom on bus
-                win_moveTo(Bus[0], Bus[1] + 30)
-            else: # zoom randomly
-                rang = random.choices(lost_rangs, weights=lost_weights, k=1)[0]
-                x, y = random.randint(*rang[0]), random.randint(*rang[1])
-                win_moveTo(x, y)         
-            Dante = zoom(1)
-        if Dante is None:
-            rang = random.choices(lost_rangs, weights=lost_weights, k=1)[0]
-            x, y = random.randint(*rang[0]), random.randint(*rang[1])
-            win_moveTo(x, y) 
-            return False
-    
-    position(Dante)
-    
     if now.button("victory"): return False
 
-    regions = directions()
-    inter_connect = get_connections()
-    adjust = check_connections(inter_connect)
+    if not now_rgb.button("Danteh"):
+        gui.press("d")
+        gui.press("a")
 
+        wait_while_condition(
+            condition=lambda: not now_rgb.button("Danteh"),
+            action=lambda: gui.press("a"),
+            timer=2)
+        if not now_rgb.button("Danteh"):
+            gui.press("space")
+            if enter():
+                logging.info("Entering unknown node")
+                return True
+            return False
+    
+    regions = directions(is_aligned=False)
+    adjust = 0
+    if len(regions) == 0:
+        return False
+    elif len(regions) == 1:
+        region_idx = next(iter(regions.keys()))
+        region = regions[region_idx]
+        _loc = LocatePreset(image=screenshot(region=region), v_comp=v_list[region_idx], conf=0.8, wait=False)
+        name = get_node_name(_loc, region)
+        gui.press(keys_map.get(region_idx, "d"))
+        enter()
+        logging.info(f"Entering {name} {'fight'*(name!='Event' and name!='Shop')}")
+        return True
+    elif all(k in regions for k in (0, 2)):
+        position()
+    else:
+        inter_connect = get_connections(region=(1140, 230, 610, 370))
+        adjust = check_connections(inter_connect)
+        position(shift=adjust)
+
+    if is_boss():
+        gui.press("d")
+        enter()
+        logging.info("Entering Boss fight")
+        return True
+
+    regions = directions()
     if adjust:
         keys = [i + adjust for i in regions.keys() if 0 <= i + adjust <= 2]
         regions = {key: (624, 101 + key * 275, 282, 275) for key in keys}
-        position((429, 480), shift=adjust)
-
+    
     inter_connect = get_connections()
     print(inter_connect)
     nodes = [[None, None, None] for _ in range(3)]
@@ -288,17 +284,12 @@ def move():
         else: srch_regions = {i: (624 + 380 * depth, 101 + i * 275, 282, 275) for i in range(3)}
 
         for level, region in srch_regions.items():
-            _loc = LocatePreset(image=screenshot(region=region), comp=comp, v_comp=v_list[level], distort=d_list[depth], conf=0.8, wait=False)
-            # gui.screenshot(f"region{depth}{level}.png", region=region)
+            _loc = LocatePreset(image=screenshot(region=region), v_comp=v_list[level], distort=d_list[depth], conf=0.8, wait=False)
+            # cv2.imwrite(f"region{depth}{level}.png", screenshot(region=region))
 
-            if depth == 0 and level == 1 and is_boss(region, comp):
-                enter()
-                logging.info("Entering Boss fight")
-                return True
-
-            elif now_rgb.button("coin", region, conf=0.9, comp=comp):
-                if now_rgb.button("gift", region, conf=0.9, comp=comp):
-                    if is_risky(_loc, comp, region):
+            if now_rgb.button("coin", region, conf=0.9):
+                if now_rgb.button("gift", region, conf=0.9):
+                    if is_risky(_loc, region):
                         nodes[depth][level] = "Risky"
                         continue
                     elif is_focused(_loc, region):
@@ -316,7 +307,7 @@ def move():
                 continue
 
             elif depth == 0 and is_shop(_loc, region):
-                win_click(gui.center(srch_regions[level]))
+                gui.press("d")
                 enter()
                 logging.info("Entering Shop")
                 return True
@@ -326,28 +317,17 @@ def move():
     if any(nodes[0]):
         print(nodes)
         id, name = next_step(nodes, inter_connect)
-        print(id)
         if not id is None:
-            win_click(gui.center(regions[id]))
+            gui.press(keys_map.get(int(id-adjust), "d"))
             enter()
             logging.info(f"Entering {name} {'fight'*(name!='Event')}")
             return True
+    else:
+        for key in ["d", "space"]:
+            gui.press(key)
+            if not enter():
+                continue
 
-    # if we fail
-    Danteh = find_danteh()
-    if Danteh is None: return False
-
-    win_click(Danteh)
-    if enter(): return True
-
-    # if we double fail:
-    for i in range(3):
-        x_click = int(Danteh[0] + 336)
-        y_click = int(Danteh[1] - 241 + i * 275)
-        if 57 <= x_click <= 1809 and 110 <= y_click <= 934:
-            win_moveTo(x_click, y_click)
-            gui.click()
-            if enter():
-                logging.info(f"Entering unknown node")
-                return True
+            logging.info("Entering unknown node")
+            return True
     return False

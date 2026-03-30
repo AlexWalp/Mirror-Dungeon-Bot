@@ -181,12 +181,7 @@ def grab_EGO():
             image = get_gift(image, owned_x)
             time.sleep(0.1)
 
-    try:
-        for _ in range(cycle):
-            ClickAction((1687, 870), ver="Confirm").execute(click)
-    except RuntimeError:
-        gui.press("enter", 2, 1)
-        time.sleep(1)
+    wait_while_condition(lambda: now.button("EGObin"), lambda: gui.press("space"), interval=0.5, timer=2)
     return True
 
 
@@ -217,7 +212,7 @@ def grab_card():
             get_card(f"card{i}")
             wait_while_condition(
                 condition=lambda: now.button("encounterreward"), 
-                action=lambda: now_click.button("Confirm"), 
+                action=lambda: win_click(1255, 924) if now.button("Confirm") else None, 
                 interval=0.1
             )
             return True
@@ -227,10 +222,11 @@ def grab_card():
 
 def confirm():
     '''Function to confirm EGO gift pop-ups'''
-    if not now_click.button("Confirm"): return False
-    win_moveTo(965, 878)
+    if not now.button("Confirm"): return False
+    gui.press("space")
     time.sleep(0.3)
-    now_click.button("Confirm")
+    if now.button("Confirm"):
+        gui.press("space")
     return True
 
 
