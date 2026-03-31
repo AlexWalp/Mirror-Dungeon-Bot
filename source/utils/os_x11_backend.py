@@ -263,10 +263,12 @@ _symbols = {
 
 _EVDEV_KEYSYM_MAP.update(_symbols)
 
+# For ASCII letters and numbers, we use X11 layout-aware mapping (see _key_to_ecode)
+# Only add special keys here, not regular letters/numbers
 for char in "abcdefghijklmnopqrstuvwxyz":
-    _EVDEV_KEYSYM_MAP[char] = getattr(e, f"KEY_{char.upper()}")
+    pass  # handled by X11 layout-aware mapping
 for num in "0123456789":
-    _EVDEV_KEYSYM_MAP[num] = getattr(e, f"KEY_{num}")
+    pass  # handled by X11 layout-aware mapping
 
 for i in range(1, 25):
     _EVDEV_KEYSYM_MAP[f'f{i}'] = getattr(e, f"KEY_F{i}")
@@ -883,8 +885,46 @@ def scroll(clicks, x=None, y=None):
     _human_delay()
 
 # Keyboard functions
+# Use X11 XKeysymToKeycode for layout-aware key mapping
+# X keycodes are layout-aware (XKB), evdev scancodes are hardware-based (position on keyboard)
+# On modern Linux, X keycode = evdev keycode, so this works correctly with Wine/Proton
+
+def _get_x_keycode(keysym):
+    """Get X keycode for a keysym, respecting current XKB layout."""
+    keycode = _disp.keysym_to_keycode(keysym)
+    # X keycode 0 means "no key", so return None
+    return keycode if keycode != 0 else None
+
+# Map lowercase letters and numbers to X keysyms for X11 lookup
+_ASCII_TO_XK = {}
+for c in "abcdefghijklmnopqrstuvwxyz":
+    _ASCII_TO_XK[c] = getattr(X, f"XK_{c}")
+for c in "0123456789":
+    _ASCII_TO_XK[c] = getattr(X, f"XK_{c}")
+# Add symbols
+_ASCII_TO_XK.update({
+    '-': X.XK_minus, '=': X.XK_equal, '[': X.XK_bracketleft, ']': X.XK_bracketright,
+    ';': X.XK_semicolon, "'": X.XK_apostrophe, '`': X.XK_grave, '\\': X.XK_backslash,
+    ',': X.XK_comma, '.': X.XK_period, '/': X.XK_slash, ' ': X.XK_space,
+})
+
 def _key_to_ecode(key):
-    return _EVDEV_KEYSYM_MAP.get(key.lower(), None)
+    """Convert key name to evdev scancode using layout-aware X11 mapping."""
+    key_lower = key.lower()
+    
+    # First check if it's a special key in our direct mapping
+    if key_lower in _EVDEV_KEYSYM_MAP:
+        return _EVDEV_KEYSYM_MAP[key_lower]
+    
+    # For ASCII characters (letters, numbers, symbols), use X11 layout-aware mapping
+    if key_lower in _ASCII_TO_XK:
+        xk = _ASCII_TO_XK[key_lower]
+        x_keycode = _get_x_keycode(xk)
+        if x_keycode is not None:
+            # X keycodes start at 1, evdev keycodes also start at 1
+            return x_keycode
+    
+    return None
 
 def press(keys, presses=1, interval=0.1, delay=0.09):
     dev = _get_keyboard()
