@@ -476,59 +476,72 @@ def _pick_device_paths():
     return mouse_path, keyboard_path
 
 
-def _disable_mouse_accel_x11(device_name):
-    """Set flat accel profile for matching XInput devices safely."""
-    if not device_name:
+def _disable_mouse_accel_x11(device_path, retries=15, delay=0.2):
+    """Set flat accel profile for matching XInput device"""
+    if not device_path:
         return
 
-    try:
-        out = subprocess.check_output(
-            ["xinput", "list", "--id-only", device_name],
-            text=True,
-            stderr=subprocess.DEVNULL,
-        )
-    except Exception:
-        return
-
-    ids = [line.strip() for line in out.splitlines() if line.strip().isdigit()]
-    for dev_id in ids:
+    for _ in range(retries):
         try:
-            # Check the current properties to see how many arguments the profile expects
-            props = subprocess.check_output(
-                ["xinput", "list-props", dev_id],
+            out = subprocess.check_output(
+                ["xinput", "list", "--id-only"],
                 text=True,
                 stderr=subprocess.DEVNULL,
             )
+            ids = [line.strip() for line in out.splitlines() if line.strip().isdigit()]
+            if not ids:
+                time.sleep(delay)
+                continue
+        except Exception:
+            time.sleep(delay)
+            continue
 
-            if "libinput Tapping Enabled" in props:
-                continue # Ignore touchpads
-            
-            for line in props.splitlines():
-                if  "libinput Accel Profile Enabled" not in line or ":" not in line:
-                    continue
-
-                #  Example outputs: 
-                # "libinput Accel Profile Enabled (305): 1, 0"
-                # "libinput Accel Profile Enabled (305): 1, 0, 0"
-                values_str = line.split(":", 1)[1]
-                num_args = len(values_str.split(","))
-                
-                # Build the target array based on what the system expects
-                # Index 0: Adaptive, Index 1: Flat, Index 2: Custom
-                target_profile = ["0"] * num_args
-                if num_args >= 2:
-                    target_profile[1] = "1"  # Force 'Flat' profile to ON
-                
-                subprocess.run(
-                    ["xinput", "set-prop", dev_id, "libinput Accel Profile Enabled"] + target_profile,
-                    check=False,
-                    stdout=subprocess.DEVNULL,
+        found = False
+        for dev_id in ids:
+            try:
+                # Check the current properties to see how many arguments the profile expects
+                props = subprocess.check_output(
+                    ["xinput", "list-props", dev_id],
+                    text=True,
                     stderr=subprocess.DEVNULL,
                 )
-                break
+
+                if f'"{device_path}"' not in props:
+                    continue
+                found = True
+
+                if "libinput Tapping Enabled" in props:
+                    continue # Ignore touchpads
+                
+                for line in props.splitlines():
+                    if  "libinput Accel Profile Enabled" not in line or ":" not in line:
+                        continue
+
+                    #  Example outputs: 
+                    # "libinput Accel Profile Enabled (305): 1, 0"
+                    # "libinput Accel Profile Enabled (305): 1, 0, 0"
+                    values_str = line.split(":", 1)[1]
+                    num_args = len(values_str.split(","))
                     
-        except Exception:
-            continue
+                    # Build the target array based on what the system expects
+                    # Index 0: Adaptive, Index 1: Flat, Index 2: Custom
+                    target_profile = ["0"] * num_args
+                    if num_args >= 2:
+                        target_profile[1] = "1"  # Force 'Flat' profile to ON
+                    
+                    subprocess.run(
+                        ["xinput", "set-prop", dev_id, "libinput Accel Profile Enabled"] + target_profile,
+                        check=False,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                    break
+                        
+            except Exception:
+                continue
+        
+        if found:
+            break
 
 
 def _init_uinput_devices():
@@ -551,7 +564,11 @@ def _init_uinput_devices():
             local_mouse = UInput(**MOUSE_FALLBACK)
             _print_device_data(MOUSE_FALLBACK)
 
-        _disable_mouse_accel_x11(getattr(local_mouse, "name", None))
+        dev_path = None
+        if hasattr(local_mouse, "device") and hasattr(local_mouse.device, "path"):
+            dev_path = local_mouse.device.path
+            
+        _disable_mouse_accel_x11(dev_path)
 
         if keyboard_path:
             try:

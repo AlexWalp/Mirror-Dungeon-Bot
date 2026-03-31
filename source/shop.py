@@ -965,6 +965,7 @@ def heal_all():
 def leave():
     ClickAction((1705, 967), ver="ConfirmInvert").execute(click)
     wait_while_condition(lambda: loc.button("ConfirmInvert", wait=0.5), lambda: gui.press("space"), interval=1, timer=5)
+    wait_while_condition(lambda: now.button(p.SUPER), timer=5)
 
 
 def shop():
