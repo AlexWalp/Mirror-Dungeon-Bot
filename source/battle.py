@@ -315,6 +315,7 @@ def fight(lux=False):
             x, y = win_get_position()
             if x < 1560 and y < 820:
                 win_moveTo(random.randint(1560, 1730), random.randint(250, 620))
+                time.sleep(0.1)
         select(p.SELECTED)
 
         # for lux with 6 sinners max

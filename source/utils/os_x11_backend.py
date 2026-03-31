@@ -887,7 +887,6 @@ def _key_to_ecode(key):
     return _EVDEV_KEYSYM_MAP.get(key.lower(), None)
 
 def press(keys, presses=1, interval=0.1, delay=0.09):
-    _fail_safe_check()
     dev = _get_keyboard()
     profile = get_macro_profile()
     _apply_macro_rhythm(profile)

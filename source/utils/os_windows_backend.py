@@ -280,13 +280,17 @@ def center(target=None):
 def _human_delay(min_delay=0.01, max_delay=0.03):
     time.sleep(random.uniform(min_delay, max_delay))
 
-def mouseDown(button='left', delay=0.09):
-    interception.mouse_down(button=button, delay=delay)
+def mouseDown(button='left', delay=0.16):
+    _fail_safe_check()
+    interception.mouse_down(button=button)
     _human_delay(delay, delay + 0.02)
+    _fail_safe_check()
 
-def mouseUp(button='left', delay=0.09):
-    interception.mouse_up(button=button, delay=delay)
+def mouseUp(button='left', delay=0.16):
+    _fail_safe_check()
+    interception.mouse_up(button=button)
     _human_delay(delay, delay + 0.02)
+    _fail_safe_check()
 
 
 class WindowError(Exception): pass
@@ -331,7 +335,7 @@ def _fail_safe_check():
         raise PauseException(name)
 
 
-def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.11, humanize=True,
+def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.09, humanize=True,
            mouse_velocity=0.65, noise=2.6, offset_x=0, offset_y=0):
     _fail_safe_check()
 
@@ -409,6 +413,7 @@ def click(x=None, y=None, button='left', clicks=1, interval=0.1, duration=0.0, t
     profile = get_macro_profile()
     _apply_macro_rhythm(profile)
     delay = randomize_with_profile(delay, profile=profile, key="delay_jitter")
+    interval += 0.05
     
     if x is not None and y is not None:
         moveTo(x, y, duration, tween, delay=delay+0.02)
@@ -452,25 +457,27 @@ def scroll(clicks, x=None, y=None):
     _human_delay()
 
 
-def press(keys, presses=1, interval=0.1, delay=0.01):
-    _fail_safe_check()
+def press(keys, presses=1, interval=0.1, delay=0.09):
     profile = get_macro_profile()
     _apply_macro_rhythm(profile)
     time.sleep(randomize_with_profile(delay, profile=profile, key="delay_jitter"))
-    interval = randomize_with_profile(interval, profile=profile, key="key_interval_jitter")
 
     if isinstance(keys, str):
         keys = [keys]
 
-    for _ in range(presses):
+    for _p in range(presses):
         for key in keys:
+            _fail_safe_check()
             interception.key_down(key)
+            time.sleep(randomize_with_profile(delay, profile=profile, key="delay_jitter"))
         
         for key in reversed(keys):
+            _fail_safe_check()
             interception.key_up(key)
         
-        if presses > 1:
-            time.sleep(interval)
+        if interval > 0 and _p < presses - 1:
+            time.sleep(randomize_with_profile(interval, profile=profile, key="key_interval_jitter"))
+            _fail_safe_check()
 
 def hotkey(*args, **kwargs):
     press(list(args), **kwargs)

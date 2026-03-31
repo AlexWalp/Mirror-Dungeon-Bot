@@ -225,7 +225,8 @@ def browse(step=128, adj=0, dur=0.3, pr_end=True):
 
 def close_panel():
     gui.press("esc")
-    wait_while_condition(lambda: not now.button(p.SUPER), timer=1.5)
+    while not wait_while_condition(lambda: not now.button(p.SUPER), timer=1.5):
+        gui.press("esc")
     time.sleep(0.1)
     x, y = win_get_position()
     if x > 750 and y < 830:
@@ -304,7 +305,7 @@ def actual_fuse(tier, coords):
 def fuse_selected():
     wait_while_condition(lambda: not now.button("Confirm.2"), lambda: win_click(1197, 876) if now.button("fuse") else None, timer=1.5)
     wait_while_condition(lambda: not now.button("Confirm"), lambda: gui.press("space") if now.button("Confirm.2") else None, timer=1.5)
-    time.sleep(0.3)
+    connection()
     gui.press("space")
     wait_while_condition(lambda: loc.button("Confirm", wait=0.5))
     time.sleep(0.2)
@@ -721,8 +722,11 @@ def apply_inflation(value):
     return value
 
 def conf_gift():
-    Action("purchase", ver="connecting").execute(click)
-    connection()
+    try:
+        Action("purchase", ver="connecting").execute(click)
+        connection()
+    except RuntimeError:
+        pass
     wait_while_condition(
         condition=lambda: now.button("Confirm"),
         action=lambda: gui.press("space")
