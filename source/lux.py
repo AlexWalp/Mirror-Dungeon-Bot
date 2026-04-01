@@ -39,8 +39,9 @@ def select_thd_level():
         if v > 127:
             # We can't scroll further down
             break
-
-        win_dragTo(950, 220, duration=0.5, start_x=950, start_y=540)
+        
+        win_moveTo(950, 540)
+        win_dragTo(950, 220, duration=0.5)
         choices = LocateRGB.locate_all(PTH["EnterSmall"], region=REG["thd!"])
         if not choices:
             return
