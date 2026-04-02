@@ -5,7 +5,7 @@ import atexit, signal, threading, subprocess
 import mss
 import evdev
 from evdev import UInput, ecodes as e
-from Xlib import X, display
+from Xlib import X, display, XK
 import numpy as np, time, math, random
 from pathgenerator import PDPathGenerator
 import source.utils.params as p
@@ -263,12 +263,10 @@ _symbols = {
 
 _EVDEV_KEYSYM_MAP.update(_symbols)
 
-# For ASCII letters and numbers, we use X11 layout-aware mapping (see _key_to_ecode)
-# Only add special keys here, not regular letters/numbers
 for char in "abcdefghijklmnopqrstuvwxyz":
-    pass  # handled by X11 layout-aware mapping
+    _EVDEV_KEYSYM_MAP[char] = getattr(e, f"KEY_{char.upper()}")
 for num in "0123456789":
-    pass  # handled by X11 layout-aware mapping
+    _EVDEV_KEYSYM_MAP[num] = getattr(e, f"KEY_{num}")
 
 for i in range(1, 25):
     _EVDEV_KEYSYM_MAP[f'f{i}'] = getattr(e, f"KEY_F{i}")
@@ -885,10 +883,6 @@ def scroll(clicks, x=None, y=None):
     _human_delay()
 
 # Keyboard functions
-# Use X11 XKeysymToKeycode for layout-aware key mapping
-# X keycodes are layout-aware (XKB), evdev scancodes are hardware-based (position on keyboard)
-# On modern Linux, X keycode = evdev keycode, so this works correctly with Wine/Proton
-
 def _get_x_keycode(keysym):
     """Get X keycode for a keysym, respecting current XKB layout."""
     keycode = _disp.keysym_to_keycode(keysym)
@@ -898,14 +892,14 @@ def _get_x_keycode(keysym):
 # Map lowercase letters and numbers to X keysyms for X11 lookup
 _ASCII_TO_XK = {}
 for c in "abcdefghijklmnopqrstuvwxyz":
-    _ASCII_TO_XK[c] = getattr(X, f"XK_{c}")
+    _ASCII_TO_XK[c] = getattr(XK, f"XK_{c}")
 for c in "0123456789":
-    _ASCII_TO_XK[c] = getattr(X, f"XK_{c}")
+    _ASCII_TO_XK[c] = getattr(XK, f"XK_{c}")
 # Add symbols
 _ASCII_TO_XK.update({
-    '-': X.XK_minus, '=': X.XK_equal, '[': X.XK_bracketleft, ']': X.XK_bracketright,
-    ';': X.XK_semicolon, "'": X.XK_apostrophe, '`': X.XK_grave, '\\': X.XK_backslash,
-    ',': X.XK_comma, '.': X.XK_period, '/': X.XK_slash, ' ': X.XK_space,
+    '-': XK.XK_minus, '=': XK.XK_equal, '[': XK.XK_bracketleft, ']': XK.XK_bracketright,
+    ';': XK.XK_semicolon, "'": XK.XK_apostrophe, '`': XK.XK_grave, '\\': XK.XK_backslash,
+    ',': XK.XK_comma, '.': XK.XK_period, '/': XK.XK_slash, ' ': XK.XK_space,
 })
 
 def _key_to_ecode(key):
