@@ -5,7 +5,7 @@ import atexit, signal, threading, subprocess
 import mss
 import evdev
 from evdev import UInput, ecodes as e
-from Xlib import X, display
+from Xlib import X, display, XK
 import numpy as np, time, math, random
 from pathgenerator import PDPathGenerator
 import source.utils.params as p
@@ -893,8 +893,42 @@ def scroll(clicks, x=None, y=None):
     _human_delay()
 
 # Keyboard functions
+def _get_x_keycode(keysym):
+    """Get X keycode for a keysym, respecting current XKB layout."""
+    keycode = _disp.keysym_to_keycode(keysym)
+    # X keycode 0 means "no key", so return None
+    return keycode if keycode != 0 else None
+
+# Map lowercase letters and numbers to X keysyms for X11 lookup
+_ASCII_TO_XK = {}
+for c in "abcdefghijklmnopqrstuvwxyz":
+    _ASCII_TO_XK[c] = getattr(XK, f"XK_{c}")
+for c in "0123456789":
+    _ASCII_TO_XK[c] = getattr(XK, f"XK_{c}")
+# Add symbols
+_ASCII_TO_XK.update({
+    '-': XK.XK_minus, '=': XK.XK_equal, '[': XK.XK_bracketleft, ']': XK.XK_bracketright,
+    ';': XK.XK_semicolon, "'": XK.XK_apostrophe, '`': XK.XK_grave, '\\': XK.XK_backslash,
+    ',': XK.XK_comma, '.': XK.XK_period, '/': XK.XK_slash, ' ': XK.XK_space,
+})
+
 def _key_to_ecode(key):
-    return _EVDEV_KEYSYM_MAP.get(key.lower(), None)
+    """Convert key name to evdev scancode using layout-aware X11 mapping."""
+    key_lower = key.lower()
+    
+    # First check if it's a special key in our direct mapping
+    if key_lower in _EVDEV_KEYSYM_MAP:
+        return _EVDEV_KEYSYM_MAP[key_lower]
+    
+    # For ASCII characters (letters, numbers, symbols), use X11 layout-aware mapping
+    if key_lower in _ASCII_TO_XK:
+        xk = _ASCII_TO_XK[key_lower]
+        x_keycode = _get_x_keycode(xk)
+        if x_keycode is not None:
+            # X keycodes start at 1, evdev keycodes also start at 1
+            return x_keycode
+    
+    return None
 
 def press(keys, presses=1, interval=0.1, delay=0.09):
     dev = _get_keyboard()
