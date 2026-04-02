@@ -893,11 +893,19 @@ def scroll(clicks, x=None, y=None):
     _human_delay()
 
 # Keyboard functions
+_X_KEYCODE_CACHE = {}
+
 def _get_x_keycode(keysym):
-    """Get X keycode for a keysym, respecting current XKB layout."""
+    """Get X keycode for a keysym, respecting current XKB layout, with caching."""
+    if keysym in _X_KEYCODE_CACHE:
+        return _X_KEYCODE_CACHE[keysym]
+
     keycode = _disp.keysym_to_keycode(keysym)
-    # X keycode 0 means "no key", so return None
-    return keycode if keycode != 0 else None
+    # X keycode 0 means "no key"
+    result = keycode if keycode != 0 else None
+    
+    _X_KEYCODE_CACHE[keysym] = result
+    return result
 
 # Map lowercase letters and numbers to X keysyms for X11 lookup
 _ASCII_TO_XK = {}
@@ -916,17 +924,18 @@ def _key_to_ecode(key):
     """Convert key name to evdev scancode using layout-aware X11 mapping."""
     key_lower = key.lower()
     
-    # First check if it's a special key in our direct mapping
-    if key_lower in _EVDEV_KEYSYM_MAP:
-        return _EVDEV_KEYSYM_MAP[key_lower]
-    
-    # For ASCII characters (letters, numbers, symbols), use X11 layout-aware mapping
+    # LETTERS & SYMBOLS
     if key_lower in _ASCII_TO_XK:
         xk = _ASCII_TO_XK[key_lower]
         x_keycode = _get_x_keycode(xk)
+        
         if x_keycode is not None:
-            # X keycodes start at 1, evdev keycodes also start at 1
-            return x_keycode
+            # Shift the X11 code to match evdev
+            evdev_code = x_keycode - 8
+            return evdev_code
+            
+    if key_lower in _EVDEV_KEYSYM_MAP:
+        return _EVDEV_KEYSYM_MAP[key_lower]
     
     return None
 
