@@ -1,6 +1,7 @@
 import numpy as np, cv2, random, time, os, platform, logging
 from source.utils.paths import *
 import source.utils.params as p
+from source.utils.profiles import randomize_with_profile
 
 from PyQt6.QtCore import QMetaObject, Qt
 
@@ -47,13 +48,17 @@ def win_get_position():
     inv_comp = 1920 / p.WINDOW[2]
     return int((x - p.WINDOW[0])*inv_comp), int((y - p.WINDOW[1])*inv_comp)
 
+def human_sleep(base, jitter=0.2):
+    """Randomized sleep to avoid fixed timing fingerprints."""
+    time.sleep(base * random.uniform(1 - jitter, 1 + jitter))
+
 def win_click(*args, **kwargs):
     if len(args) == 0: x, y = None, None
     elif len(args) == 1: x, y = args[0]
     else: x, y = args
     comp = p.WINDOW[2] / 1920
     if x is not None and y is not None:
-        x, y = int(p.WINDOW[0] + x*comp), int(p.WINDOW[1] + y*comp)
+        x, y = int(p.WINDOW[0] + x*comp) + random.randint(-8, 8), int(p.WINDOW[1] + y*comp) + random.randint(-8, 8)
     gui.click(x, y, **kwargs)
 
 def win_moveTo(*args, **kwargs):

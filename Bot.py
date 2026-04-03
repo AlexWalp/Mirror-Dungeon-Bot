@@ -44,16 +44,16 @@ def dungeon_start():
     ACTIONS = [
         Action("Drive"),
         Action("MD", ver="Start"),
-        lambda: time.sleep(1.4),
+        lambda: human_sleep(1.4),
         lambda: win_click(1588, 567) if p.EXTREME and now_rgb.button("infinite_off") else None,
         Action("Start"),
         Action("enterInvert", ver="ConfirmTeam"),
         select_team,
         lambda: try_click.button("ConfirmTeam"),
-        lambda: time.sleep(0.5),
+        lambda: human_sleep(0.5),
         lambda: now_click.button("ConfirmInvert"),
         lambda: wait_while_condition(lambda: not now.button("enterBonus")),
-        lambda: time.sleep(0.2),
+        lambda: human_sleep(0.2),
 
         select_grace,
 
@@ -61,7 +61,7 @@ def dungeon_start():
         lambda: now_click.button("starlight"),
         Action("Confirm.0", ver="refuse"),
 
-        lambda: time.sleep(0.2),
+        lambda: human_sleep(0.2),
         lambda: now_click.button("giftSearch"),
         ClickAction(p.GIFTS[0]["checks"][2], ver="gifts!"),
         lambda: ClickAction((1239, 395), ver="selected!").execute(try_click) if (p.BUFF[3] or p.GIFTS[0]['checks'][5] == 0) else None,
@@ -120,7 +120,7 @@ def bonus_gone():
     else: return False
 
 def handle_bonus():
-    time.sleep(0.5)
+    human_sleep(0.5)
     if p.BONUS or bonus_gone(): return
 
     if not wait_while_condition(lambda: not bonus_gone(), click_bonus):
@@ -226,18 +226,18 @@ def main_loop():
     while True:
         if now.button("ServerError"):
             for _ in range(3):
-                time.sleep(6)
+                human_sleep(6)
                 win_click(1100, 700)
-                time.sleep(1)
+                human_sleep(1)
                 if not now.button("ServerError"): break
 
-            time.sleep(10)
+            human_sleep(10)
             if now_click.button("ServerError"):
                 logging.error('Server error happened')
 
         if now.button("EventEffect"):
             win_click(773, 521)
-            time.sleep(0.2)
+            human_sleep(0.2)
             win_click(967, 774)
 
         if p.LIMBUS_NAME not in (win := gui.getActiveWindowTitle()): pause(win)
@@ -261,14 +261,19 @@ def main_loop():
 
         try:
             ck  = pack()
+            if random.random() < 0.15: human_sleep(random.uniform(0.05, 0.25))
             ck += move()
+            if random.random() < 0.15: human_sleep(random.uniform(0.05, 0.25))
             ck += fight()
+            if random.random() < 0.15: human_sleep(random.uniform(0.05, 0.25))
             ck += event()
+            if random.random() < 0.15: human_sleep(random.uniform(0.05, 0.25))
             ck += grab_EGO()
             ck += confirm()
             if p.EXTREME:
                 ck += get_adversity()
             ck += grab_card()
+            if random.random() < 0.15: human_sleep(random.uniform(0.05, 0.25))
             ck += shop()
         except RuntimeError:
             handle_fuckup()
@@ -308,7 +313,7 @@ def main_loop():
             if p.APP: QMetaObject.invokeMethod(p.APP, "stop_execution", Qt.ConnectionType.QueuedConnection)
             raise StopExecution # change maybe
 
-        time.sleep(0.2)
+        human_sleep(0.2)
 
 
 # when App is run:
