@@ -153,7 +153,7 @@ def grab_EGO():
     retuns whether or not the EGO gift(s) is/are selected
     '''
     if not now.button("EGObin"): return False
-    time.sleep(0.8)
+    human_sleep(0.8)
     print("grab ego check")
     owned_x = [p[0] + p[2] for p in LocateRGB.locate_all(PTH["Owned"], region=REG["Owned"])]
     image = screenshot(region=REG["EGO"])
@@ -173,13 +173,13 @@ def grab_EGO():
     for _ in range(cycle):
         if trials is not None:
             image, trials = get_trial(image, trials)
-            time.sleep(0.1)
+            human_sleep(0.1)
             # cv2.imwrite(f"{time.time()}.png", image)
             # if trials is not None:
             #     cv2.imwrite(f"{time.time()}.png", trials)
         if trials is None:
             image = get_gift(image, owned_x)
-            time.sleep(0.1)
+            human_sleep(0.1)
 
     wait_while_condition(lambda: now.button("EGObin"), lambda: gui.press("space"), interval=0.5, timer=2)
     return True
@@ -206,7 +206,7 @@ def grab_card():
 
     win_moveTo(1000, 900)
     now_click.button("Cancel") # if was misclicked
-    time.sleep(1.4)
+    human_sleep(1.4)
     for i in p.CARD:
         if now.button(f"card{i}", "Card"):
             get_card(f"card{i}")
@@ -224,7 +224,7 @@ def confirm():
     '''Function to confirm EGO gift pop-ups'''
     if not now.button("Confirm"): return False
     gui.press("space")
-    time.sleep(0.3)
+    human_sleep(0.3)
     if now.button("Confirm"):
         gui.press("space")
     return True
@@ -236,7 +236,7 @@ def get_adversity():
     sorted(x_coords)
     for x in x_coords:
         ClickAction((x + 90, 550), ver="selectCount!").execute(click)
-    time.sleep(0.3)
+    human_sleep(0.3)
     win_click(1725, 1000)
     wait_while_condition(lambda: now.button("adversity"), interval=0.2)
     return True

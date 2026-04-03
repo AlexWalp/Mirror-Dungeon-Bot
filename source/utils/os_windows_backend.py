@@ -7,10 +7,114 @@ import random
 import source.utils.params as p
 from source.utils.profiles import get_macro_profile, maybe_rhythm_jitter, randomize_with_profile
 
-import interception
-from interception.strokes import MouseStroke
-from interception.constants import MouseFlag
 from pathgenerator import PDPathGenerator
+
+
+# --- PostMessage-based input (bypasses synthetic input detection) ---
+# SetCursorPos for mouse movement (no input event generated)
+# PostMessage for clicks/keys (sent directly to window message queue,
+# bypasses low-level hooks and LLMHF_INJECTED flag)
+
+WM_SETCURSOR = 0x0020
+WM_NCHITTEST = 0x0084
+WM_MOUSEMOVE = 0x0200
+WM_LBUTTONDOWN = 0x0201
+WM_LBUTTONUP = 0x0202
+WM_RBUTTONDOWN = 0x0204
+WM_RBUTTONUP = 0x0205
+WM_MBUTTONDOWN = 0x0207
+WM_MBUTTONUP = 0x0208
+WM_MOUSEWHEEL = 0x020A
+WM_KEYDOWN = 0x0100
+WM_KEYUP = 0x0101
+WM_SYSKEYDOWN = 0x0104
+WM_SYSKEYUP = 0x0105
+
+HTCLIENT = 1
+MK_LBUTTON = 0x0001
+MK_RBUTTON = 0x0002
+MK_MBUTTON = 0x0010
+
+WHEEL_DELTA = 120
+
+# SendInput structures (used only for cover noise)
+INPUT_MOUSE = 0
+MOUSEEVENTF_MOVE = 0x0001
+
+class _MOUSEINPUT(ctypes.Structure):
+    _fields_ = [
+        ("dx", ctypes.c_long), ("dy", ctypes.c_long),
+        ("mouseData", ctypes.c_ulong), ("dwFlags", ctypes.c_ulong),
+        ("time", ctypes.c_ulong), ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
+    ]
+
+class _INPUT_UNION(ctypes.Union):
+    _fields_ = [("mi", _MOUSEINPUT)]
+
+class _INPUT(ctypes.Structure):
+    _fields_ = [("type", ctypes.c_ulong), ("union", _INPUT_UNION)]
+
+_SendInput = ctypes.windll.user32.SendInput
+_SendInput.argtypes = [ctypes.c_uint, ctypes.POINTER(_INPUT), ctypes.c_int]
+_SendInput.restype = ctypes.c_uint
+
+_MapVirtualKeyW = ctypes.windll.user32.MapVirtualKeyW
+
+# Cover noise: periodically inject tiny SendInput mouse moves so that
+# inputAnalytics shows a small, natural syntheticRatio (~2-5%) instead of
+# a suspicious zero-input profile.
+_cover_noise_last = 0.0
+_COVER_NOISE_INTERVAL_MIN = 25.0
+_COVER_NOISE_INTERVAL_MAX = 55.0
+_cover_noise_next = 0.0
+
+def _maybe_cover_noise():
+    global _cover_noise_last, _cover_noise_next
+    now = time.monotonic()
+    if _cover_noise_next == 0.0:
+        _cover_noise_next = now + random.uniform(_COVER_NOISE_INTERVAL_MIN, _COVER_NOISE_INTERVAL_MAX)
+    if now < _cover_noise_next:
+        return
+    _cover_noise_last = now
+    _cover_noise_next = now + random.uniform(_COVER_NOISE_INTERVAL_MIN, _COVER_NOISE_INTERVAL_MAX)
+    # Tiny relative mouse move (0-1px) via SendInput — shows up as a normal synthetic event
+    inp = _INPUT()
+    inp.type = INPUT_MOUSE
+    inp.union.mi.dx = random.choice([-1, 0, 1])
+    inp.union.mi.dy = random.choice([-1, 0, 1])
+    inp.union.mi.dwFlags = MOUSEEVENTF_MOVE
+    inp.union.mi.time = 0
+    inp.union.mi.dwExtraInfo = None
+    _SendInput(1, ctypes.byref(inp), ctypes.sizeof(_INPUT))
+
+# VK codes that use WM_SYSKEYDOWN/UP instead of WM_KEYDOWN/UP
+_SYSKEY_VK = {0x12}  # VK_MENU (Alt)
+
+# Game window handle cache
+_game_hwnd = None
+_game_hwnd_time = 0.0
+
+def _get_game_hwnd():
+    global _game_hwnd, _game_hwnd_time
+    now = time.monotonic()
+    if _game_hwnd and now - _game_hwnd_time < 5.0:
+        return _game_hwnd
+    hwnd = ctypes.windll.user32.FindWindowW(None, p.LIMBUS_NAME)
+    if hwnd:
+        _game_hwnd = hwnd
+        _game_hwnd_time = now
+    return _game_hwnd
+
+def _screen_to_client(screen_x, screen_y):
+    hwnd = _get_game_hwnd()
+    if not hwnd:
+        return int(screen_x), int(screen_y)
+    pt = wintypes.POINT(int(screen_x), int(screen_y))
+    ctypes.windll.user32.ScreenToClient(hwnd, ctypes.byref(pt))
+    return pt.x, pt.y
+
+def _MAKELPARAM(x, y):
+    return ((y & 0xFFFF) << 16) | (x & 0xFFFF)
 
 
 FIXED_VK_MAP = {
@@ -38,111 +142,102 @@ FIXED_VK_MAP = {
     'up': 0x26, 'down': 0x28, 'left': 0x25, 'right': 0x27,
 }
 
+_EXTENDED_VK = {
+    0x21, 0x22, 0x23, 0x24,  # PageUp, PageDown, End, Home
+    0x25, 0x26, 0x27, 0x28,  # Left, Up, Right, Down
+    0x2D, 0x2E,              # Insert, Delete
+    0x5B, 0x5C,              # Win left, Win right
+}
 
-def _force_layout_independent_vk_mapping():
-    keycodes_module = getattr(interception, "_keycodes", None)
-    if keycodes_module is None:
+_MOUSE_MSG_DOWN = {
+    'left': WM_LBUTTONDOWN,
+    'right': WM_RBUTTONDOWN,
+    'middle': WM_MBUTTONDOWN,
+}
+
+_MOUSE_MSG_UP = {
+    'left': WM_LBUTTONUP,
+    'right': WM_RBUTTONUP,
+    'middle': WM_MBUTTONUP,
+}
+
+_MOUSE_MK = {
+    'left': MK_LBUTTON,
+    'right': MK_RBUTTON,
+    'middle': MK_MBUTTON,
+}
+
+_PostMessageW = ctypes.windll.user32.PostMessageW
+_SendMessageW = ctypes.windll.user32.SendMessageW
+
+
+def _post_mouse(msg, button='left'):
+    """Send mouse message with realistic companion messages."""
+    hwnd = _get_game_hwnd()
+    if not hwnd:
         return
+    sx, sy = get_position()
+    cx, cy = _screen_to_client(sx, sy)
+    lparam = _MAKELPARAM(cx, cy)
 
-    keycodes_module._MAPPING.update(FIXED_VK_MAP)
-    keycodes_module.get_key_information.cache_clear()
+    is_down = msg in (WM_LBUTTONDOWN, WM_RBUTTONDOWN, WM_MBUTTONDOWN)
+    if is_down:
+        # Real hardware generates these before a click:
+        # 1. WM_NCHITTEST — game returns HTCLIENT
+        # 2. WM_SETCURSOR — cursor shape update
+        # 3. WM_MOUSEMOVE — cursor arrived at click position
+        _SendMessageW(hwnd, WM_NCHITTEST, 0, lparam)
+        _SendMessageW(hwnd, WM_SETCURSOR, hwnd, HTCLIENT | (WM_MOUSEMOVE << 16))
+        _PostMessageW(hwnd, WM_MOUSEMOVE, 0, lparam)
 
+    wparam = _MOUSE_MK[button] if is_down else 0
+    _PostMessageW(hwnd, msg, wparam, lparam)
 
-_force_layout_independent_vk_mapping()
-
-
-def _initialize_interception_devices():
-    try:
-        interception.auto_capture_devices(keyboard=True, mouse=True, verbose=False)
-    except Exception:
-        # Keep defaults if probing fails; diagnostics can still be collected later.
-        pass
-
-
-def get_interception_diagnostics():
-    report = {
-        "context_valid": False,
-        "device_count": 0,
-        "mouse_device": None,
-        "keyboard_device": None,
-        "mouse_hwid": None,
-        "keyboard_hwid": None,
-        "mouse_write_ok": False,
-        "errors": [],
-    }
-
-    try:
-        context = interception.inputs._g_context
-        report["context_valid"] = bool(context.valid)
-        report["device_count"] = len(context.devices)
-    except Exception as exc:
-        report["errors"].append(f"context_access_failed: {exc}")
-        return report
-
-    if not report["context_valid"]:
-        report["errors"].append("driver_not_valid")
-        return report
-
-    try:
-        report["mouse_device"] = context.mouse
-        report["keyboard_device"] = context.keyboard
-    except Exception as exc:
-        report["errors"].append(f"device_selection_failed: {exc}")
-
-    try:
-        report["mouse_hwid"] = context.devices[context.mouse].get_HWID()
-    except Exception as exc:
-        report["errors"].append(f"mouse_hwid_failed: {exc}")
-
-    try:
-        report["keyboard_hwid"] = context.devices[context.keyboard].get_HWID()
-    except Exception as exc:
-        report["errors"].append(f"keyboard_hwid_failed: {exc}")
-
-    try:
-        # No-op relative move verifies IOCTL write path without visible movement.
-        stroke = MouseStroke(MouseFlag.MOUSE_MOVE_RELATIVE, 0, 0, 0, 0)
-        result = context.send(context.mouse, stroke)
-        report["mouse_write_ok"] = bool(result.succeeded)
-        if not result.succeeded:
-            report["errors"].append("mouse_write_failed")
-    except Exception as exc:
-        report["errors"].append(f"mouse_write_exception: {exc}")
-
-    return report
+    _maybe_cover_noise()
 
 
-def format_interception_diagnostics(report=None):
-    if report is None:
-        report = get_interception_diagnostics()
-
-    lines = [
-        "Interception Diagnostics",
-        f"  context_valid : {report.get('context_valid')}",
-        f"  device_count  : {report.get('device_count')}",
-        f"  mouse_device  : {report.get('mouse_device')}",
-        f"  keyboard_device: {report.get('keyboard_device')}",
-        f"  mouse_write_ok: {report.get('mouse_write_ok')}",
-    ]
-
-    mouse_hwid = report.get('mouse_hwid')
-    keyboard_hwid = report.get('keyboard_hwid')
-    lines.append(f"  mouse_hwid    : {mouse_hwid if mouse_hwid else 'None'}")
-    lines.append(f"  keyboard_hwid : {keyboard_hwid if keyboard_hwid else 'None'}")
-
-    errors = report.get('errors') or []
-    if errors:
-        lines.append("  errors:")
-        for err in errors:
-            lines.append(f"    - {err}")
+def _post_key(vk, scan, extended=False, up=False):
+    """Send key message, using WM_SYSKEYDOWN/UP for Alt."""
+    hwnd = _get_game_hwnd()
+    if not hwnd:
+        return
+    is_syskey = vk in _SYSKEY_VK
+    if up:
+        msg = WM_SYSKEYUP if is_syskey else WM_KEYUP
     else:
-        lines.append("  errors        : none")
+        msg = WM_SYSKEYDOWN if is_syskey else WM_KEYDOWN
+    lparam = 1  # repeat count
+    lparam |= (scan & 0xFF) << 16  # scan code
+    if extended:
+        lparam |= (1 << 24)  # extended key flag
+    if is_syskey and not up:
+        lparam |= (1 << 29)  # context code (Alt held)
+    if up:
+        lparam |= (1 << 30)  # previous key state
+        lparam |= (1 << 31)  # transition state
+    _PostMessageW(hwnd, msg, vk, lparam)
 
-    return "\n".join(lines)
+    _maybe_cover_noise()
 
-_initialize_interception_devices()
 
-print(format_interception_diagnostics())
+def _move_to_absolute(x, y):
+    x, y = int(x), int(y)
+    ctypes.windll.user32.SetCursorPos(x, y)
+    # Send WM_MOUSEMOVE so the game processes the new position
+    hwnd = _get_game_hwnd()
+    if hwnd:
+        cx, cy = _screen_to_client(x, y)
+        _PostMessageW(hwnd, WM_MOUSEMOVE, 0, _MAKELPARAM(cx, cy))
+
+
+def _key_name_to_scan(key):
+    vk = FIXED_VK_MAP.get(key.lower(), 0)
+    if vk == 0:
+        return 0, False
+    scan = _MapVirtualKeyW(vk, 0)  # MAPVK_VK_TO_VSC
+    extended = vk in _EXTENDED_VK
+    return scan, extended
+
 
 class BITMAPINFOHEADER(ctypes.Structure):
     _fields_ = [
@@ -168,7 +263,7 @@ class BITMAPINFO(ctypes.Structure):
 def screenshot(imageFilename=None, region=None, allScreens=False):
     user32 = ctypes.windll.user32
     gdi32 = ctypes.windll.gdi32
-    
+
     if allScreens:
         width = user32.GetSystemMetrics(78)  # SM_CXVIRTUALSCREEN
         height = user32.GetSystemMetrics(79)  # SM_CYVIRTUALSCREEN
@@ -177,20 +272,20 @@ def screenshot(imageFilename=None, region=None, allScreens=False):
         width = user32.GetSystemMetrics(0)  # SM_CXSCREEN
         height = user32.GetSystemMetrics(1)  # SM_CYSCREEN
         x = y = 0
-    
+
     if region:
         x, y, rwidth, rheight = region
         width, height = rwidth, rheight
     else:
         region = (x, y, width, height)
-    
+
     hdc = user32.GetDC(None)
     mfc_dc = gdi32.CreateCompatibleDC(hdc)
     bitmap = gdi32.CreateCompatibleBitmap(hdc, width, height)
     gdi32.SelectObject(mfc_dc, bitmap)
-    
+
     gdi32.BitBlt(mfc_dc, 0, 0, width, height, hdc, x, y, 0x00CC0020)  # SRCCOPY
-    
+
     try:
         bmpinfo = BITMAPINFO()
         bmpinfo.bmiHeader.biSize = ctypes.sizeof(BITMAPINFOHEADER)
@@ -199,14 +294,14 @@ def screenshot(imageFilename=None, region=None, allScreens=False):
         bmpinfo.bmiHeader.biPlanes = 1
         bmpinfo.bmiHeader.biBitCount = 32
         bmpinfo.bmiHeader.biCompression = 0
-        
+
         buffer_len = width * height * 4
         buffer = ctypes.create_string_buffer(buffer_len)
         gdi32.GetDIBits(mfc_dc, bitmap, 0, height, buffer, ctypes.byref(bmpinfo), 0)
-        
+
         arr = np.frombuffer(buffer, dtype=np.uint8).reshape((height, width, 4))
         arr = arr[:, :, :3]  # Remove alpha channel
-        
+
         if imageFilename:
             import cv2  # Will raise error if not available
             cv2.imwrite(imageFilename, arr)
@@ -282,13 +377,13 @@ def _human_delay(min_delay=0.01, max_delay=0.03):
 
 def mouseDown(button='left', delay=0.16):
     _fail_safe_check()
-    interception.mouse_down(button=button)
+    _post_mouse(_MOUSE_MSG_DOWN[button], button)
     _human_delay(delay, delay + 0.02)
     _fail_safe_check()
 
 def mouseUp(button='left', delay=0.16):
     _fail_safe_check()
-    interception.mouse_up(button=button)
+    _post_mouse(_MOUSE_MSG_UP[button], button)
     _human_delay(delay, delay + 0.02)
     _fail_safe_check()
 
@@ -312,7 +407,7 @@ def _apply_macro_rhythm(profile=None):
 
     if dx != 0 or dy != 0:
         cur_x, cur_y = get_position()
-        interception.move_to(cur_x + dx, cur_y + dy, allow_global_params=False)
+        _move_to_absolute(cur_x + dx, cur_y + dy)
         _human_delay(0.004, 0.012)
 
     if pause > 0:
@@ -324,13 +419,22 @@ def set_failsafe(state=True):
     FAILSAFE_ENABLED = state
 
 
+_last_failsafe_check = 0.0
+_FAILSAFE_TTL = 0.5
+
 def _fail_safe_check():
     """Check if mouse is in fail-safe position and raise exception if needed"""
     if not FAILSAFE_ENABLED:
         return
-    
+
+    global _last_failsafe_check
+    now = time.monotonic()
+    if now - _last_failsafe_check < _FAILSAFE_TTL:
+        return
+    _last_failsafe_check = now
+
     name = getActiveWindowTitle()
-    
+
     if p.LIMBUS_NAME not in name:
         raise PauseException(name)
 
@@ -342,7 +446,7 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.09, humanize=True,
     profile = get_macro_profile()
     if humanize:
         delay = randomize_with_profile(delay, profile=profile, key="delay_jitter")
-    
+
     duration += delay
     start_x, start_y = get_position()
 
@@ -350,6 +454,12 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.09, humanize=True,
         mouse_velocity = profile["mouse_velocity"]
     if noise == 2.6:
         noise = profile["noise"]
+
+    # Per-move velocity/noise randomization
+    vel_min, vel_max = profile.get("mouse_velocity_jitter", (0.8, 1.2))
+    noise_min, noise_max = profile.get("noise_jitter", (0.8, 1.2))
+    mouse_velocity *= random.uniform(vel_min, vel_max)
+    noise *= random.uniform(noise_min, noise_max)
 
     if humanize:
         endpoint_jitter = profile["endpoint_jitter_px"]
@@ -370,7 +480,7 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.09, humanize=True,
         step_jitter_min, step_jitter_max = profile["step_sleep_jitter"]
 
         for i, (cur_x, cur_y) in enumerate(path):
-            interception.move_to(cur_x, cur_y, allow_global_params=False)
+            _move_to_absolute(cur_x, cur_y)
 
             if i < steps - 1:
                 sleep_time = step_delay * random.uniform(step_jitter_min, step_jitter_max)
@@ -391,7 +501,7 @@ def moveTo(x, y, duration=0.0, tween=easeInOutQuad, delay=0.09, humanize=True,
             current_x = min(max(current_x, min(start_x, x)), max(start_x, x))
             current_y = min(max(current_y, min(start_y, y)), max(start_y, y))
 
-            interception.move_to(current_x, current_y, allow_global_params=False)
+            _move_to_absolute(current_x, current_y)
 
             step_sleep = duration / (steps - 1)
             if i < steps - 1 and step_sleep > 0:
@@ -414,10 +524,10 @@ def click(x=None, y=None, button='left', clicks=1, interval=0.1, duration=0.0, t
     _apply_macro_rhythm(profile)
     delay = randomize_with_profile(delay, profile=profile, key="delay_jitter")
     interval += 0.05
-    
+
     if x is not None and y is not None:
         moveTo(x, y, duration, tween, delay=delay+0.02)
-        
+
     elif duration > 0:
         current_x, current_y = get_position()
         moveTo(current_x, current_y, duration, tween, delay=delay+0.02)
@@ -426,10 +536,10 @@ def click(x=None, y=None, button='left', clicks=1, interval=0.1, duration=0.0, t
 
     for i in range(clicks):
         _fail_safe_check()
-        
+
         mouseDown(button, delay=delay)
         mouseUp(button, delay=delay)
-        
+
         if interval > 0 and i < clicks - 1:
             time.sleep(randomize_with_profile(interval, profile=profile, key="click_interval_jitter"))
             _fail_safe_check()
@@ -438,7 +548,7 @@ def click(x=None, y=None, button='left', clicks=1, interval=0.1, duration=0.0, t
 def dragTo(x, y, duration=0.1, tween=easeInOutQuad, button='left', start_x=None, start_y=None):
     _fail_safe_check()
     _apply_macro_rhythm()
-    
+
     if start_x is not None and start_y is not None:
         moveTo(start_x, start_y)
 
@@ -451,9 +561,13 @@ def scroll(clicks, x=None, y=None):
     _apply_macro_rhythm()
     if x is not None and y is not None:
         moveTo(x, y)
-    
-    direction = "up" if clicks > 0 else "down"
-    interception.scroll(direction)
+
+    hwnd = _get_game_hwnd()
+    if hwnd:
+        delta = WHEEL_DELTA if clicks > 0 else -WHEEL_DELTA
+        sx, sy = get_position()
+        wparam = (delta & 0xFFFF) << 16
+        _PostMessageW(hwnd, WM_MOUSEWHEEL, wparam, _MAKELPARAM(sx, sy))
     _human_delay()
 
 
@@ -468,13 +582,17 @@ def press(keys, presses=1, interval=0.1, delay=0.09):
     for _p in range(presses):
         for key in keys:
             _fail_safe_check()
-            interception.key_down(key)
+            vk = FIXED_VK_MAP.get(key.lower(), 0)
+            scan, extended = _key_name_to_scan(key)
+            _post_key(vk, scan, extended, up=False)
             time.sleep(randomize_with_profile(delay, profile=profile, key="delay_jitter"))
-        
+
         for key in reversed(keys):
             _fail_safe_check()
-            interception.key_up(key)
-        
+            vk = FIXED_VK_MAP.get(key.lower(), 0)
+            scan, extended = _key_name_to_scan(key)
+            _post_key(vk, scan, extended, up=True)
+
         if interval > 0 and _p < presses - 1:
             time.sleep(randomize_with_profile(interval, profile=profile, key="key_interval_jitter"))
             _fail_safe_check()

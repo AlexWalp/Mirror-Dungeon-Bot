@@ -18,9 +18,9 @@ def check_enkephalin(shift=0): # 227
     win_click(1208, 496, duration=0.5)
     Action("ConfirmInvert.1", ver="connecting").execute(click)
     connection()
-    time.sleep(0.5)
+    human_sleep(0.5)
     gui.press("esc")
-    time.sleep(0.5)
+    human_sleep(0.5)
 
 def select_thd_level():
     choices = LocateRGB.locate_all(PTH["EnterSmall"], region=REG["thd!"])
@@ -47,7 +47,7 @@ def select_thd_level():
             return
 
     win_click(x, y)
-    time.sleep(0.5)
+    human_sleep(0.5)
 
     logging.info("Thread Luxcavation")
     
@@ -77,7 +77,7 @@ def grind_lux(count_exp, count_thd, teams):
         try:
             if not now.button("winrate") and not now.button("Exp"): start_lux()
             if p.LIMBUS_NAME not in (win := gui.getActiveWindowTitle()): pause(win)
-            time.sleep(0.5)
+            human_sleep(0.5)
 
             choices = LocateRGB.locate_all(PTH["EnterDoor"], region=REG["pick!"])
             if len(choices) != 0:
@@ -86,18 +86,18 @@ def grind_lux(count_exp, count_thd, teams):
                 choices.sort(key=lambda box: box[0], reverse=True)
                 print(choices)
                 win_click(gui.center(choices[0]))
-                time.sleep(0.5)
+                human_sleep(0.5)
 
                 logging.info("Exp Luxcavation")
             fight(lux=True)
 
             if now.button("victory"):
-                time.sleep(0.5)
+                human_sleep(0.5)
                 gui.press("esc")
                 if loc.button("Exp"):
                     count_exp-= 1
             elif now.button("defeat"):
-                time.sleep(0.5)
+                human_sleep(0.5)
                 if not p.RESTART:
                     raise RuntimeError("Luxcavation failed!")
                 gui.press("enter")
@@ -114,22 +114,22 @@ def grind_lux(count_exp, count_thd, teams):
                 if p.NETZACH: check_enkephalin(shift=227)
 
                 win_click(225, 492)
-                time.sleep(1)
+                human_sleep(1)
                 win_click(553, 721)
 
                 wait_while_condition(lambda: not now.button("EnterSmall", "thd!"))
-                time.sleep(0.5)
+                human_sleep(0.5)
 
             select_thd_level()
             fight(lux=True)
 
             if now.button("victory"):
-                time.sleep(0.5)
+                human_sleep(0.5)
                 gui.press("esc")
                 if loc.button("Exp"):
                     count_thd -= 1
             elif now.button("defeat"):
-                time.sleep(0.5)
+                human_sleep(0.5)
                 if not p.RESTART:
                     raise RuntimeError("Luxcavation failed!")
                 gui.press("enter")
@@ -137,7 +137,7 @@ def grind_lux(count_exp, count_thd, teams):
             pause(e.window)
 
     wait_while_condition(lambda: not now.button("Exp"))
-    time.sleep(1)
+    human_sleep(1)
     gui.press("esc")
     if p.BONUS: collect_dailies()
     logging.info("Done with Luxcavation!")
@@ -156,4 +156,4 @@ def collect_dailies():
 def click_collect():
     now_click.button("collect")
     connection()
-    time.sleep(1)
+    human_sleep(1)
