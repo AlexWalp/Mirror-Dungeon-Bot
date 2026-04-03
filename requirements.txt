@@ -1,6 +1,5 @@
 numpy==2.3.0 # compatibility
 opencv-python-headless
 PyQt6
-interception-python
 pywin32
 pathgenerator

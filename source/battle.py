@@ -48,7 +48,7 @@ def get_lowskill():
 
 def ego_click(best_ego):
     gui.mouseDown()
-    time.sleep(1.5)
+    human_sleep(1.5)
     gui.mouseUp()
     image_all = screenshot(region=(0, 200, 1920, 50))
     _, image_best = cv2.threshold(cv2.cvtColor(screenshot(region=(0, 495, 1920, 50)), cv2.COLOR_BGR2GRAY), 100, 255, cv2.THRESH_TOZERO)
@@ -72,12 +72,12 @@ def ego_click(best_ego):
             win_click(1850, 1000)
     if not loc.button("winrate", wait=2):
         win_click(1888, 901)
-    time.sleep(0.2)
+    human_sleep(0.2)
 
 
 def check_selection(button="winrate_on", st_clicks=3):
     gui.press("p", st_clicks, 0.5)
-    time.sleep(0.5)
+    human_sleep(0.5)
     wait_while_condition(lambda: not loc.button(button, "winrate", wait=0.5, method=cv2.TM_SQDIFF_NORMED), lambda: gui.press("p"))
 
 def select_ego():
@@ -98,7 +98,7 @@ def select_ego():
     
     for x in coords_x: # zayin didn't work, so let's use something more deadly
         win_click(x, 990, clicks=2, duration=0.1)
-        time.sleep(0.1)
+        human_sleep(0.1)
         ego_click(best2)
     check_selection()
     coords_x = get_lowskill()
@@ -191,7 +191,7 @@ def find_skill3(background, known_rgb, threshold=40, min_pixels=10, max_pixels=1
     return filtered
 
 def select_team():
-    time.sleep(1)
+    human_sleep(1)
 
     affinity = p.TEAM[0].lower()
     idx = p.NAME_ORDER
@@ -201,7 +201,7 @@ def select_team():
     if now_rgb.button("arrow", conf=0.7):
         win_moveTo(191, 472)
         win_dragTo(289, 884)
-        time.sleep(1)
+        human_sleep(1)
 
     for i in range(4):
         coords = [gui.center(box) for box in LocateGray.locate_all(PTH[f"{affinity}_team"], region=REG["teams"], threshold=15, conf=0.85)]
@@ -219,12 +219,12 @@ def select_team():
             gui.mouseDown()
             win_moveTo(193, 400, duration=0.3)
             if i == 2: gui.mouseUp()
-            time.sleep(0.3)
+            human_sleep(0.3)
     else:
         logging.info("Team selecton failed!")
         return
     logging.info(f"Selected {p.TEAM[0]}")
-    time.sleep(1)
+    human_sleep(1)
 
 def select(sinners):
     selected = [gui.center(box) for box in LocateGray.locate_all(PTH["selected"])]
@@ -253,16 +253,16 @@ def select(sinners):
         to_click.append(gui.center(region))
     if len(selected) > correct or len(backup) > correct_back:
         ClickAction((1713, 712), ver="Confirm_alt").execute(click)
-        time.sleep(0.21)
+        human_sleep(0.21)
         click.button("Confirm_alt")
-        time.sleep(0.5)
+        human_sleep(0.5)
         for region in regions:
             win_click(gui.center(region))
-            time.sleep(0.1)
+            human_sleep(0.1)
     elif to_click:
         for i in to_click:
             win_click(i)
-            time.sleep(0.1)
+            human_sleep(0.1)
 
     gui.press("space")
     loading_halt()
@@ -315,7 +315,7 @@ def fight(lux=False):
             x, y = win_get_position()
             if x < 1560 and y < 820:
                 win_moveTo(random.randint(1560, 1730), random.randint(250, 620))
-                time.sleep(0.1)
+                human_sleep(0.1)
         select(p.SELECTED)
 
         # for lux with 6 sinners max
@@ -328,7 +328,7 @@ def fight(lux=False):
     while True:
         ck = False
         if loc.button("winrate", wait=1):
-            time.sleep(0.1)
+            human_sleep(0.1)
             ck = True
             is_focused = True
             try:
@@ -340,20 +340,20 @@ def fight(lux=False):
                 chain(gear_start, gear_end, background)
 
                 # success check
-                time.sleep(1)
+                human_sleep(1)
                 if now.button("winrate"):
                     gui.press("p", 1, 0.1)
-                    time.sleep(0.5)
+                    human_sleep(0.5)
                     gui.press("enter", 1, 0.1)
-                    time.sleep(1)
+                    human_sleep(1)
             except gui.ImageNotFoundException:
                 if is_focused:
                     win_click(1385, 930, duration=0.1)
                 gui.press("p", 1, 0.1)
-                time.sleep(0.5)
+                human_sleep(0.5)
                 if not lux and p.HARD: select_ego()
                 gui.press("enter", 1, 0.1)
-                time.sleep(1)
+                human_sleep(1)
 
         if now_rgb.button("EGObin.0"):
             ck = True
@@ -413,9 +413,9 @@ def fight(lux=False):
         
         if now.button("pause"):
             ck = True
-            time.sleep(1)
+            human_sleep(1)
         else:
-            time.sleep(0.2)
+            human_sleep(0.2)
         
         # stuck check
         if ck == False:

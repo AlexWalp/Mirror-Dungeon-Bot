@@ -202,16 +202,16 @@ def move():
         wait_while_condition(condition=lambda: now.button("Move"), interval=0.1)
         p.MOVE_ANIMATION = False
         is_move = loc.button("Move", wait=2)
-        time.sleep(0.5)
+        human_sleep(0.5)
     
     if not is_move or \
            now.button("Confirm"): return False
     
     if p.HARD:
-        time.sleep(1.2) # node reveal animation
+        human_sleep(1.2) # node reveal animation
         if now.button("suicide"): return False
     else:
-        time.sleep(0.2)
+        human_sleep(0.2)
     
     print("move check")
     # run fail detection
@@ -219,7 +219,7 @@ def move():
     print(f"{p.DEAD} dead sinners")
     if p.DEAD >= len(p.SELECTED):
         gui.press("esc")
-        time.sleep(0.5)
+        human_sleep(0.5)
         chain_actions(click, [
             Action("forfeit"),
             Action("ConfirmInvert", ver="connecting"),

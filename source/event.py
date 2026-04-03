@@ -19,7 +19,7 @@ def event():
         gui.press("space", presses=3, interval=0.05)
         
         if now.button("choices"):
-            time.sleep(0.1)
+            human_sleep(0.1)
             if now_click.button("textNew", "textEGO") and is_choice_made(): continue
             if now_click.button("textLvl", "textEGO") and is_choice_made(): continue
             if any(now_click.button(f"choice_{favorite}", "textEGO") for favorite in favorites) and is_choice_made(): continue
@@ -75,7 +75,7 @@ def event():
                 for prob in PROBS:
                     if now_click.button(prob, "probs"):
                         click.button("Commence")
-                        time.sleep(2)
+                        human_sleep(2)
                         break
         
         if now_click.button("Continue"):

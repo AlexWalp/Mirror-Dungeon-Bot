@@ -150,7 +150,7 @@ def pack():
     print("pack check")
     p.LVL = update_lvl(p.LVL)
 
-    if p.LVL == 6 or p.LVL == 11: time.sleep(2) # animation
+    if p.LVL == 6 or p.LVL == 11: human_sleep(2) # animation
 
     if p.LVL <= 5:
         if not p.HARD:
@@ -163,14 +163,14 @@ def pack():
     logging.info(f"Floor {p.LVL}")
 
     win_moveTo(1721, 999)
-    time.sleep(0.2)
+    human_sleep(0.2)
 
     card_count = 5
 
     box = None
     start_time = time.time()
     while box is None:
-        time.sleep(0.2)
+        human_sleep(0.2)
         box = LocateGray.locate(PTH["PackPull"], region=REG["PackPull"])
         if time.time() - start_time > 4:
             break
@@ -184,7 +184,7 @@ def pack():
     print(f"{card_count} Packs")
 
     for skip in range(skips + 1):
-        time.sleep(0.2)
+        human_sleep(0.2)
         id = pack_eval(p.LVL, regions, skip, skips)
         # cv2.imwrite(f"choices/pack{int(time.time())}.png", screenshot()) # debugging
         if not id is None:
@@ -195,9 +195,9 @@ def pack():
             break
         if skip != skips:
             win_click(1617, 62)
-            time.sleep(2)
+            human_sleep(2)
     
     wait_while_condition(lambda: now.button("PackChoice"), interval=0.1)
     if p.LVL != 1: p.MOVE_ANIMATION = True
-    else: time.sleep(0.5)
+    else: human_sleep(0.5)
     return True
